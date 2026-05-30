@@ -151,6 +151,139 @@ tbody tr:last-child td{border-bottom:none}
 @media(max-width:768px){.sb{display:none}.mn{margin-left:0}.fg,.fg3,.fg4{grid-template-columns:1fr}}
 @keyframes pulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
 .dash-area-lbl:hover{background:var(--bg3);}
+/* ── DOCS COMMAND PALETTE (Variante 1) ─────────────────────────── */
+.dcp-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 120px);gap:14px;padding:40px}
+.dcp-empty-icon{width:52px;height:52px;border-radius:var(--rl);background:#fff;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:24px}
+.dcp-empty-title{font-size:14px;font-weight:600;color:var(--tx)}
+.dcp-empty-sub{font-size:12px;color:var(--tx3);text-align:center;max-width:280px;line-height:1.6}
+.dcp-trigger{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--r);border:1px solid var(--T);background:var(--T);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fn)}
+.dcp-trigger:hover{background:var(--T2)}
+.dcp-kbd-hint{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx3)}
+.dcp-kbd{font-size:10px;padding:2px 7px;border:1px solid var(--brd2);border-radius:4px;color:var(--tx3);background:var(--bg3);font-family:'Courier New',monospace}
+.dcp-overlay{display:none;position:fixed;inset:0;background:rgba(8,32,28,.52);z-index:2000;align-items:flex-start;justify-content:center;padding-top:60px}
+.dcp-overlay.open{display:flex}
+.dcp-palette{width:640px;max-width:96vw;background:#fff;border:1px solid var(--brd2);border-radius:var(--rl);overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.22);display:flex;flex-direction:column}
+.dcp-search-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--brd)}
+.dcp-search-row input{flex:1;font-size:14px;border:none;outline:none;background:transparent;color:var(--tx);font-family:'Courier New',monospace;letter-spacing:.3px}
+.dcp-search-row input::placeholder{font-family:var(--fn);letter-spacing:0;color:var(--tx3);font-size:13px}
+.dcp-search-icon{font-size:18px;color:var(--T);flex-shrink:0}
+.dcp-body{display:grid;grid-template-columns:172px 1fr;min-height:320px;max-height:560px}
+.dcp-sidebar{border-right:1px solid var(--brd);background:var(--bg3);overflow-y:auto;display:flex;flex-direction:column}
+.dcp-sidebar-label{font-size:9px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--tx3);padding:10px 12px 5px}
+.dcp-hist-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-left:2px solid transparent;transition:background .1s}
+.dcp-hist-item:hover{background:var(--bg4)}
+.dcp-hist-item.dcp-sel{background:#fff;border-left-color:var(--T)}
+.dcp-hist-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dcp-hist-code{font-family:'Courier New',monospace;font-size:10px;font-weight:700;color:var(--tx3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dcp-hist-item.dcp-sel .dcp-hist-code{color:var(--T3)}
+.dcp-sidebar-div{height:1px;background:var(--brd);margin:6px 12px}
+.dcp-detail{display:flex;flex-direction:column;overflow-y:auto}
+.dcp-detail-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:30px;color:var(--tx3)}
+.dcp-det-head{padding:14px 16px;border-bottom:1px solid var(--brd)}
+.dcp-det-code{font-family:'Courier New',monospace;font-size:11px;font-weight:700;color:var(--T3);background:var(--tl);padding:3px 9px;border-radius:4px;display:inline-block;margin-bottom:6px}
+.dcp-det-name{font-size:14px;font-weight:700;color:var(--tx);line-height:1.3;margin-bottom:2px}
+.dcp-det-en{font-size:10px;color:var(--tx3);margin-bottom:8px}
+.dcp-status-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dcp-sections{padding:12px 16px;display:flex;flex-direction:column;gap:12px;flex:1}
+.dcp-sec-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);border-bottom:2px solid var(--tl);padding-bottom:4px;margin-bottom:8px}
+.dcp-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dcp-grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.dcp-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:2px}
+.dcp-val{font-size:11px;color:var(--tx);font-weight:500}
+.dcp-val.mono{font-family:'Courier New',monospace;color:var(--T3)}
+.dcp-val.green{color:var(--G)}
+.dcp-val.red{color:var(--R)}
+.dcp-val.amber{color:var(--A)}
+.dcp-val.empty{color:var(--tx3);font-style:italic}
+.dcp-actions{display:flex;gap:6px;padding:10px 16px;border-top:1px solid var(--brd);background:var(--bg3);flex-wrap:wrap}
+.dcp-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--brd2);background:#fff;color:var(--tx2);cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:var(--fn);font-weight:500}
+.dcp-btn:hover{border-color:var(--T);color:var(--T);background:var(--tlx)}
+.dcp-btn-p{background:var(--T);color:#fff;border-color:var(--T)}.dcp-btn-p:hover{background:var(--T2);color:#fff}
+.dcp-btn-d{color:var(--R);border-color:var(--brd2)}.dcp-btn-d:hover{border-color:var(--R);background:#fde8e8;color:var(--R)}
+.dcp-hints{display:flex;gap:12px;padding:6px 16px;border-top:1px solid var(--brd);background:var(--bg3)}
+.dcp-hint{font-size:9px;color:var(--tx3);display:flex;align-items:center;gap:4px}
+
+/* ── DOCS CARD VIEW ─────────────────────────────────────────── */
+.docs-view-toggle{display:flex;gap:3px;background:var(--bg4);border:1px solid var(--brd);border-radius:7px;padding:2px}
+.dvt-btn{border:none;background:transparent;border-radius:5px;padding:4px 8px;cursor:pointer;color:var(--tx3);font-size:13px;transition:all .14s;line-height:1}
+.dvt-btn.act{background:#fff;color:var(--T);box-shadow:0 1px 3px rgba(0,0,0,.09)}
+.doc-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;padding:4px 0}
+.doc-card{background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:0;box-shadow:var(--sh);transition:box-shadow .15s,border-color .15s;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.doc-card:hover{box-shadow:0 4px 18px rgba(0,169,158,.13);border-color:var(--T)}
+.doc-card-top{padding:13px 14px 10px;flex:1}
+.doc-card-strip.ap{background:var(--G)}.doc-card-strip.ob{background:var(--R)}.doc-card-strip.rv{background:var(--A)}.doc-card-strip.ng{background:#bbb}
+.doc-card-code{font-family:'Courier New',monospace;font-size:10px;color:var(--T3);background:var(--tl);padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:7px;font-weight:700;letter-spacing:.3px}
+.doc-card-desc{font-size:12px;font-weight:600;color:var(--tx);line-height:1.4;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.doc-card-desc-en{font-size:10px;color:var(--tx3);margin-bottom:9px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.doc-card-meta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px}
+.doc-card-pill{font-size:9px;font-weight:600;padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--tx2);white-space:nowrap}
+.doc-card-pill.tipo{background:#e0f5f3;color:var(--T3)}.doc-card-pill.gxp{background:#e8f0fb;color:#1a5fa0}
+.doc-card-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--tx3);margin-bottom:4px}
+.doc-card-row strong{color:var(--tx2);font-weight:600}
+.doc-card-footer{border-top:1px solid var(--brd);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg3)}
+.doc-card-ver{font-size:10px;font-weight:700;color:var(--tx3);background:var(--bg4);padding:2px 7px;border-radius:5px}
+.doc-card-actions{display:flex;gap:4px}
+
+/* ── RUTABOR ACCORDION ──────────────────────────────────────────────── */
+.rb-accordion{display:flex;flex-direction:column;gap:6px}
+/* ── RUTABOR SPLIT VIEW ──────────────────────────────────────────────── */
+.rb-split{display:grid;grid-template-columns:260px 1fr;gap:12px;align-items:start}
+.rb-split-list{background:#fff;border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden;position:sticky;top:8px}
+.rb-split-list-search{padding:8px 10px;border-bottom:1px solid var(--brd);background:var(--bg3)}
+.rb-split-list-search input{width:100%;font-size:11px;padding:5px 9px;border-radius:5px;border:1px solid var(--brd2);background:#fff;color:var(--tx);outline:none;font-family:var(--fn)}
+.rb-split-group-hdr{padding:5px 10px 3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);border-top:1px solid var(--brd);background:var(--bg3)}
+.rb-split-item{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;border-top:0.5px solid var(--brd);border-left:2px solid transparent;transition:background .1s}
+.rb-split-item:hover{background:var(--tlx)}
+.rb-split-item.act{background:var(--tlx);border-left-color:var(--T)}
+.rb-split-item.done{opacity:.6}
+.rb-split-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rb-split-info{flex:1;min-width:0}
+.rb-split-code{font-family:'Courier New',monospace;font-size:9px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rb-split-name{font-size:9px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.rb-split-badge{font-size:8px;font-weight:700;padding:1px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0}
+.rb-split-detail{background:#fff;border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden}
+.rb-split-empty{padding:48px 20px;text-align:center;color:var(--tx3);font-size:12px;line-height:1.8}
+.rb-det-head{padding:14px 16px;border-bottom:1px solid var(--brd)}
+.rb-det-stage{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:10px}
+.rb-det-stage-pill{font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.rb-det-stage-arrow{font-size:11px;color:var(--tx3)}
+.rb-det-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.rb-det-sec{padding:12px 16px;border-bottom:1px solid var(--brd)}
+.rb-det-sec:nth-child(odd){border-right:1px solid var(--brd)}
+.rb-det-sec-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid var(--tl)}
+.rb-det-field{padding:5px 0;border-bottom:0.5px solid var(--brd)}
+.rb-det-field:last-child{border-bottom:none}
+.rb-det-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:2px}
+.rb-det-val{font-size:11px;color:var(--tx);font-weight:500}
+.rb-det-val.empty{color:var(--tx3);font-style:italic}
+.rb-det-actions{padding:10px 16px;border-top:1px solid var(--brd);background:var(--bg3);display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+
+.rb-acc-item{background:#fff;border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;box-shadow:var(--sh);transition:border-color .15s}
+.rb-acc-item:hover{border-color:var(--brd2)}
+.rb-acc-item.rb-open{border-color:var(--T)}
+.rb-acc-header{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;user-select:none;transition:background .12s}
+.rb-acc-header:hover{background:var(--tlx)}
+.rb-acc-item.rb-open .rb-acc-header{background:var(--tlx);border-bottom:1px solid var(--brd)}
+.rb-acc-chevron{font-size:11px;color:var(--tx3);transition:transform .2s;flex-shrink:0;margin-left:auto}
+.rb-acc-item.rb-open .rb-acc-chevron{transform:rotate(180deg)}
+.rb-acc-code{font-family:'Courier New',monospace;font-size:10px;color:var(--T3);background:var(--tl);padding:2px 8px;border-radius:4px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.rb-acc-consec{font-size:10px;font-weight:700;color:#fff;background:var(--T);padding:2px 8px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+.rb-acc-nombre{font-size:12px;font-weight:600;color:var(--tx);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rb-acc-tipo{font-size:9px;font-weight:600;padding:2px 7px;border-radius:99px;background:#e0f5f3;color:var(--T3);white-space:nowrap;flex-shrink:0}
+.rb-acc-estado{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.rb-acc-body{display:none;padding:14px 16px}
+.rb-acc-item.rb-open .rb-acc-body{display:block}
+.rb-acc-section{margin-bottom:14px}
+.rb-acc-section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--T);border-bottom:2px solid var(--tl);padding-bottom:4px;margin-bottom:9px}
+.rb-acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.rb-acc-field{display:flex;flex-direction:column;gap:2px}
+.rb-acc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3)}
+.rb-acc-value{font-size:11px;color:var(--tx);font-weight:500}
+.rb-acc-value.mono{font-family:'Courier New',monospace;color:var(--T3);font-size:10px}
+.rb-acc-value.empty{color:var(--tx3);font-style:italic}
+.rb-acc-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-top:1px solid var(--brd);background:var(--bg3)}
+.rb-acc-strip{width:4px;border-radius:4px 0 0 4px;flex-shrink:0;align-self:stretch;min-height:40px}
+
 </style>
 </head>
 <body>
@@ -159,7 +292,8 @@ tbody tr:last-child td{border-bottom:none}
     <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAkACQAAD/2wBDAAIBAQIBAQICAgICAgICAwUDAwMDAwYEBAMFBwYHBwcGBwcICQsJCAgKCAcHCg0KCgsMDAwMBwkODw0MDgsMDAz/2wBDAQICAgMDAwYDAwYMCAcIDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAz/wAARCABPANwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD5Tooor9YP4TCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAp0ML3EqxxqzuxwFUZJNNr9DP+CBPwM8K+P8Ax3428VaxbWuoa74Vhtl0qCZQ4tjKZN06qf4hsVQ3bce+K58XiFQpOq1ex7GQ5RPNMfTwNOSi5X1fRJNv10WiPmnwD/wTe+LXjrTIb6Tw3JodjNys2rOLVsevln95g+u3BqbxR/wTz8XeFI28/VNAkZeoSWX+sdfsj8TvA2o640nlRKit0Mjbf/r184fFr9nTxBqEczQtYuT0XzSCf0rwaOcVJvWyP0zG+HuFw1O0FKT7t/okflH4y+Fms+BpWF7bho1OPMiYOv6cj8cVztfWH7Sfwp8QeB0kk1TS7i3gbjzgA8R/4EuR+dfK2pRrFfSqvChjx6V7+Hre0jc/Lc0wP1WryWa8nuQV9J/smf8ABKP4w/tgaLDrOg6Lb6R4buCRFq+sTfZrebHUxjBkkGcjciFcgjPBrif2DPgpZftEftf+AfB+qKr6Xq2qx/boyxXzbdMySoCCCCyIwBHOTX7G/wDBVz9uTWv+CeHwL8Mr4G8Paa13rVwdMs5Z4D9h0mKKIEARoVG7GAi5C4VuCBg+dmOOq06kcPh0ueXfZH13CPDGCxWDr5vms3GhS0tHdvT8NV9+6sfB3jL/AIN3fjR4f0KW603WPBOu3MS7hZ297LFLKfRTLEiZ/wB5gK+K/i18HvE3wJ8c3nhvxdot9oOtae22a1uo9rD0ZT0ZT1DKSCOQSK+1f2dv+C/3xc8KfEqxb4gSaR4q8L3VwiX0aafHa3NrEThnhaIKCyg5w4bdjGRnI9v/AOC4nxH+CH7Rn7M+l+IvD3jjwZrHjjQr2FbFNP1CO4vJ7aXPmQsiEsFBw+XGFKkcFiDlRxWNpV40sUk1Lquh3ZhknDuOy2rjslqSpzpauFRrVeWr17Wb2s0rn5LUVc8PeHNQ8W61b6bpVjealqF44jgtrWFpppmPQKqgkn2FfQWk/wDBJH9orWtDXUIfhhrKQum8JNPbwzY943kDg+xANexUr06f8SSXq7H5/g8txmLv9VpSnbfli3b7kz5xq54f8P33ivXLPS9Ms7jUNR1CZbe2treMySzyMQFRVHLMSQAByTWp8SfhV4l+DnieXRfFWg6r4e1WHlrW/tmgkx6gMBlT2IyDX3//AMG837L03if43638StY0W6/szw9p/kaLeXFuywS3UzsjvE5+V2REkQ4zjzexxWWLxcaFB1t7befY7shyKtmWZU8u1i5Oz01ilq215Lv10PPtO/4IPfFmx+COreNPEmo+HPDZ0vTZtSOlzzvNebY0L7W8tSikgH+I4745r4hr9Wv+CzX7b3x28F+PvEng3wroeseHfhtZ2S2Woa2mkGWPVftES7/9IdCkajf5Y2ENkH5s4A/MH4efDLxF8W/EsOjeF9D1TxBqtx9y1sLZ55WHrhQcAep4FcuW1q9Sk62Ias9VbovM9jjDLctwuNjgMqhPmheMnL7Ur2vHut1okn0MOivpmy/4I7/tH39ssy/DPUFVxkCS/tEYfUGXI/GqXjP/AIJNftA/D/wjqmu6t8PLy20vRrWS9vJhfWsnkwxqXdtqyljhQTgAniur67h27KpH70eLLhvNlHmeFqW78kv8j5zoqxpWk3Wu6lDZ2NrcXl5cuI4YIIzJJKxOAqqOSSewr6C8Nf8ABJj9ojxXoUeo2vww1qO3lXeq3U0FrNj3jkkVx9CAa2qVqdP+JJL1djiweW4vF3WFpSnbfli3b7kz51orq/i58C/GPwF8Rf2T4y8N6x4b1DkrFfWzReaB3Rj8rj3UkVygG44FVGSkrx2OarRnSm6dROMlumrNfIKK94+F/wDwTG+PHxi8Nxavofw216TTrhQ8M115dl5ynoyiZkLKexAwa4P44fsv/EH9mzVI7Pxz4S1nw3JMSInuoP3M+OuyVco+P9ljis44ilKXJGSb7XVzsrZTjqVL6xVozjB/acWl97Vjg6KKK2PPCiiigAr7B/4Ju6BrngfRLnx14R8RXGh+Jkums0OwTWs0ICloZ4jw6sSD2IKggg18fV7N+x/+0DqXwT8SzLHGt9pd4QZ7Vm28jo6ns36EfgRy4ynKdJqP/DntcP4mnQx0KlW6XdXun0atrofqFof7Z3xS1C2WPXPhfY6vIFGbvRdYWFZT7Q3ABX/vs1V179onxPfIWk+EPj5V6n7ObS5P5LNzXMfB39pvwn4utoWF69jK3WK5jKkfiMr+te/+CviFokkaldTtJM/3X3fyr5GpFU3/AA/z/wAz96wdWeKgv9qb/wDAH/7bf7z5Z8ffHbSdXuBo/iDRdZ8NSakpjW38Q6a9qtyCcbVLDy2znGAxr87f2nfANj8NPjXrOl6a2bJHWaJc7vLDqG259s4+lfv1Jp/hv4s+GrjQ9Y0uz1zS75PLnguoQ8Tr9GHY4IPYjNfhP+3x8IrP4Eftd+OPCun3kt9p+lX+22kllMjpEyK6Rsx5JRWCHP8Adr1slxEZ1HBK2mx8P4iZTVw+Fp15SU05WTtZrRu1tbp23Vttji/gX8XtS+Afxh8N+M9I2nUPDeoRX8KOTslKMCUbHO1hlT7E1+6nwd/bl+AP/BR34XR6HrVz4fkuNRVRd+GvEGxJo5QP+We/iTHJDxnI9jxX4+/8E2/2SdB/bV/aUt/A+v8AiC48P29xYT3UT28avNdSRgHyk3cA7dzZIPCEY5yO8/4Khf8ABMW8/YH8SaLfaDd6xr3g/WISo1GeEK1ndKTuicpwMrhlJAz8w52k1tmNHDYivGjKTjUtdM87hHMc3ynLauYUqUauFbtOLa30V7atbpO6a8j9APiv/wAEAPgh8RIp7jwzdeIPCNxNlovsd79qtVJ/2JQxI9g4r87v2/P+CT3jr9he2XWpbiHxR4MmlEKataxmNrdj91Z4yTsJ7EEqTxnJAryb4H/tifFT4Ca1ZzeDvGniLTzBJuSzS5aW2lPTDQtlGz6FTX7nftD303xd/wCCXniLUvHGmw6fqWreBG1LUrOSMxrZ3n2US7QrcqUmAwDyCBXHUqYvAVIKpPnjJ213/r5n0GGweQ8T4PETwuG+r1qUea6+HrppZdNdE+qPFf8AglZ+yh4N/Yb/AGOh8XvGUdrDr+raWdavtQnj3vplkV3pDHxkErgsByzNjnArx/xX/wAHKDW/jmRNF+Gcdx4cjl2pJd6kY7yZM/ewqlEJ9Pmx6mvpP9pbwle/td/8Ef8A7P4HU3V1qnhiwvLW2h5acQeVI8AA/i/dsuP7wxX4O3VlNY3clvNFJDNGxR43UqykcEEetLLsJSxkqlXE6yva19kXxbnuO4foYTA5O/Z0nBS5kk+ZvfVp+Tfe/ax+9njjwh8M/wDgtH+xS2qaXDHHfukqaddzRgXmgaiig+U5H8JJXcucMjAjnBHGf8EJv2gYPE37PeofCW40i803xB8JZng1GSVlMdwbi7unAXHIZCrKQfQEHnir/wAG/nwe174U/sha1rXiC3n02z8VaudQ0+K4Gwm2SFE8/B6K5BwT1CA9CDXEf8EOPFll48/ay/ae1zTWVtP1jWYL21ZfumKS71B0I/4CRXnVqajSr0Iu8YNNeTbt+p9XgMXUqY7K8yqRUK2IhONTS3NFR5k/LVJ+jtsRf8Fdf+ClOg+I9H8efs86d4Z1q58UXs9rpqXxeMWxkaSGUYGdx7L9a91+D/w6+Gv/AARv/Yq/t7XIY/7SW3ifV7yKMNe6veuOIIyf4Q2VVchQAWOPmNfml/wUC8TWvgz/AILDa5rF9j7FpfinT7qfI6RoIGb9Aa/QL/gvB8INc+Of7FOm6t4Xhl1S38N6nHrF1FbAyNJatC6GVQM7gu8MfRcntXTUw8IwoYdO0J6y83ZHk4HNsRWxGaZrKKqV8NeFNW+GKlLWy383u0rdTwHWf+DlXVjqc39n/C7Tls9x8r7RqztIV7btqAZ+lT/EX/gsd8YPjp+zX4pax+At8vhfX9FvrKTXYFuprS2ieKSKWXeI9hCfNnnAKnPQ1+Xul6Nd63qkNjZ2txdXlxIIooIoy8kjk4ChRySScYr98/hV8G9U+AX/AAR4vPCeuReRq+m/D/VXvIT1t5Jre4naM+6eZtPuprrzDC4PCcjjTTba6v79zwuFc64gz14iFbFSjCEG21GFr9I7aXV/PQ8V/wCCJP7HHhn4G/syt8bvFNpDNr2tW1xfW9xNFvOk6dFu5jXGQ8gRnLDJKlQO+fMPip/wcI/EAfEOdfBvw309fDEExWL+1ILiS7uYweGJRlVCRzjDY9TX2x+wb8S21X/gmT4B1vw1pq65faP4PjtodOWQRfbbq0hMLQ7sEKXliZckHrnmvjbVv+Diw6DqdxZXvwTitby1kaKaGXV9jxuDgqQYMgg9q4aUZ4jE1Zzpe0adtZWt8j6XHVcNlWU4LD0Mb9VjKCldU3PnbSbba232810SPqTwJrngX/gst+xderr/AIbm0m8Zns5oriPNxot8qArNBIQCR8ykHjcCVYdRXxd/wRa/4J5WmtftTePtU8dafb6h/wAKj1D+yoLWVRJbzaiJJF83B4YRrEWAI6yI3avof4R/8FXfi98Y/BUfiDwl+zHrOpaHcOyx3UGrCOOUrwxXMI3AHjI4yCOxra/4ItfFKb42D45eLLjSl0O417xq11LYB9/2RzEMoWwMkEHJwMnPAqb18Ph60V7sdNOZO13qtPI3jHLM1zTL6s26lWKleTpygpqMbp+8rOzs9G9+xx/7bf8AwXlsf2b/AI4at4H8H+EIPE0vhu4ay1K+u7swQi4Q4kijVQSdjZUsSPmBGMDJ9h/Zp/aM+Hv/AAWL/Zc8QaXrXh9bWSM/YtX0ud1mexkZSYriGTGfUq2AQyMMcc/ip+2ic/th/Ff/ALHDVv8A0tmr9Bv+DaI/vfi4O2NM/wDbmuvG5ZQoYJV6atJWd7+h4HDfGWZZlxFLLsZJSo1HOPI0rJJNq2l+lndu5+bXx6+FVz8DfjT4p8H3biS48N6nPp7OBxII3KhvxGD+NclXvH/BT8bf+Cgnxax/0MM/9K8Hr6XDzc6UZPqk/wAD8azTDxoY2tQhtGUkvRNpBRRRWxwhV7QNdk0C/WZFDgHlT3qjRRuOMmndH0V8IP2kfDemmJdSmuNPZcZLxF1/Arn+VfS3w+/bf+F/hi3SS88UQrtAO1LaZ2P4BDX5v0Vw1svp1N2z6PA8UYrCq0FF+qf6NH6VfFT/AILeaP4I8O3Fj8OdGutT1Z0KR6jqKeTa25P8ax53uR6HaPr0P50eM/GOpfELxZqWuaxdzX+q6tcPdXdxKctNI5JZj9SazKK0w2DpUP4a1fXqc+ccRY7M3H61LSOyWiXy7+buzpvg18Xtd+AvxP0Xxf4bvGsda0G5W5tpR0JHVWHdWGVYdCCR3r9jvgB/wXD+CP7Q3gOPSfibHF4T1S4iEV9Z6nZm80y6bHJVwrDaeuJAuOmT1P4l0Vjjsto4qzqaNbNbndw3xhmGSuUcK1KEt4yV4vz6NP0evW5+72k/H39iP4Q6gviLS774Q2F/bnzY59PsoprmI+qLGjOD/ujNfHv/AAVU/wCCzel/tH/D28+HHwyhvk8O6gyjVdXuo/Je+jUhhFFGfmVCwBLNgnGMAZz+cdFc+HyWjTqKrOTk1tdnsZp4j4/FYWWDoU4UYT0lyKzae6vfr10v5n3d/wAEqf8Agr237Hmlf8IL45t7zVPAskxltLi2HmXGju5y2FJ+eInkqOQSSM5xX3jdftPfsU/EnUl8aahqHwqutWYidrm/06NL4uOQWjdA5Ye6k8cV+EFFPE5NRq1HVi3Fve3UzyfxDx+BwscHVhCtCPw86u49rO+y6X26Ox+o3/BSn/guHovjb4c6l8Pvgz9qa21WBrO/8QPC1sqW7DDRWyHDgsvyl2C4GcDJDDiP+CAP7SPgT9n7xT8Th428VaP4X/ti2042b6jcCBbjymud4Vm4yPMTjrz7Gvzwoq/7JorDPDQ0T3fU5f8AXrMZ5vTzivaUqd1GOqik01ZK9+u979z3r/gpp8RNF+L37dXxA17wzqNvrOj6hqCC1u7Zt8dxtiRCUP8AENynBHB7V98fsDf8FHfGX7LnwV03wz+0B4D8daL4V0tI7TTfFdxolx5EMJGI4bgFckAcKy5JGBjjNfkfDM1vMskbFXjIZWHUEdDX7cfsD/8ABQf4a/8ABQL9niH4Z/FCTSF8VNZLpuoabqjiOLXVUBVmhYkZkPBKqQ6sCV4AI5c2oqGGhBw5ox0b6q3VHvcCY6eIzeviIYhUa1S7imrwm223GV3fe1ra721Opt/23/2NPh1qEnjLTtW+HNtrEmZTdafowOoux9ki8wMfcD3r1/8AaC+Kmj/EP/gn/wCOfGGmzyNoet+BNQ1C1lmiaF3ilsZGTKsAQTuHB9a8O8K/8EJf2e/AHjj/AISa6g1/UdPtZDcrpup6orabEAcgNhFdkX0dyCB827mvBP8Ags//AMFRPCur/C2f4M/DDUrTVFvvLi13UtPYGztreMgraQOvyuWKruK/KFG3kswXwaeHpV60I4Xmlrq30R+oYrOMbleXYitnKpU04tQjTveUmrX1f6XSu3sfPv8AwSr/AOCrs/7D1zdeFfFFpdav8P8AVbk3OLfDXOkzHAaSMHG9GAG5MjkZHOQ36EX/AO1D+xT8drpfFetX3wtvtScB5JtX09Ibwkf31lQOxHuDX4R1798JfhV8OLj9l6TxL4uurex1K8v9Ts7eX7Vcrds0FrBJAsEUcbwtmWXD+cUG1uGBGR9Fjsrozn7ZNxk9Pd6n5HwzxpmNDD/UJRp1KcFde0Xw67J+r0vt0aR95ft5f8FyfBfhf4YXngv4Glr3Urq3NmusRWzWllpUZG0mBSFZpAPukKFXg5OMVyP/AAQk/bG+Gv7Pvwa8cab468Z6P4b1G+1mK7hS/lMZnQw7SykjB+YHPcceor5V8VfsjeF4fB3ie60XVoNS1618M+H7+x0SAXTXlvdXsunpIzlohE6t9ocKqSMRvXjg46rWP2JPBPhz4yeDreO/03VPC8mk6ta65Omtpd2w1XTtPmuXlZ7TfJDbyFY3EePN2pINucCuf6nhFh3QjdX1b6uyuepHiDPp5tDM6qhJwXLGN3yRU24dHfdXd3dK1+y+ef2pPFVh45/aZ+Imt6VcLeaXrHibUr2znUHbPDJdSOjjPOCrA8+tfa//AAQP/ak+H37N918Sl8deK9J8Mf2stgbM30vli48sz79p6cb1/OvHPEP7KXwwi1Lxva3WuSeHI7WHw8NJ1hZZbrSba5v7Se5dstGJpbN/KCq5Xem4E7gp3WPDH7G/w88SfGfUAmp3Fn8PbPw5pE0N/qup2+nSz32oW0RjdmkYKNuZ7gxKSSIdgJzmuzEyo1sO6ErpWXT0a8jwcnpZhgM0jmVFQlPmlpfS7507pa2Vm7+m7ujyj/goD4/0f4p/tpfErxD4fvodT0XVtbmns7uLPl3EZwAy+xxXj1anjjwhefD/AMZapoeox+VfaRdSWk6+joxU/hxWXXpUYqMFGOySPjcdWnWxNStUVpSk212bbbQUUUVocoUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFOilaFwyMysOhBwRTaKANa78fa5f2C2s2salNbKMCJ7l2QfhnFZJOTRRQklsVKcpfE7hTzcSNAsZdvLUlgueAT1OKZRQSWE1W6jkLLcTKxCgkOckLgr+WBj6U2PUriFWVZ5lViSwDEZJBB/MEj8TUNFBXMyaTULiaLy2mkZMKu0scYXO38snH1ok1C4li8tppGT5flLHHyjA/IcCoaKBczHTzyXUrSSM0kjclmOSabRRQIKKKKAP/2Q==" alt="Sofgen Pharma" style="width:160px;height:auto;display:block">
   </div>
   <div class="ns"><div class="nl">Principal</div>
-    <div class="ni act" data-p="dash" onclick="nav('dash',this)"><span class="nic">📊</span>Dashboard</div>
+    <div class="ni act" data-p="dash" onclick="nav('dash',this)"><span class="nic">🏠</span>Inicio</div>
+    <div class="ni" data-p="kpi" onclick="nav('kpi',this)"><span class="nic">📊</span>KPIs</div>
     <div class="ni" data-p="docs" onclick="nav('docs',this)"><span class="nic">📄</span>Documentos<span class="nb t" id="bd">0</span></div>
 </div>
   <div class="ns"><div class="nl">Acciones</div>
@@ -238,6 +372,79 @@ tbody tr:last-child td{border-bottom:none}
 </div>
 
   <div class="pg act" id="pg-dash">
+
+    <!-- ── BANNER BIENVENIDA ── -->
+    <div id="home-welcome-banner" style="background:var(--T3);border-radius:var(--rl);padding:14px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div id="home-avatar" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0">U</div>
+        <div>
+          <div id="home-greeting" style="font-size:15px;font-weight:700;color:#fff;margin-bottom:3px">Bienvenido</div>
+          <div id="home-subgreeting" style="font-size:11px;color:rgba(255,255,255,.75)">Cargando...</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
+        <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35);font-size:11px">🔍 Consultar documento</button>
+        <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:#fff;color:var(--T3);border-color:#fff;font-size:11px;font-weight:700">➕ Nuevo documento</button>
+      </div>
+    </div>
+
+    <!-- ── GRID: Accesos rápidos + Mis tareas ── -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+
+      <!-- Accesos rápidos a módulos -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);padding:0 2px">Accesos rápidos</div>
+        <div onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#e1f5ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">📄</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Documentos</div><div style="font-size:10px;color:var(--tx3)">Consulta y gestiona el archivo documental</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+        <div onclick="nav('rutabor',document.querySelector('[data-p=rutabor]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#faeeda;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🗂️</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Ruta de borrador</div><div style="font-size:10px;color:var(--tx3)">Gestiona solicitudes en proceso</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+        <div onclick="nav('flujos',document.querySelector('[data-p=flujos]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#e6f1fb;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🔀</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Flujos de aprobación</div><div style="font-size:10px;color:var(--tx3)">Revisa y aprueba documentos pendientes</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+        <div onclick="nav('venc',document.querySelector('[data-p=venc]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#fcebeb;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">⚠️</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Control de vencimientos</div><div style="font-size:10px;color:var(--tx3)">Documentos próximos a vencer o vencidos</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+        <div onclick="nav('audit',document.querySelector('[data-p=audit]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#e1f5ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🛡️</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Auditoría</div><div style="font-size:10px;color:var(--tx3)">Registro de actividades del sistema</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+      </div>
+
+      <!-- Mis tareas del día -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--sh);display:flex;flex-direction:column;overflow:hidden">
+        <div style="padding:10px 13px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px">✅</span>
+          <span style="font-size:12px;font-weight:700;color:var(--tx);flex:1">Mis tareas del día</span>
+          <span id="home-tasks-badge" style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;background:#e1f5ee;color:#085041"></span>
+          <button onclick="homeAddTask()" style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--T);background:#e1f5ee;color:var(--T3);cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:600">➕ Agregar</button>
+        </div>
+        <div id="home-tasks-list" style="flex:1;overflow-y:auto;max-height:340px"></div>
+        <div style="padding:8px 12px;background:var(--bg3);border-top:1px solid var(--brd)">
+          <div onclick="homeAddTask()" style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--tx3)">
+            <span style="font-size:14px;color:var(--tx3)">➕</span>
+            <span style="font-size:11px">Escribe una nueva tarea...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#pg-dash END -->
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PÁGINA: KPIs                                               -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="pg" id="pg-kpi">
     <!-- Alertas de inspecciones visibles desde el dashboard -->
     <div id="insp-dash-alerts" style="margin-bottom:10px"></div>
     <!-- Header row -->
@@ -423,33 +630,151 @@ tbody tr:last-child td{border-bottom:none}
   </div>
 
   <div class="pg" id="pg-docs">
-    <div class="flt">
-      <select class="fsel" id="f-tipo" onchange="filterDocs()"><option value="">Todos los tipos</option></select>
-      <select class="fsel" id="f-est" onchange="filterDocs()" style="min-width:160px">
-        <option value="">Todos los estados</option>
-        <optgroup label="Estado">
-          <option value="Vigente">Vigente</option>
-          <option value="Vencido">Vencido</option>
-          <option value="Obsoleto">Obsoleto</option>
-        </optgroup>
-        <optgroup label="Próximos a vencer">
-          <option value="Menos de 15 días">Menos de 15 días</option>
-          <option value="Menos de 1 Mes">Menos de 1 Mes</option>
-          <option value="Menos de 2 Meses">Menos de 2 Meses</option>
-          <option value="Menos de 3 Meses">Menos de 3 Meses</option>
-          <option value="Menos de 4 Meses">Menos de 4 Meses</option>
-          <option value="Menos de 5 Meses">Menos de 5 Meses</option>
-        </optgroup>
-      </select>
-      <select class="fsel" id="f-proc" onchange="filterDocs()"><option value="">Todos los procesos</option></select>
-      <select class="fsel" id="f-area" onchange="filterDocs()"><option value="">Todas las áreas</option></select>
-      <select class="fsel" id="f-sub" onchange="filterDocs()"><option value="">Todas las subáreas</option></select>   
-  
- <select class="fsel" id="f-gxp" onchange="filterDocs()"><option value="">Todos</option><option value="si">GxP</option><option value="no">No GxP</option></select><button class="btn gh sm" onclick="clearFiltros()" style="white-space:nowrap">X Limpiar filtros</button>
+
+    <!-- ── LANDING: barra superior + tarjetas de acceso rápido ── -->
+    <div id="dcp-landing">
+      <!-- Barra búsqueda principal -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1;display:flex;align-items:center;gap:10px;background:var(--bg3);border:1.5px solid var(--T);border-radius:var(--r);padding:9px 14px;cursor:text" onclick="dcpOpen()">
+            <span style="font-size:16px;color:var(--T)">🔍</span>
+            <span style="font-size:13px;color:var(--tx3);flex:1">Escribe el código del documento que deseas consultar...</span>
+            <span style="display:flex;align-items:center;gap:3px">
+              <span class="dcp-kbd">Ctrl</span><span style="font-size:10px;color:var(--tx3)">+</span><span class="dcp-kbd">K</span>
+            </span>
+          </div>
+          <button class="btn sm" onclick="dcpOpen()" style="white-space:nowrap;padding:9px 18px">Buscar</button>
+        </div>
+      </div>
+
+      <!-- Fila 1: Consultados recientemente (full width) -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;box-shadow:var(--sh);margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--brd)">
+          <span style="font-size:14px">🕐</span>
+          <span style="font-size:12px;font-weight:700;color:var(--tx)">Consultados recientemente</span>
+        </div>
+        <!-- Recientes en fila horizontal -->
+        <div id="dcp-landing-recent" style="display:flex;flex-wrap:wrap;gap:6px">
+          <div style="font-size:11px;color:var(--tx3);padding:6px 0">Sin consultas recientes</div>
+        </div>
+      </div>
+
+      <!-- Fila 2: Accesos directos en grid de cuadros -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);margin-bottom:8px">Accesos directos</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div onclick="nav('extvigor',document.querySelector('[data-p=extvigor]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#e1f5ee;display:flex;align-items:center;justify-content:center;font-size:20px">📅</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Extender vigencia</div>
+          </div>
+          <div onclick="nav('fextvig',document.querySelector('[data-p=fextvig]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#e8f0fb;display:flex;align-items:center;justify-content:center;font-size:20px">📋</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">F-Extensión de vigencia</div>
+          </div>
+          <div onclick="nav('docsrel',document.querySelector('[data-p=docsrel]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#faeeda;display:flex;align-items:center;justify-content:center;font-size:20px">🔗</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Docs relacionados</div>
+          </div>
+          <div onclick="nav('revdoc',document.querySelector('[data-p=revdoc]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#e0f5f3;display:flex;align-items:center;justify-content:center;font-size:20px">🔍</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Revisión de documentos</div>
+          </div>
+          <div onclick="nav('pdfbarcode',document.querySelector('[data-p=pdfbarcode]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#fcebeb;display:flex;align-items:center;justify-content:center;font-size:20px">🖨️</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Estampar PDF</div>
+          </div>
+          <div onclick="nav('novedad',document.querySelector('[data-p=novedad]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#f3e8fb;display:flex;align-items:center;justify-content:center;font-size:20px">📢</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Novedad de documentos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Más consultados (al final) -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;box-shadow:var(--sh)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--brd)">
+          <span style="font-size:14px">⭐</span>
+          <span style="font-size:12px;font-weight:700;color:var(--tx)">Más consultados</span>
+        </div>
+        <div id="dcp-landing-top" style="display:flex;flex-wrap:wrap;gap:6px">
+          <div style="font-size:11px;color:var(--tx3);padding:6px 0">Sin datos aún</div>
+        </div>
+      </div>
+
+      <div id="dcp-landing-stats" style="display:none"></div>
     </div>
-    <div class="card">
-      <div class="tw"><table><thead><tr><th>Código</th><th>Cód. Ant.</th><th>Descripción</th><th>Ver.</th><th>Tipo</th><th>Área</th><th>Vencimiento</th><th>Estado</th><th>GxP</th><th>Administrador</th><th></th></tr></thead><tbody id="docs-tb"></tbody></table></div>
-      <div class="pgctrl" id="docs-pg"></div>
+
+    <!-- ── VISTA PRINCIPAL: barra fija + layout split ── -->
+    <div id="dcp-main-view" style="display:none">
+      <!-- Barra superior -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 14px;margin-bottom:12px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px">
+        <button class="btn gh sm" onclick="dcpBackToLanding()" style="white-space:nowrap">← Inicio</button>
+        <div style="flex:1;display:flex;align-items:center;gap:10px;background:var(--bg3);border:1.5px solid var(--T);border-radius:var(--r);padding:7px 12px;cursor:text" onclick="dcpOpen()">
+          <span style="font-size:14px;color:var(--T)">🔍</span>
+          <span id="dcp-topbar-code" style="font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:var(--T3)"></span>
+          <span id="dcp-topbar-name" style="font-size:12px;color:var(--tx3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        </div>
+        <button class="btn gh sm" onclick="dcpOpen()" style="white-space:nowrap">🔍 Nueva búsqueda</button>
+      </div>
+
+      <!-- Split layout: sidebar relacionados + detalle -->
+      <div style="display:grid;grid-template-columns:210px 1fr;gap:12px;align-items:start">
+        <!-- Sidebar: docs relacionados -->
+        <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden;position:sticky;top:12px">
+          <div style="background:var(--T3);color:#fff;padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px">
+            Familia documental
+          </div>
+          <div id="dcp-related-list" style="max-height:calc(100vh - 200px);overflow-y:auto"></div>
+        </div>
+        <!-- Detalle del documento -->
+        <div id="dcp-detail-panel">
+          <div id="dcp-detail-content-main" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay command palette -->
+    <div class="dcp-overlay" id="dcp-overlay" onclick="dcpOverlayClick(event)">
+      <div class="dcp-palette" id="dcp-palette">
+        <div class="dcp-search-row">
+          <span class="dcp-search-icon">🔍</span>
+          <input id="dcp-input" placeholder="Escribe el código del documento..." oninput="dcpSearch(this.value)" onkeydown="dcpKeydown(event)" autocomplete="off" spellcheck="false"/>
+          <span class="dcp-kbd" onclick="dcpClose()" style="cursor:pointer">Esc</span>
+        </div>
+        <div class="dcp-body">
+          <div class="dcp-sidebar" id="dcp-sidebar">
+            <div class="dcp-sidebar-label">Recientes</div>
+            <div id="dcp-hist-recent"></div>
+            <div class="dcp-sidebar-div"></div>
+            <div class="dcp-sidebar-label">Más consultados</div>
+            <div id="dcp-hist-top"></div>
+          </div>
+          <div class="dcp-detail" id="dcp-detail">
+            <div class="dcp-detail-empty" id="dcp-detail-empty">
+              <div style="font-size:24px">📄</div>
+              <div style="font-size:12px;color:var(--tx3)">Escribe un código para consultar</div>
+            </div>
+            <div id="dcp-detail-content" style="display:none;flex-direction:column;flex:1"></div>
+          </div>
+        </div>
+        <div class="dcp-hints">
+          <span class="dcp-hint"><span class="dcp-kbd">Enter</span> consultar</span>
+          <span class="dcp-hint"><span class="dcp-kbd">↑↓</span> navegar historial</span>
+          <span class="dcp-hint"><span class="dcp-kbd">Esc</span> cerrar</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedores legacy para compatibilidad (ocultos) -->
+    <div style="display:none">
+      <select id="f-tipo"></select><select id="f-est"></select>
+      <select id="f-proc"></select><select id="f-area"></select>
+      <select id="f-sub"></select><select id="f-gxp"></select>
+      <table><tbody id="docs-tb"></tbody></table>
+      <div id="docs-pg"></div>
+      <div id="docs-list-view"></div>
+      <div id="docs-cards-view"><div id="docs-cards-grid"></div></div>
+      <div id="dvt-cards"></div><div id="dvt-list"></div>
     </div>
   </div>
 
@@ -2327,46 +2652,79 @@ function vB(d){if(d<0)return'<span class="b vc">Vencido</span>';if(d<=30)return'
 function gB(v){return(v==='X'||v==='Si'||v==='Sí')?'<span class="b gx">GxP</span>':'<span class="b ng">No GxP</span>';}
 // Acciones que NO deben registrarse en Auditrail (son del sistema, no del usuario)
 var _AUDIT_EXCLUIR=['Inicializacion','Consulta','OneDrive','Sync Copias',
-  'Revisión Documental','QR PDF','Descarga','Estado automático','Estado auto'];
+  'QR PDF','Estado automático','Estado auto'];
 
 // Mapeo de acción normalizada y módulo para el Auditrail
 function _auditNormalizar(a,d){
   var acc=a, mod='Sistema';
-  // Determinar módulo por acción
-  if(a==='Creacion'||a==='Edicion'||a==='Eliminacion'||a==='Aprobacion'||a==='Rechazo'||
-     a==='Obsoleto'||a==='Reversion Obsoleto'||a==='Extension Vigencia'||a==='Quitar Extension')
-    mod='Listado Maestro';
-  if(a==='Copia controlada'||a==='Importacion copias') mod='Copias Controladas';
+  // ── Listado Maestro / Documentos ─────────────────────────────────────
+  if(['Creacion','Edicion','Eliminacion','Aprobacion','Rechazo',
+      'Obsoleto','Reversion Obsoleto','Extension Vigencia','Quitar Extension',
+      'Envio a flujo'].indexOf(a)>=0) mod='Listado Maestro';
+  // ── Copias controladas ───────────────────────────────────────────────
+  if(['Copia controlada','Importacion copias'].indexOf(a)>=0) mod='Copias Controladas';
   if(a==='Acta Copias') mod='Entrega de Copias';
-  if(a==='Inspeccion') mod='Inspecciones';
-  if(a==='Solicitud RB'||a==='Oficialización') mod='Ruta de Borrador';
+  // ── Inspecciones ─────────────────────────────────────────────────────
+  if(a==='Inspeccion'||a==='Inspección') mod='Inspecciones';
+  // ── Ruta de Borrador ─────────────────────────────────────────────────
+  if(['Solicitud RB','Oficialización','Oficialización automática',
+      'Aprobación ruta','Oficialización ruta','Eliminación ruta',
+      'Aprobacion ruta'].indexOf(a)>=0) mod='Ruta de Borrador';
+  // ── Novedad de Documento ─────────────────────────────────────────────
   if(a==='Novedad de Documento') mod='Novedad de Documento';
+  // ── Extensión de Vigencia ────────────────────────────────────────────
+  if(a==='Extension Vigencia'||a==='Quitar Extension') mod='Extensión de Vigencia';
+  // ── Revisión de Documentos ───────────────────────────────────────────
+  if(a==='Revisión Documental'||a==='Revision Documental') mod='Revisión de Documentos';
+  // ── Estampar PDF ─────────────────────────────────────────────────────
+  if(a==='PDF Barcode'||a==='Estampar PDF') mod='Estampar PDF';
+  // ── Marcar Obsoleto ──────────────────────────────────────────────────
+  if(a==='Marcar Obsoleto') mod='Marcar Obsoleto';
+  // ── Usuarios ─────────────────────────────────────────────────────────
   if(a==='Usuarios') mod='Administración de Usuarios';
+  // ── Notificaciones ───────────────────────────────────────────────────
   if(a==='Notificacion'||a==='Correo') mod='Notificaciones';
+  // ── Importación ──────────────────────────────────────────────────────
   if(a==='Importacion') mod='Importación';
+  // ── Auditoría / Sistema ──────────────────────────────────────────────
+  if(a==='Cierre de sesión'||a==='Descarga'||a==='Informe') mod='Sistema';
+
   // Normalizar la acción a texto descriptivo
   var DESC={
     'Creacion':'Creación de código',
     'Edicion':'Modificación de código',
-    'Eliminacion':'Eliminación de código',
+    'Eliminacion':'Eliminación de registro',
     'Aprobacion':'Aprobación de documento',
     'Rechazo':'Rechazo de documento',
+    'Envio a flujo':'Envío a flujo de aprobación',
     'Obsoleto':'Documento marcado como Obsoleto',
-    'Reversion Obsoleto':'Reversión de Obsoleto',
-    'Extension Vigencia':'Extensión de vigencia',
-    'Quitar Extension':'Eliminación de extensión de vigencia',
+    'Marcar Obsoleto':'Documento marcado como Obsoleto',
+    'Reversion Obsoleto':'Reversión de estado Obsoleto',
+    'Extension Vigencia':'Extensión de vigencia aplicada',
+    'Quitar Extension':'Extensión de vigencia eliminada',
     'Copia controlada':'Registro de copia controlada',
     'Importacion copias':'Importación de copias controladas',
-    'Acta Copias':'Generación de acta de entrega',
+    'Acta Copias':'Generación de acta de entrega de copias',
     'Inspeccion':'Inspección de copias controladas',
+    'Inspección':'Inspección de copias controladas',
     'Solicitud RB':'Asignación a ruta de borrador',
     'Oficialización':'Oficialización de documento',
+    'Oficialización automática':'Oficialización automática al guardar documento',
+    'Aprobación ruta':'Aprobación — paso a proceso de firma',
+    'Aprobacion ruta':'Aprobación — paso a proceso de firma',
+    'Oficialización ruta':'Oficialización desde módulo Ruta de Borrador',
+    'Eliminación ruta':'Eliminación de solicitud de ruta de borrador',
     'Novedad de Documento':'Solicitud de novedad de documento',
+    'Revisión Documental':'Actualización de documentos relacionados',
+    'Revision Documental':'Actualización de documentos relacionados',
+    'PDF Barcode':'Estampado de código QR/barras en PDF',
+    'Estampar PDF':'Estampado de código QR/barras en PDF',
     'Usuarios':'Gestión de usuarios',
     'Notificacion':'Notificación enviada',
-    'Correo':'Notificación por correo',
-    'Importacion':'Importación de datos',
+    'Correo':'Notificación por correo enviada',
+    'Importacion':'Importación de datos desde archivo',
     'Cierre de sesión':'Cierre de sesión',
+    'Descarga':'Descarga de archivo',
     'Informe':'Generación de informe'
   };
   acc=DESC[a]||a;
@@ -2415,8 +2773,8 @@ function getSaludo(){var h=new Date().getHours();if(h>=5&&h<12)return'Buenos dia
 // NAV
 // ============================================================
 
-var PT={dash:'Dashboard',docs:'Documentos',flujos:'Flujos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Inspecciones Rutinarias',procs:'Mapa de Procesos',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',validacion:'Informe de Validación IQ/OQ/PQ',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento F-SOP-0001-5'};
-var PR={dash:renderDash,docs:renderDocs,venc:renderVenc,flujos:renderFlujos,copias:renderCopias,entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},procs:renderProcs,usrs:renderUsrs,notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,validacion:renderValidacion,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
+var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',flujos:'Flujos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Inspecciones Rutinarias',procs:'Mapa de Procesos',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',validacion:'Informe de Validación IQ/OQ/PQ',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento F-SOP-0001-5'};
+var PR={dash:renderDash,kpi:function(){renderKPI();},kpi:function(){renderKPI();},docs:renderDocs,venc:renderVenc,flujos:renderFlujos,copias:renderCopias,entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},procs:renderProcs,usrs:renderUsrs,notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,validacion:renderValidacion,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
 
 function nav(p,el){
   console.log('nav a:', p, '| modulos:', JSON.stringify(currentUser?currentUser.modulos:[]));
@@ -2495,7 +2853,19 @@ function updBadges(){
 // ============================================================
 // DASHBOARD
 // ============================================================
+function renderKPI(){
+  // KPIs — excluir Obsoletos de todos los cálculos
+  function esObsoleto(d){
+    return d.estado==='Obsoleto'||d.obsoleto==='X'||d.obsoleto==='Si'||d.obsoleto==='Sí';
+  }
+  // Trigger existing KPI render functions that work on #pg-kpi elements
+  if(typeof dashActualizarUI==='function') dashActualizarUI();
+  else if(typeof dashActualizar==='function') dashActualizar();
+  if(typeof renderDashInsp==='function') renderDashInsp();
+}
+
 function renderDash(){
+  if(typeof homeInit==='function') homeInit();
   //  KPIs — excluir Obsoletos de todos los cálculos 
   // Un doc es obsoleto si: estado==='Obsoleto' O campo obsoleto es X/Si
   function esObsoleto(d){
@@ -2936,6 +3306,522 @@ function sortCodigos(a, b){
   return pa.original.localeCompare(pb.original);
 }
 
+
+/* ═══════════════════════════════════════════════════
+   COMMAND PALETTE + MÓDULO DOCUMENTOS — COMPLETO
+   ═══════════════════════════════════════════════════ */
+var _dcpHistory  = [];
+var _dcpTopCodes = {};
+var _dcpCurrentDoc = null;
+var _dcpLandingReady = false;
+
+/* ── Persistencia ─────────────────────────────────── */
+function dcpLoadStorage(){
+  try{ _dcpHistory  = JSON.parse(localStorage.getItem('dcp_hist')||'[]'); }catch(e){ _dcpHistory=[]; }
+  try{ _dcpTopCodes = JSON.parse(localStorage.getItem('dcp_top') ||'{}'); }catch(e){ _dcpTopCodes={}; }
+}
+function dcpSaveStorage(){
+  try{ localStorage.setItem('dcp_hist', JSON.stringify(_dcpHistory)); }catch(e){}
+  try{ localStorage.setItem('dcp_top',  JSON.stringify(_dcpTopCodes));  }catch(e){}
+}
+
+/* ── Estado del doc ──────────────────────────────── */
+function dcpColorEstado(estado){
+  var e=(estado||'').toLowerCase();
+  if(e==='vigente') return 'var(--G)';
+  if(e==='vencido'||e==='obsoleto') return 'var(--R)';
+  return 'var(--A)';
+}
+function dcpBadgeStyle(estado){
+  var e=(estado||'').toLowerCase();
+  if(e==='vigente') return 'background:#e6f9f3;color:#0f7a50';
+  if(e==='vencido'||e==='obsoleto') return 'background:#fde8e8;color:#a02020';
+  return 'background:#fff5e0;color:#a06000';
+}
+function dcpDias(s){
+  if(!s) return null;
+  var h=new Date(); h.setHours(0,0,0,0);
+  var r=new Date(s+'T00:00:00');
+  if(isNaN(r)) return null;
+  return Math.round((r-h)/86400000);
+}
+function dcpFmtDate(s){
+  if(!s||s==='—') return '—';
+  var p=s.split('-');
+  if(p.length===3){
+    var mn=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return p[2]+' '+(mn[parseInt(p[1])-1]||p[1])+' '+p[0];
+  }
+  return s;
+}
+function dcpFv(v){ return (v&&String(v).trim()&&v!=='undefined')?String(v).trim():''; }
+
+/* ── Landing: renderizar ────────────────────────── */
+function dcpRenderLanding(){
+  dcpLoadStorage();
+  // Recientes — horizontal pills
+  var rEl=document.getElementById('dcp-landing-recent');
+  if(rEl){
+    var rec=_dcpHistory.slice(0,10);
+    if(!rec.length){ rEl.innerHTML='<div style="font-size:11px;color:var(--tx3);padding:6px 0">Sin consultas recientes</div>'; }
+    else{
+      rEl.innerHTML=rec.map(function(cod){
+        var d=docs.find(function(x){return x.codigoActual===cod;});
+        var color=d?dcpColorEstado(d.estado):'var(--tx3)';
+        var name=d?d.descripcion:'';
+        return '<div onclick="dcpSelectByCod(\''+cod+'\')" title="'+name+'" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:var(--r);background:#fff;border:1px solid var(--brd);cursor:pointer;transition:border-color .12s;flex-shrink:0" onmouseover="this.style.borderColor=\'var(--T)\'" onmouseout="this.style.borderColor=\'var(--brd)\'">'
+          +'<span style="width:7px;height:7px;border-radius:50%;background:'+color+';flex-shrink:0;display:inline-block"></span>'
+          +'<span style="font-family:\'Courier New\',monospace;font-size:10px;font-weight:700;color:var(--T3)">'+cod+'</span>'
+          +'</div>';
+      }).join('');
+    }
+  }
+  // Más consultados — horizontal pills
+  var tEl=document.getElementById('dcp-landing-top');
+  if(tEl){
+    var topArr=Object.keys(_dcpTopCodes).sort(function(a,b){return _dcpTopCodes[b]-_dcpTopCodes[a];}).slice(0,10);
+    if(!topArr.length){ tEl.innerHTML='<div style="font-size:11px;color:var(--tx3);padding:6px 0">Sin datos aún</div>'; }
+    else{
+      tEl.innerHTML=topArr.map(function(cod){
+        var d=docs.find(function(x){return x.codigoActual===cod;});
+        var color=d?dcpColorEstado(d.estado):'var(--tx3)';
+        var name=d?d.descripcion:'';
+        var cnt=_dcpTopCodes[cod]||0;
+        return '<div onclick="dcpSelectByCod(\''+cod+'\')" title="'+name+'" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:var(--r);background:#fff;border:1px solid var(--brd);cursor:pointer;transition:border-color .12s;flex-shrink:0" onmouseover="this.style.borderColor=\'var(--T)\'" onmouseout="this.style.borderColor=\'var(--brd)\'">'
+          +'<span style="width:7px;height:7px;border-radius:50%;background:'+color+';flex-shrink:0;display:inline-block"></span>'
+          +'<span style="font-family:\'Courier New\',monospace;font-size:10px;font-weight:700;color:var(--T3)">'+cod+'</span>'
+          +'<span style="font-size:9px;color:var(--tx3);background:var(--bg4);border-radius:99px;padding:1px 5px;flex-shrink:0">×'+cnt+'</span>'
+          +'</div>';
+      }).join('');
+    }
+  }
+}
+
+/* ── Sidebar palette: historial ─────────────────── */
+function dcpRenderSidebar(){
+  var rEl=document.getElementById('dcp-hist-recent');
+  var tEl=document.getElementById('dcp-hist-top');
+  if(!rEl||!tEl) return;
+  var rec=_dcpHistory.slice(0,8);
+  rEl.innerHTML=rec.map(function(cod){
+    var d=docs.find(function(x){return x.codigoActual===cod;});
+    var color=d?dcpColorEstado(d.estado):'var(--tx3)';
+    var isSel=_dcpCurrentDoc&&_dcpCurrentDoc.codigoActual===cod;
+    return '<div class="dcp-hist-item'+(isSel?' dcp-sel':'')+'" onclick="dcpSelectByCod(\''+cod+'\')">'+
+      '<span class="dcp-hist-dot" style="background:'+color+'"></span>'+
+      '<span class="dcp-hist-code">'+cod+'</span>'+
+      '</div>';
+  }).join('') || '<div style="padding:6px 12px;font-size:10px;color:var(--tx3)">Sin consultas aún</div>';
+
+  var topArr=Object.keys(_dcpTopCodes).sort(function(a,b){return _dcpTopCodes[b]-_dcpTopCodes[a];}).slice(0,5);
+  var inRecent=_dcpHistory.slice(0,8);
+  var filtTop=topArr.filter(function(c){return inRecent.indexOf(c)<0;});
+  tEl.innerHTML=filtTop.map(function(cod){
+    var d=docs.find(function(x){return x.codigoActual===cod;});
+    var color=d?dcpColorEstado(d.estado):'var(--tx3)';
+    return '<div class="dcp-hist-item" onclick="dcpSelectByCod(\''+cod+'\')">'+
+      '<span class="dcp-hist-dot" style="background:'+color+'"></span>'+
+      '<span class="dcp-hist-code">'+cod+'</span>'+
+      '</div>';
+  }).join('') || '<div style="padding:6px 12px;font-size:10px;color:var(--tx3)">Sin datos aún</div>';
+}
+
+/* ── Familia documental: sidebar relacionados ───── */
+function dcpBuildFamilia(d){
+  var cod = (d.codigoActual||'').toUpperCase().trim();
+
+  // Tokenizar por coma, punto y coma, pipe o tabulacion — NUNCA por espacio
+  function tokens(campo){
+    return String(campo||'').toUpperCase()
+      .split(/[,;|\t\n\r]+/)
+      .map(function(t){ return t.trim(); })
+      .filter(Boolean);
+  }
+
+  var empresa = docsEmpresa();
+  var resultado = [];
+  var vistosId = { [d.id]: true };
+
+  empresa.forEach(function(x){
+    if(vistosId[x.id]) return;
+    var xCod = (x.codigoActual||'').toUpperCase().trim();
+
+    // REGLA 1: el codigo candidato COMIENZA con el codigo base + guion
+    // Ej: SOP-0001  →  F-SOP-0001-1, DA-SOP-0001-02, INST-SOP-0001
+    var rePrefix = new RegExp('^[A-Z]+-' + cod.replace(/[-]/g,'[-]') + '(?:[-_]|$)');
+    if(rePrefix.test(xCod)){ vistosId[x.id]=true; resultado.push(x); return; }
+
+    // REGLA 2: el candidato tiene al doc base en su campo docsRelacionados
+    var toks = tokens(x.docsRelacionados);
+    if(toks.indexOf(cod)>=0){ vistosId[x.id]=true; resultado.push(x); return; }
+
+    // REGLA 3: el doc base tiene al candidato en su propio docsRelacionados
+    var misTokens = tokens(d.docsRelacionados);
+    if(misTokens.indexOf(xCod)>=0){ vistosId[x.id]=true; resultado.push(x); return; }
+  });
+
+  // Agrupar por tipo, ordenados por codigo dentro del grupo
+  var grupos = {};
+  resultado.forEach(function(x){
+    var tipo = x.tipoDocumento || (typeof detTipo==='function' ? detTipo(x.codigoActual) : '') || 'Otro';
+    if(!grupos[tipo]) grupos[tipo] = [];
+    grupos[tipo].push(x);
+  });
+  Object.keys(grupos).forEach(function(t){
+    grupos[t].sort(function(a,b){ return (a.codigoActual||'').localeCompare(b.codigoActual||''); });
+  });
+  return grupos;
+}
+
+var _dcpActiveRelId = null;
+
+function dcpRenderRelated(d){
+  var el = document.getElementById('dcp-related-list');
+  if(!el) return;
+  _dcpActiveRelId = d.id;
+  var grupos = dcpBuildFamilia(d);
+  var tiposOrden = ['Formato','Documento Asociado','Instructivo','Programa','Protocolo',
+    'Politica','Manual','Norma Interna','Subproceso','Descripcion De Procesos',
+    'Cronograma','Matriz','Listado','Mapa De Procesos','Procedimiento'];
+  var tiposPresentes = Object.keys(grupos);
+  tiposPresentes.sort(function(a,b){
+    var ia=tiposOrden.indexOf(a); var ib=tiposOrden.indexOf(b);
+    if(ia<0) ia=99; if(ib<0) ib=99; return ia-ib;
+  });
+  var totalRel = tiposPresentes.reduce(function(s,t){ return s+grupos[t].length; }, 0);
+
+  var html = '';
+
+  // ── Documento base ──
+  html += '<div style="padding:8px 10px;border-bottom:1px solid var(--brd);background:var(--tl)">'
+    + '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--T3);margin-bottom:5px">Documento base</div>'
+    + '<div id="dcp-rel-item-base" onclick="dcpShowRelDoc('+d.id+',true)" style="display:flex;align-items:center;gap:7px;padding:6px 9px;background:#fff;border-radius:6px;border:2px solid var(--T);cursor:pointer">'
+      + '<span style="width:7px;height:7px;border-radius:50%;background:'+dcpColorEstado(d.estado)+';flex-shrink:0;display:inline-block"></span>'
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-family:\'Courier New\',monospace;font-size:10px;font-weight:700;color:var(--T3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.codigoActual+'</div>'
+        + '<div style="font-size:9px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px">'+d.descripcion+'</div>'
+      + '</div>'
+    + '</div>'
+  + '</div>';
+
+  if(!tiposPresentes.length){
+    html += '<div style="padding:16px 12px;font-size:10px;color:var(--tx3);text-align:center;line-height:1.7">'
+      + 'No se encontraron Formatos,<br>DAs ni documentos relacionados.'
+      + '</div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  // ── Encabezado familia ──
+  html += '<div style="padding:5px 10px;background:var(--bg3);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">'
+    + '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3)">Familia documental</span>'
+    + '<span style="font-size:9px;font-weight:700;color:var(--T);background:var(--tl);padding:1px 7px;border-radius:99px">'+totalRel+'</span>'
+  + '</div>';
+
+  // ── Grupos ──
+  tiposPresentes.forEach(function(tipo){
+    var items = grupos[tipo];
+    html += '<div>'
+      + '<div style="padding:5px 10px 3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--T3);background:var(--bg3);border-top:1px solid var(--brd);border-bottom:0.5px solid var(--brd)">'
+        + tipo + ' <span style="font-weight:500;color:var(--tx3)">('+items.length+')</span>'
+      + '</div>';
+    items.forEach(function(x){
+      html += '<div id="dcp-rel-item-'+x.id+'" onclick="dcpShowRelDoc('+x.id+')" '
+        + 'style="display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:pointer;border-top:0.5px solid var(--brd);border-left:2px solid transparent;transition:background .12s">'
+        + '<span style="width:6px;height:6px;border-radius:50%;background:'+dcpColorEstado(x.estado)+';flex-shrink:0;display:inline-block"></span>'
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="font-family:\'Courier New\',monospace;font-size:9px;font-weight:700;color:var(--T3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+x.codigoActual+'</div>'
+          + '<div style="font-size:9px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px">'+x.descripcion+'</div>'
+        + '</div>'
+        + '<span style="font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;'+dcpBadgeStyle(x.estado)+'">'+x.estado+'</span>'
+      + '</div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+function dcpShowRelDoc(id, isBase){
+  var d = docs.find(function(x){ return x.id===id; });
+  if(!d) return;
+  // Quitar seleccion anterior
+  var prevItem = document.getElementById('dcp-rel-item-'+_dcpActiveRelId);
+  if(prevItem && !prevItem.id.endsWith('-base')){
+    prevItem.style.background=''; prevItem.style.borderLeft='2px solid transparent';
+  }
+  var baseEl = document.getElementById('dcp-rel-item-base');
+  _dcpActiveRelId = id;
+  if(isBase){
+    if(baseEl) baseEl.style.border='2px solid var(--T)';
+  } else {
+    if(baseEl) baseEl.style.border='1px solid var(--brd2)';
+    var newEl = document.getElementById('dcp-rel-item-'+id);
+    if(newEl){ newEl.style.background='var(--tlx)'; newEl.style.borderLeft='2px solid var(--T)'; }
+  }
+  dcpRenderDetailPanel(d);
+  var codeEl = document.getElementById('dcp-topbar-code');
+  var nameEl = document.getElementById('dcp-topbar-name');
+  if(codeEl) codeEl.textContent = d.codigoActual + (isBase ? ' — ' : ' \u2190 ' + ((_dcpCurrentDoc&&_dcpCurrentDoc.codigoActual)||'') + ' — ');
+  if(nameEl) nameEl.textContent = d.descripcion;
+}
+
+function dcpRenderDetailPanel(d){
+  var panel = document.getElementById('dcp-detail-content-main');
+  if(!panel) return;
+
+  var dias = dcpDias(d.fechaVencimiento);
+  var diasColor = dias===null ? 'var(--tx3)' : dias<0 ? 'var(--R)' : dias<=30 ? 'var(--A)' : 'var(--G)';
+  var diasText  = dias===null ? '—' : dias<0 ? 'Vencido hace '+Math.abs(dias)+' días' : dias===0 ? 'Vence hoy' : dias+' días restantes';
+  var gxpSi = d.docGxP==='X' || d.docGxP==='Si' || d.docGxP==='Sí';
+
+  // Fecha en formato YYYY-MM-DD (ya viene así del sistema, mostrar tal cual)
+  function fd(s){ return dcpFv(s) || '—'; }
+
+  function fi(label, val){
+    var v = dcpFv(val);
+    return '<div style="padding:7px 0;border-bottom:0.5px solid var(--brd)">'
+      + '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:2px">'+label+'</div>'
+      + '<div style="font-size:12px;color:var(--tx);font-weight:500">'+(v||'<span style="color:var(--tx3);font-style:italic">—</span>')+'</div>'
+      + '</div>';
+  }
+
+  // ── Historial ──
+  var hist = (d.historial||[]).slice().reverse();
+  var histHtml = hist.length
+    ? hist.map(function(h){
+        var fecha = (h.f||'').split(' ')[0]; // solo YYYY-MM-DD
+        return '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--brd)">'
+          + '<div style="width:6px;height:6px;border-radius:50%;background:var(--T);margin-top:5px;flex-shrink:0"></div>'
+          + '<div style="flex:1">'
+            + '<div style="font-size:11px;font-weight:600;color:var(--tx);line-height:1.4">'+(h.c||'Sin descripción')+'</div>'
+            + '<div style="font-size:10px;color:var(--tx3);margin-top:2px">'
+              + '<span style="font-family:\'Courier New\',monospace;background:var(--bg3);padding:1px 5px;border-radius:3px;margin-right:6px">'+fecha+'</span>'
+              + (h.u||'Sistema')
+            + '</div>'
+          + '</div>'
+        + '</div>';
+      }).join('')
+    : '<div style="font-size:11px;color:var(--tx3);padding:10px 0;text-align:center">Sin historial de cambios registrado</div>';
+
+  var html =
+    // ── HEADER ──
+    '<div style="padding:16px 18px;border-bottom:1px solid var(--brd)">'
+      + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="font-family:\'Courier New\',monospace;font-size:12px;font-weight:700;color:var(--T3);background:var(--tl);padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:7px">'+d.codigoActual+'</div>'
+          + (dcpFv(d.codigoAntiguo) ? '<div style="font-size:9px;color:var(--tx3);margin-bottom:4px">Código anterior: '+d.codigoAntiguo+'</div>' : '')
+          + '<div style="font-size:16px;font-weight:700;color:var(--tx);line-height:1.3;margin-bottom:3px">'+d.descripcion+'</div>'
+          + (dcpFv(d.descriptionEn) ? '<div style="font-size:11px;color:var(--tx3);margin-bottom:8px">'+d.descriptionEn+'</div>' : '')
+          + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+            + '<span style="'+dcpBadgeStyle(d.estado)+';border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">'+(d.estado||'—')+'</span>'
+            + (gxpSi ? '<span style="background:#e8f0fb;color:#1a5fa0;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">GxP</span>' : '')
+            + '<span style="font-size:10px;color:var(--tx3);background:var(--bg4);padding:2px 8px;border-radius:99px">v'+(dcpFv(d.version)||'—')+'</span>'
+          + '</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">'
+          + '<button class="btn gh sm" onclick="verDoc('+d.id+')">👁 Ver</button>'
+          + '<button class="btn gh sm" onclick="editDoc('+d.id+')">✏️ Editar</button>'
+          + '<button class="btn dn sm" onclick="delDoc('+d.id+')">🗑</button>'
+        + '</div>'
+      + '</div>'
+    + '</div>'
+    // ── INFO GRID ──
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'
+      + '<div style="padding:14px 18px;border-right:1px solid var(--brd);border-bottom:1px solid var(--brd)">'
+        + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:8px">📄 Clasificación</div>'
+        + fi('Tipo de documento', d.tipoDocumento)
+        + fi('Proceso', d.proceso)
+        + fi('Plantilla', d.tipoPlantilla)
+        + fi('Idioma', d.idioma)
+      + '</div>'
+      + '<div style="padding:14px 18px;border-bottom:1px solid var(--brd)">'
+        + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:8px">👤 Responsables</div>'
+        + fi('Área generadora', d.areaGeneradora)
+        + fi('Administrador', d.administrador)
+        + fi('Líder de proceso', d.liderProceso)
+        + fi('Correo', d.correoElectronico)
+      + '</div>'
+      + '<div style="padding:14px 18px;border-right:1px solid var(--brd);border-bottom:1px solid var(--brd)">'
+        + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:8px">📅 Vigencia</div>'
+        + '<div style="padding:7px 0;border-bottom:0.5px solid var(--brd)"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:2px">Fecha vigencia desde</div><div style="font-size:12px;font-weight:500;color:var(--tx)">'+fd(d.fechaVigencia)+'</div></div>'
+        + '<div style="padding:7px 0;border-bottom:0.5px solid var(--brd)"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:2px">Fecha vencimiento</div><div style="font-size:12px;font-weight:500;color:'+diasColor+'">'+fd(d.fechaVencimiento)+'</div></div>'
+        + '<div style="padding:7px 0;border-bottom:0.5px solid var(--brd)"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin-bottom:2px">Estado de vigencia</div><div style="font-size:12px;font-weight:500;color:'+diasColor+'">'+diasText+'</div></div>'
+        + fi('Extensión de vigencia', d.extensionVigencia)
+      + '</div>'
+      + '<div style="padding:14px 18px;border-bottom:1px solid var(--brd)">'
+        + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:8px">🌐 Alcance</div>'
+        + fi('Alcance empresas', d.alcanceEmpresas)
+        + fi('Áreas aplicables', d.areasAplicables)
+        + fi('Intercompañía', d.docIntercompania)
+        + fi('MBR', d.mbr)
+        + fi('Obsoleto', d.obsoleto)
+      + '</div>'
+    + '</div>'
+    // ── HISTORIAL ──
+    + '<div style="padding:14px 18px">'
+      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--tl)">🕐 Historial de cambios</div>'
+      + histHtml
+    + '</div>';
+
+  panel.innerHTML = html;
+}
+/* ── Abrir palette ──────────────────────────────── */
+function dcpOpen(){
+  var ov=document.getElementById('dcp-overlay');
+  if(ov) ov.classList.add('open');
+  dcpRenderSidebar();
+  setTimeout(function(){
+    var inp=document.getElementById('dcp-input');
+    if(inp){ inp.focus(); inp.select(); }
+  },60);
+}
+function dcpClose(){ var ov=document.getElementById('dcp-overlay'); if(ov) ov.classList.remove('open'); }
+function dcpOverlayClick(e){ if(e.target.id==='dcp-overlay') dcpClose(); }
+
+/* ── Búsqueda en palette ─────────────────────────── */
+function dcpSearch(val){
+  val=(val||'').trim().toUpperCase();
+  if(!val){ dcpShowPaletteEmpty(); return; }
+  var exact=docs.find(function(x){ return x.codigoActual&&x.codigoActual.toUpperCase()===val; });
+  if(exact){ dcpShowPaletteDoc(exact); return; }
+  var partial=docs.filter(function(x){ return x.codigoActual&&x.codigoActual.toUpperCase().indexOf(val)>=0; });
+  if(partial.length===1){ dcpShowPaletteDoc(partial[0]); return; }
+  dcpShowPaletteEmpty();
+}
+
+function dcpShowPaletteDoc(d){
+  var emEl=document.getElementById('dcp-detail-empty');
+  var ctEl=document.getElementById('dcp-detail-content');
+  if(!emEl||!ctEl) return;
+  emEl.style.display='none';
+
+  var dias=dcpDias(d.fechaVencimiento);
+  var diasColor=dias===null?'var(--tx3)':dias<0?'var(--R)':dias<=30?'var(--A)':'var(--G)';
+  var diasText=dias===null?'—':dias<0?'Vencido hace '+Math.abs(dias)+' días':dias===0?'Vence hoy':dias+' días';
+  var gxpSi=d.docGxP==='X'||d.docGxP==='Si'||d.docGxP==='Sí';
+
+  function fi(label,val){
+    var v=dcpFv(val);
+    return '<div><div class="dcp-lbl">'+label+'</div><div class="dcp-val">'+(v||'<span style="color:var(--tx3);font-style:italic">—</span>')+'</div></div>';
+  }
+
+  ctEl.style.display='flex';
+  ctEl.innerHTML=
+    '<div class="dcp-det-head">'
+      +'<div class="dcp-det-code">'+d.codigoActual+'</div>'
+      +(dcpFv(d.codigoAntiguo)?'<div style="font-size:9px;color:var(--tx3);margin-bottom:4px">Ant: '+d.codigoAntiguo+'</div>':'')
+      +'<div class="dcp-det-name">'+d.descripcion+'</div>'
+      +(dcpFv(d.descriptionEn)?'<div class="dcp-det-en">'+d.descriptionEn+'</div>':'')
+      +'<div class="dcp-status-row" style="margin-top:8px">'
+        +'<span style="'+dcpBadgeStyle(d.estado)+';border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">'+(d.estado||'—')+'</span>'
+        +(gxpSi?'<span style="background:#e8f0fb;color:#1a5fa0;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">GxP</span>':'')
+        +'<span style="font-size:10px;color:var(--tx3);margin-left:4px">v'+(dcpFv(d.version)||'—')+'</span>'
+      +'</div>'
+    +'</div>'
+    +'<div class="dcp-sections">'
+      +'<div><div class="dcp-sec-title">📄 Clasificación</div><div class="dcp-grid3">'+fi('Tipo',d.tipoDocumento)+fi('Proceso',d.proceso)+fi('Versión',d.version)+'</div></div>'
+      +'<div><div class="dcp-sec-title">👤 Responsables</div><div class="dcp-grid3">'+fi('Área',d.areaGeneradora)+fi('Administrador',d.administrador)+fi('Líder',d.liderProceso)+'</div></div>'
+      +'<div><div class="dcp-sec-title">📅 Vigencia</div><div class="dcp-grid3">'
+        +'<div><div class="dcp-lbl">Vencimiento</div><div class="dcp-val" style="color:'+diasColor+'">'+dcpFmtDate(d.fechaVencimiento)+'</div></div>'
+        +'<div><div class="dcp-lbl">Estado</div><div class="dcp-val" style="color:'+diasColor+'">'+diasText+'</div></div>'
+        +fi('Alcance',d.alcanceEmpresas)
+      +'</div></div>'
+    +'</div>'
+    +'<div class="dcp-actions">'
+      +'<button class="dcp-btn dcp-btn-p" onclick="dcpConfirmAndOpen('+d.id+')">👁 Abrir ficha completa</button>'
+      +'<button class="dcp-btn" onclick="editDoc('+d.id+');dcpClose()">✏️ Editar</button>'
+      +'<button class="dcp-btn dcp-btn-d" style="margin-left:auto" onclick="dcpClose();setTimeout(function(){delDoc('+d.id+')},200)">🗑</button>'
+    +'</div>';
+}
+
+function dcpShowPaletteEmpty(){
+  var emEl=document.getElementById('dcp-detail-empty');
+  var ctEl=document.getElementById('dcp-detail-content');
+  if(emEl) emEl.style.display='flex';
+  if(ctEl){ ctEl.style.display='none'; ctEl.innerHTML=''; }
+}
+
+function dcpConfirmAndOpen(id){
+  var d=docs.find(function(x){return x.id===id;});
+  if(!d) return;
+  dcpClose();
+  setTimeout(function(){ dcpSelectByCod(d.codigoActual); },120);
+}
+
+/* ── Seleccionar desde palette/historial ─────────── */
+function dcpSelectByCod(cod){
+  var inp=document.getElementById('dcp-input');
+  if(inp) inp.value=cod;
+  var d=docs.find(function(x){return x.codigoActual===cod;});
+  if(!d) return;
+  dcpShowPaletteDoc(d);
+  // Guardar en historial
+  _dcpHistory=_dcpHistory.filter(function(c){return c!==cod;});
+  _dcpHistory.unshift(cod);
+  if(_dcpHistory.length>8) _dcpHistory.pop();
+  _dcpTopCodes[cod]=(_dcpTopCodes[cod]||0)+1;
+  dcpSaveStorage();
+  dcpRenderSidebar();
+  // Abrir vista principal
+  dcpOpenMainView(d);
+}
+
+function dcpKeydown(e){
+  if(e.key==='Enter'){
+    var val=(e.target.value||'').trim().toUpperCase();
+    if(!val) return;
+    var d=docs.find(function(x){ return x.codigoActual&&x.codigoActual.toUpperCase()===val; });
+    if(d){ dcpConfirmAndOpen(d.id); }
+  }
+  if(e.key==='Escape') dcpClose();
+}
+
+/* ── Vista principal ────────────────────────────── */
+function dcpOpenMainView(d){
+  _dcpCurrentDoc=d;
+  dcpClose();
+  // Ocultar landing, mostrar main
+  var land=document.getElementById('dcp-landing');
+  var main=document.getElementById('dcp-main-view');
+  if(land) land.style.display='none';
+  if(main) main.style.display='block';
+  // Topbar
+  var codeEl=document.getElementById('dcp-topbar-code');
+  var nameEl=document.getElementById('dcp-topbar-name');
+  if(codeEl) codeEl.textContent=d.codigoActual+' — ';
+  if(nameEl) nameEl.textContent=d.descripcion;
+  // Renderizar
+  dcpRenderRelated(d);
+  dcpRenderDetailPanel(d);
+}
+
+function dcpBackToLanding(){
+  _dcpCurrentDoc=null;
+  var land=document.getElementById('dcp-landing');
+  var main=document.getElementById('dcp-main-view');
+  if(land) land.style.display='block';
+  if(main) main.style.display='none';
+  dcpRenderLanding();
+}
+
+/* ── Init ───────────────────────────────────────── */
+function dcpInit(){
+  dcpLoadStorage();
+  dcpRenderLanding();
+  // Atajo de teclado
+  if(!window._dcpKbdBound){
+    window._dcpKbdBound=true;
+    document.addEventListener('keydown',function(e){
+      if((e.ctrlKey||e.metaKey)&&e.key==='k'){
+        var pg=document.getElementById('pg-docs');
+        if(pg&&pg.classList.contains('act')){ e.preventDefault(); dcpOpen(); }
+      }
+      if(e.key==='Escape') dcpClose();
+    });
+  }
+}
+
 function onSearch(){dPage=0;renderDocs();}
 function filterDocs(){dPage=0;renderDocs();}
 function clearFiltros(){['f-tipo','f-est','f-proc','f-area','f-gxp'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var gs=document.getElementById('gs');if(gs)gs.value='';dPage=0;renderDocs();toast('Filtros limpiados','if');}
@@ -2980,7 +3866,26 @@ function renderDocs(){
   renderDocsPage();
 }
 
+var _docsView='cards';
+function setDocsView(v){
+  _docsView=v;
+  var lv=document.getElementById('docs-list-view');
+  var cv=document.getElementById('docs-cards-view');
+  var bl=document.getElementById('dvt-list');
+  var bc=document.getElementById('dvt-cards');
+  if(lv&&cv){lv.style.display=v==='list'?'':'none';cv.style.display=v==='cards'?'':'none';}
+  if(bl&&bc){bl.classList.toggle('act',v==='list');bc.classList.toggle('act',v==='cards');}
+  renderDocsPage();
+}
+function docStripClass(estado){
+  if(!estado)return 'ng';
+  var e=estado.toLowerCase();
+  if(e==='vigente')return 'ap';
+  if(e==='vencido'||e==='obsoleto')return 'ob';
+  return 'rv';
+}
 function renderDocsPage(){
+  if(_docsView==='cards'){renderDocsCards();return;}
   var tb=document.getElementById('docs-tb');if(!tb)return;
   if(dFiltered.length===0&&docs.length>0){
     var anyFilter=(document.getElementById('f-tipo')||{}).value||(document.getElementById('f-est')||{}).value||(document.getElementById('f-proc')||{}).value||(document.getElementById('f-area')||{}).value||(document.getElementById('f-gxp')||{}).value||(document.getElementById('gs')||{}).value;
@@ -2991,25 +3896,24 @@ function renderDocsPage(){
   if(dPage>=tpg)dPage=tpg-1;
   var page=dFiltered.slice(dPage*dPSize,(dPage+1)*dPSize);
   var f=document.createDocumentFragment();
-  // Pre-warm cache antes del loop para no recalcularlo en cada fila
   if(!_rbCache||_rbCacheLen!==((solicitudes&&solicitudes.length)||0)) rbRecalcCache();
-  if(!page.length){var r=document.createElement('tr');r.innerHTML='<td colspan="11"><div class="emp"><div style="font-size:22px">📭</div><div style="font-size:12px">Sin documentos</div></div></td>';f.appendChild(r);}
+  if(!page.length){var r=document.createElement('tr');r.innerHTML='<td colspan="11"><div class="emp"><div style="font-size:22px">\u{1F4ED}</div><div style="font-size:12px">Sin documentos</div></div></td>';f.appendChild(r);}
   else page.forEach(function(d){
     var di=dH(d.fechaVencimiento);var r=document.createElement('tr');
     r.innerHTML='<td><span class="cd">'+d.codigoActual+'</span></td>'+
-      '<td style="font-size:10px;color:var(--tx3)">'+(d.codigoAntiguo||'—')+'</td>'+
-      '<td style="max-width:190px"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</div><div style="font-size:10px;color:var(--tx3)">'+(d.descriptionEn||'')+'</div></td>'+
-      '<td style="text-align:center;font-weight:600">'+(d.version!==null&&d.version!==undefined&&d.version!==''?d.version:'—')+'</td>'+
-      '<td><span class="b tl" style="font-size:9px">'+(d.tipoDocumento||'—')+'</span></td>'+
-      '<td style="font-size:11px">'+(d.areaGeneradora||'—')+'</td>'+
-      '<td><div style="font-size:11px">'+fDD(d.fechaVencimiento)+'</div>'+(d.estado!=='Obsoleto'?vB(di):'')+'</td>'+
+      '<td style="font-size:10px;color:var(--tx3)">'+( d.codigoAntiguo||'\u2014')+'</td>'+
+      '<td style="max-width:190px"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</div><div style="font-size:10px;color:var(--tx3)">'+( d.descriptionEn||'')+'</div></td>'+
+      '<td style="text-align:center;font-weight:600">'+( d.version!==null&&d.version!==undefined&&d.version!==''?d.version:'\u2014')+'</td>'+
+      '<td><span class="b tl" style="font-size:9px">'+( d.tipoDocumento||'\u2014')+'</span></td>'+
+      '<td style="font-size:11px">'+( d.areaGeneradora||'\u2014')+'</td>'+
+      '<td><div style="font-size:11px">'+fDD(d.fechaVencimiento)+'</div>'+( d.estado!=='Obsoleto'?vB(di):'')+'</td>'+
       '<td>'+eB(d.estado)+'</td>'+
       '<td>'+gB(d.docGxP)+'</td>'+
-      '<td style="font-size:11px">'+(d.administrador||'—')+'</td>'+
+      '<td style="font-size:11px">'+( d.administrador||'\u2014')+'</td>'+
       '<td><div style="display:flex;gap:2px;flex-wrap:wrap">'+
         '<button class="btn gh sm" onclick="verDoc('+d.id+')">Ver</button>'+
         '<button class="btn gh sm" onclick="editDoc('+d.id+')">Editar</button>'+
-        '<button class="btn dn sm" onclick="delDoc('+d.id+')">✕</button>'+
+        '<button class="btn dn sm" onclick="delDoc('+d.id+')">\u2715</button>'+
       '</div></td>';
     f.appendChild(r);
   });
@@ -3017,14 +3921,76 @@ function renderDocsPage(){
   var pc=document.getElementById('docs-pg');
   if(pc){var dis0=dPage===0?'disabled':'',disl=dPage>=tpg-1?'disabled':'';
     pc.innerHTML='<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--brd)">'+
-      '<span style="font-size:11px;color:var(--tx3)">'+(dPage*dPSize+1)+'–'+Math.min((dPage+1)*dPSize,total)+' de <strong>'+total+'</strong></span>'+
+      '<span style="font-size:11px;color:var(--tx3)">'+( dPage*dPSize+1)+'\u2013'+Math.min((dPage+1)*dPSize,total)+' de <strong>'+total+'</strong></span>'+
       '<select class="fsel" onchange="dPSize=parseInt(this.value);dPage=0;renderDocsPage()"><option value="50" '+(dPSize===50?'selected':'')+'>50/pag</option><option value="100" '+(dPSize===100?'selected':'')+'>100/pag</option><option value="200" '+(dPSize===200?'selected':'')+'>200/pag</option></select>'+
       '<div style="display:flex;gap:3px;margin-left:auto">'+
-        '<button class="btn gh sm" '+dis0+' onclick="dPage=0;renderDocsPage()">«</button>'+
-        '<button class="btn gh sm" '+dis0+' onclick="dPage--;renderDocsPage()">‹</button>'+
-        '<span style="font-size:11px;padding:4px 9px;background:var(--tl);border-radius:var(--r);font-weight:600">'+(dPage+1)+'/'+tpg+'</span>'+
-        '<button class="btn gh sm" '+disl+' onclick="dPage++;renderDocsPage()">›</button>'+
-        '<button class="btn gh sm" '+disl+' onclick="dPage='+(tpg-1)+';renderDocsPage()">»</button>'+
+        '<button class="btn gh sm" '+dis0+' onclick="dPage=0;renderDocsPage()">\u00AB</button>'+
+        '<button class="btn gh sm" '+dis0+' onclick="dPage--;renderDocsPage()">\u2039</button>'+
+        '<span style="font-size:11px;padding:4px 9px;background:var(--tl);border-radius:var(--r);font-weight:600">'+( dPage+1)+'/'+tpg+'</span>'+
+        '<button class="btn gh sm" '+disl+' onclick="dPage++;renderDocsPage()">\u203A</button>'+
+        '<button class="btn gh sm" '+disl+' onclick="dPage='+(tpg-1)+';renderDocsPage()">\u00BB</button>'+
+      '</div></div>';}
+}
+function renderDocsCards(){
+  if(dFiltered.length===0&&docs.length>0){
+    var anyFilter=(document.getElementById('f-tipo')||{}).value||(document.getElementById('f-est')||{}).value||(document.getElementById('f-proc')||{}).value||(document.getElementById('f-area')||{}).value||(document.getElementById('f-gxp')||{}).value||(document.getElementById('gs')||{}).value;
+    if(!anyFilter){dFiltered=docsEmpresa().slice();dFiltered.sort(sortCodigos);}
+  }
+  var total=dFiltered.length;
+  var tpg=Math.max(1,Math.ceil(total/dPSize));
+  if(dPage>=tpg)dPage=tpg-1;
+  var page=dFiltered.slice(dPage*dPSize,(dPage+1)*dPSize);
+  var grid=document.getElementById('docs-cards-grid');
+  if(!grid)return;
+  if(!_rbCache||_rbCacheLen!==((solicitudes&&solicitudes.length)||0)) rbRecalcCache();
+  if(!page.length){grid.innerHTML='<div class="emp" style="grid-column:1/-1"><div style="font-size:28px">\u{1F4ED}</div><div style="font-size:12px">Sin documentos</div></div>';return;}
+  var html='';
+  page.forEach(function(d){
+    var di=dH(d.fechaVencimiento);
+    var sc=docStripClass(d.estado);
+    var venc=fDD(d.fechaVencimiento);
+    var vbadge=d.estado!=='Obsoleto'?vB(di):'';
+    var ver=d.version!==null&&d.version!==undefined&&d.version!==''?d.version:'—';
+    html+=
+      '<div class="doc-card">'+
+        '<div style="height:3px;background:'+
+          (sc==='ap'?'var(--G)':sc==='ob'?'var(--R)':sc==='rv'?'var(--A)':'#bbb')+
+        '"></div>'+
+        '<div class="doc-card-top">'+
+          '<div class="doc-card-code">'+d.codigoActual+'</div>'+
+          '<div class="doc-card-desc" title="'+d.descripcion+'">'+d.descripcion+'</div>'+
+          (d.descriptionEn?'<div class="doc-card-desc-en">'+d.descriptionEn+'</div>':'')+
+          '<div class="doc-card-meta">'+
+            (d.tipoDocumento?'<span class="doc-card-pill tipo">\u{1F4C4} '+d.tipoDocumento+'</span>':'')+
+            (d.docGxP==='Si'?'<span class="doc-card-pill gxp">GxP</span>':'')+
+            eB(d.estado)+
+          '</div>'+
+          '<div class="doc-card-row">\u{1F3E2} <strong>'+( d.areaGeneradora||'—')+'</strong></div>'+
+          (d.administrador?'<div class="doc-card-row">\u{1F464} <strong>'+d.administrador+'</strong></div>':'')+
+          '<div class="doc-card-row">\u{1F4C5} Vence: <strong>'+venc+'</strong> '+vbadge+'</div>'+
+        '</div>'+
+        '<div class="doc-card-footer">'+
+          '<span class="doc-card-ver">v'+ver+'</span>'+
+          '<div class="doc-card-actions">'+
+            '<button class="btn gh sm" onclick="verDoc('+d.id+')">Ver</button>'+
+            '<button class="btn gh sm" onclick="editDoc('+d.id+')">Editar</button>'+
+            '<button class="btn dn sm" onclick="delDoc('+d.id+')">\u2715</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+  });
+  grid.innerHTML=html;
+  var pc=document.getElementById('docs-pg');
+  if(pc){var dis0=dPage===0?'disabled':'',disl=dPage>=tpg-1?'disabled':'';
+    pc.innerHTML='<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--brd)">'+
+      '<span style="font-size:11px;color:var(--tx3)">'+( dPage*dPSize+1)+'\u2013'+Math.min((dPage+1)*dPSize,total)+' de <strong>'+total+'</strong></span>'+
+      '<select class="fsel" onchange="dPSize=parseInt(this.value);dPage=0;renderDocsPage()"><option value="50" '+(dPSize===50?'selected':'')+'>50/pag</option><option value="100" '+(dPSize===100?'selected':'')+'>100/pag</option><option value="200" '+(dPSize===200?'selected':'')+'>200/pag</option></select>'+
+      '<div style="display:flex;gap:3px;margin-left:auto">'+
+        '<button class="btn gh sm" '+dis0+' onclick="dPage=0;renderDocsPage()">\u00AB</button>'+
+        '<button class="btn gh sm" '+dis0+' onclick="dPage--;renderDocsPage()">\u2039</button>'+
+        '<span style="font-size:11px;padding:4px 9px;background:var(--tl);border-radius:var(--r);font-weight:600">'+( dPage+1)+'/'+tpg+'</span>'+
+        '<button class="btn gh sm" '+disl+' onclick="dPage++;renderDocsPage()">\u203A</button>'+
+        '<button class="btn gh sm" '+disl+' onclick="dPage='+(tpg-1)+';renderDocsPage()">\u00BB</button>'+
       '</div></div>';}
 }
 
@@ -6068,15 +7034,34 @@ function renderAudit(){
     'Descarga':'#0ea5e9','Inicializacion':'#94a3b8','Reversion Obsoleto':'#22c55e',
     'Quitar Extension':'#94a3b8','Impresión ZPL':'#0d9488',
     'Traduccion':'#0d9488','OneDrive':'#0078d4','Acta Copias':'#10b981',
-    'Solicitud RB':'#6366f1','Inspeccion':'#f59e0b'
+    'Solicitud RB':'#6366f1','Inspeccion':'#f59e0b','Inspección':'#f59e0b',
+    'Oficialización':'#22c55e','Oficialización automática':'#22c55e','Oficialización ruta':'#22c55e',
+    'Aprobación ruta':'#3b82f6','Aprobacion ruta':'#3b82f6',
+    'Eliminación ruta':'#ef4444','Eliminacion':'#ef4444',
+    'Novedad de Documento':'#8b5cf6',
+    'Revisión Documental':'#0d9488','Revision Documental':'#0d9488',
+    'PDF Barcode':'#6366f1','Estampar PDF':'#6366f1',
+    'Marcar Obsoleto':'#94a3b8',
+    'Correo':'#06b6d4','Cierre de sesión':'#64748b',
+    'Informe':'#0ea5e9','Usuarios':'#7c3aed'
   };
   var icoAcc={
     'Creacion':'➕','Edicion':'✏️','Eliminacion':'🗑️','Aprobacion':'✅',
     'Rechazo':'❌','Obsoleto':'📦','Importacion':'📥','Descarga':'⬇️',
     'Extension Vigencia':'📅','Reversion Obsoleto':'♻️','Quitar Extension':'🔄',
     'Copia controlada':'📋','Acta Copias':'📄','Sync Copias':'🔄',
-    'Solicitud RB':'📝','Inspeccion':'🔍',
-    'Traduccion':'🌐','OneDrive':'☁️','Impresión ZPL':'🖨️'
+    'Solicitud RB':'📝','Inspeccion':'🔍','Inspección':'🔍',
+    'Traduccion':'🌐','OneDrive':'☁️','Impresión ZPL':'🖨️',
+    'Oficialización':'✅','Oficialización automática':'✅','Oficialización ruta':'✅',
+    'Aprobación ruta':'👍','Aprobacion ruta':'👍',
+    'Eliminación ruta':'🗑️',
+    'Novedad de Documento':'📢',
+    'Revisión Documental':'🔗','Revision Documental':'🔗',
+    'PDF Barcode':'🖨️','Estampar PDF':'🖨️',
+    'Marcar Obsoleto':'🚫',
+    'Correo':'✉️','Cierre de sesión':'🔒',
+    'Informe':'📈','Usuarios':'👥',
+    'Envio a flujo':'➡️','Notificacion':'🔔'
   };
 
   // Obtener usuarios únicos para el filtro
@@ -13358,24 +14343,27 @@ function odHookSaveInsp(){
   var prevSaveArr=saveArr;
   saveArr=function(k,v){
     prevSaveArr(k,v);
-    if((k==='insp'||k==='inspProg')&&OD.fileHandle&&OD.syncActivo){
+    // Trigger OD sync for inspecciones AND any other data array
+    var SYNC_KEYS=['insp','inspProg','sol','c','p','u','nh'];
+    if(SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },3000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2500);
     }
   };
 }
 
-//  HOOK saveArr → dispara guardado de copias en OneDrive 
+//  HOOK saveArr → dispara guardado en OneDrive para todos los módulos
 var _saveArrOD=null;
 function odHookSaveArr(){
   if(_saveArrOD) return; // solo una vez
   _saveArrOD=saveArr;
   saveArr=function(k,v){
     _saveArrOD(k,v);
-    // Si se guarda el array de copias ('c') y hay sync activo, programar guardado
-    if(k==='c'&&OD.fileHandle&&OD.syncActivo){
+    // Trigger sync para copias, solicitudes, procesos, usuarios, notificaciones
+    var OD_SYNC_KEYS=['c','sol','p','u','nh','insp','inspProg'];
+    if(OD_SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },3000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2500);
     }
   };
 }
@@ -14752,7 +15740,8 @@ tbody tr:last-child td{border-bottom:none}
     <img src="data:image/jpeg;base64,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" alt="Sofgen Pharma" style="width:160px;height:auto;display:block">
   </div>
   <div class="ns"><div class="nl">Principal</div>
-    <div class="ni act" data-p="dash" onclick="nav('dash',this)"><span class="nic">📊</span>Dashboard</div>
+    <div class="ni act" data-p="dash" onclick="nav('dash',this)"><span class="nic">🏠</span>Inicio</div>
+    <div class="ni" data-p="kpi" onclick="nav('kpi',this)"><span class="nic">📊</span>KPIs</div>
     <div class="ni" data-p="docs" onclick="nav('docs',this)"><span class="nic">📄</span>Documentos<span class="nb t" id="bd">0</span></div>
 </div>
   <div class="ns"><div class="nl">Acciones</div>
@@ -14831,6 +15820,79 @@ tbody tr:last-child td{border-bottom:none}
 </div>
 
   <div class="pg act" id="pg-dash">
+
+    <!-- ── BANNER BIENVENIDA ── -->
+    <div id="home-welcome-banner" style="background:var(--T3);border-radius:var(--rl);padding:14px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div id="home-avatar" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0">U</div>
+        <div>
+          <div id="home-greeting" style="font-size:15px;font-weight:700;color:#fff;margin-bottom:3px">Bienvenido</div>
+          <div id="home-subgreeting" style="font-size:11px;color:rgba(255,255,255,.75)">Cargando...</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
+        <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35);font-size:11px">🔍 Consultar documento</button>
+        <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:#fff;color:var(--T3);border-color:#fff;font-size:11px;font-weight:700">➕ Nuevo documento</button>
+      </div>
+    </div>
+
+    <!-- ── GRID: Accesos rápidos + Mis tareas ── -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+
+      <!-- Accesos rápidos a módulos -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);padding:0 2px">Accesos rápidos</div>
+        <div onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#e1f5ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">📄</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Documentos</div><div style="font-size:10px;color:var(--tx3)">Consulta y gestiona el archivo documental</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+        <div onclick="nav('rutabor',document.querySelector('[data-p=rutabor]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#faeeda;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🗂️</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Ruta de borrador</div><div style="font-size:10px;color:var(--tx3)">Gestiona solicitudes en proceso</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+        <div onclick="nav('flujos',document.querySelector('[data-p=flujos]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#e6f1fb;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🔀</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Flujos de aprobación</div><div style="font-size:10px;color:var(--tx3)">Revisa y aprueba documentos pendientes</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+        <div onclick="nav('venc',document.querySelector('[data-p=venc]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#fcebeb;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">⚠️</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Control de vencimientos</div><div style="font-size:10px;color:var(--tx3)">Documentos próximos a vencer o vencidos</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+        <div onclick="nav('audit',document.querySelector('[data-p=audit]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+          <div style="width:34px;height:34px;border-radius:7px;background:#e1f5ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🛡️</div>
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Auditoría</div><div style="font-size:10px;color:var(--tx3)">Registro de actividades del sistema</div></div>
+          <span style="font-size:16px;color:var(--tx3)">›</span>
+        </div>
+      </div>
+
+      <!-- Mis tareas del día -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--sh);display:flex;flex-direction:column;overflow:hidden">
+        <div style="padding:10px 13px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px">✅</span>
+          <span style="font-size:12px;font-weight:700;color:var(--tx);flex:1">Mis tareas del día</span>
+          <span id="home-tasks-badge" style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;background:#e1f5ee;color:#085041"></span>
+          <button onclick="homeAddTask()" style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--T);background:#e1f5ee;color:var(--T3);cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:600">➕ Agregar</button>
+        </div>
+        <div id="home-tasks-list" style="flex:1;overflow-y:auto;max-height:340px"></div>
+        <div style="padding:8px 12px;background:var(--bg3);border-top:1px solid var(--brd)">
+          <div onclick="homeAddTask()" style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--tx3)">
+            <span style="font-size:14px;color:var(--tx3)">➕</span>
+            <span style="font-size:11px">Escribe una nueva tarea...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#pg-dash END -->
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PÁGINA: KPIs                                               -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="pg" id="pg-kpi">
     <!-- Alertas de inspecciones visibles desde el dashboard -->
     <div id="insp-dash-alerts" style="margin-bottom:10px"></div>
     <!-- Header row -->
@@ -15016,33 +16078,151 @@ tbody tr:last-child td{border-bottom:none}
   </div>
 
   <div class="pg" id="pg-docs">
-    <div class="flt">
-      <select class="fsel" id="f-tipo" onchange="filterDocs()"><option value="">Todos los tipos</option></select>
-      <select class="fsel" id="f-est" onchange="filterDocs()" style="min-width:160px">
-        <option value="">Todos los estados</option>
-        <optgroup label="Estado">
-          <option value="Vigente">Vigente</option>
-          <option value="Vencido">Vencido</option>
-          <option value="Obsoleto">Obsoleto</option>
-        </optgroup>
-        <optgroup label="Próximos a vencer">
-          <option value="Menos de 15 días">Menos de 15 días</option>
-          <option value="Menos de 1 Mes">Menos de 1 Mes</option>
-          <option value="Menos de 2 Meses">Menos de 2 Meses</option>
-          <option value="Menos de 3 Meses">Menos de 3 Meses</option>
-          <option value="Menos de 4 Meses">Menos de 4 Meses</option>
-          <option value="Menos de 5 Meses">Menos de 5 Meses</option>
-        </optgroup>
-      </select>
-      <select class="fsel" id="f-proc" onchange="filterDocs()"><option value="">Todos los procesos</option></select>
-      <select class="fsel" id="f-area" onchange="filterDocs()"><option value="">Todas las áreas</option></select>
-      <select class="fsel" id="f-sub" onchange="filterDocs()"><option value="">Todas las subáreas</option></select>   
-  
- <select class="fsel" id="f-gxp" onchange="filterDocs()"><option value="">Todos</option><option value="si">GxP</option><option value="no">No GxP</option></select><button class="btn gh sm" onclick="clearFiltros()" style="white-space:nowrap">X Limpiar filtros</button>
+
+    <!-- ── LANDING: barra superior + tarjetas de acceso rápido ── -->
+    <div id="dcp-landing">
+      <!-- Barra búsqueda principal -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1;display:flex;align-items:center;gap:10px;background:var(--bg3);border:1.5px solid var(--T);border-radius:var(--r);padding:9px 14px;cursor:text" onclick="dcpOpen()">
+            <span style="font-size:16px;color:var(--T)">🔍</span>
+            <span style="font-size:13px;color:var(--tx3);flex:1">Escribe el código del documento que deseas consultar...</span>
+            <span style="display:flex;align-items:center;gap:3px">
+              <span class="dcp-kbd">Ctrl</span><span style="font-size:10px;color:var(--tx3)">+</span><span class="dcp-kbd">K</span>
+            </span>
+          </div>
+          <button class="btn sm" onclick="dcpOpen()" style="white-space:nowrap;padding:9px 18px">Buscar</button>
+        </div>
+      </div>
+
+      <!-- Fila 1: Consultados recientemente (full width) -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;box-shadow:var(--sh);margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--brd)">
+          <span style="font-size:14px">🕐</span>
+          <span style="font-size:12px;font-weight:700;color:var(--tx)">Consultados recientemente</span>
+        </div>
+        <!-- Recientes en fila horizontal -->
+        <div id="dcp-landing-recent" style="display:flex;flex-wrap:wrap;gap:6px">
+          <div style="font-size:11px;color:var(--tx3);padding:6px 0">Sin consultas recientes</div>
+        </div>
+      </div>
+
+      <!-- Fila 2: Accesos directos en grid de cuadros -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);margin-bottom:8px">Accesos directos</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div onclick="nav('extvigor',document.querySelector('[data-p=extvigor]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#e1f5ee;display:flex;align-items:center;justify-content:center;font-size:20px">📅</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Extender vigencia</div>
+          </div>
+          <div onclick="nav('fextvig',document.querySelector('[data-p=fextvig]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#e8f0fb;display:flex;align-items:center;justify-content:center;font-size:20px">📋</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">F-Extensión de vigencia</div>
+          </div>
+          <div onclick="nav('docsrel',document.querySelector('[data-p=docsrel]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#faeeda;display:flex;align-items:center;justify-content:center;font-size:20px">🔗</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Docs relacionados</div>
+          </div>
+          <div onclick="nav('revdoc',document.querySelector('[data-p=revdoc]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#e0f5f3;display:flex;align-items:center;justify-content:center;font-size:20px">🔍</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Revisión de documentos</div>
+          </div>
+          <div onclick="nav('pdfbarcode',document.querySelector('[data-p=pdfbarcode]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#fcebeb;display:flex;align-items:center;justify-content:center;font-size:20px">🖨️</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Estampar PDF</div>
+          </div>
+          <div onclick="nav('novedad',document.querySelector('[data-p=novedad]'))" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s;text-align:center" onmouseover="this.style.borderColor='var(--T)'" onmouseout="this.style.borderColor='var(--brd)'">
+            <div style="width:38px;height:38px;border-radius:9px;background:#f3e8fb;display:flex;align-items:center;justify-content:center;font-size:20px">📢</div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx);line-height:1.3">Novedad de documentos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Más consultados (al final) -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;box-shadow:var(--sh)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--brd)">
+          <span style="font-size:14px">⭐</span>
+          <span style="font-size:12px;font-weight:700;color:var(--tx)">Más consultados</span>
+        </div>
+        <div id="dcp-landing-top" style="display:flex;flex-wrap:wrap;gap:6px">
+          <div style="font-size:11px;color:var(--tx3);padding:6px 0">Sin datos aún</div>
+        </div>
+      </div>
+
+      <div id="dcp-landing-stats" style="display:none"></div>
     </div>
-    <div class="card">
-      <div class="tw"><table><thead><tr><th>Código</th><th>Cód. Ant.</th><th>Descripción</th><th>Ver.</th><th>Tipo</th><th>Área</th><th>Vencimiento</th><th>Estado</th><th>GxP</th><th>Administrador</th><th></th></tr></thead><tbody id="docs-tb"></tbody></table></div>
-      <div class="pgctrl" id="docs-pg"></div>
+
+    <!-- ── VISTA PRINCIPAL: barra fija + layout split ── -->
+    <div id="dcp-main-view" style="display:none">
+      <!-- Barra superior -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 14px;margin-bottom:12px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px">
+        <button class="btn gh sm" onclick="dcpBackToLanding()" style="white-space:nowrap">← Inicio</button>
+        <div style="flex:1;display:flex;align-items:center;gap:10px;background:var(--bg3);border:1.5px solid var(--T);border-radius:var(--r);padding:7px 12px;cursor:text" onclick="dcpOpen()">
+          <span style="font-size:14px;color:var(--T)">🔍</span>
+          <span id="dcp-topbar-code" style="font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:var(--T3)"></span>
+          <span id="dcp-topbar-name" style="font-size:12px;color:var(--tx3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        </div>
+        <button class="btn gh sm" onclick="dcpOpen()" style="white-space:nowrap">🔍 Nueva búsqueda</button>
+      </div>
+
+      <!-- Split layout: sidebar relacionados + detalle -->
+      <div style="display:grid;grid-template-columns:210px 1fr;gap:12px;align-items:start">
+        <!-- Sidebar: docs relacionados -->
+        <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden;position:sticky;top:12px">
+          <div style="background:var(--T3);color:#fff;padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px">
+            Familia documental
+          </div>
+          <div id="dcp-related-list" style="max-height:calc(100vh - 200px);overflow-y:auto"></div>
+        </div>
+        <!-- Detalle del documento -->
+        <div id="dcp-detail-panel">
+          <div id="dcp-detail-content-main" style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay command palette -->
+    <div class="dcp-overlay" id="dcp-overlay" onclick="dcpOverlayClick(event)">
+      <div class="dcp-palette" id="dcp-palette">
+        <div class="dcp-search-row">
+          <span class="dcp-search-icon">🔍</span>
+          <input id="dcp-input" placeholder="Escribe el código del documento..." oninput="dcpSearch(this.value)" onkeydown="dcpKeydown(event)" autocomplete="off" spellcheck="false"/>
+          <span class="dcp-kbd" onclick="dcpClose()" style="cursor:pointer">Esc</span>
+        </div>
+        <div class="dcp-body">
+          <div class="dcp-sidebar" id="dcp-sidebar">
+            <div class="dcp-sidebar-label">Recientes</div>
+            <div id="dcp-hist-recent"></div>
+            <div class="dcp-sidebar-div"></div>
+            <div class="dcp-sidebar-label">Más consultados</div>
+            <div id="dcp-hist-top"></div>
+          </div>
+          <div class="dcp-detail" id="dcp-detail">
+            <div class="dcp-detail-empty" id="dcp-detail-empty">
+              <div style="font-size:24px">📄</div>
+              <div style="font-size:12px;color:var(--tx3)">Escribe un código para consultar</div>
+            </div>
+            <div id="dcp-detail-content" style="display:none;flex-direction:column;flex:1"></div>
+          </div>
+        </div>
+        <div class="dcp-hints">
+          <span class="dcp-hint"><span class="dcp-kbd">Enter</span> consultar</span>
+          <span class="dcp-hint"><span class="dcp-kbd">↑↓</span> navegar historial</span>
+          <span class="dcp-hint"><span class="dcp-kbd">Esc</span> cerrar</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedores legacy para compatibilidad (ocultos) -->
+    <div style="display:none">
+      <select id="f-tipo"></select><select id="f-est"></select>
+      <select id="f-proc"></select><select id="f-area"></select>
+      <select id="f-sub"></select><select id="f-gxp"></select>
+      <table><tbody id="docs-tb"></tbody></table>
+      <div id="docs-pg"></div>
+      <div id="docs-list-view"></div>
+      <div id="docs-cards-view"><div id="docs-cards-grid"></div></div>
+      <div id="dvt-cards"></div><div id="dvt-list"></div>
     </div>
   </div>
 
@@ -16920,46 +18100,79 @@ function vB(d){if(d<0)return'<span class="b vc">Vencido</span>';if(d<=30)return'
 function gB(v){return(v==='X'||v==='Si'||v==='Sí')?'<span class="b gx">GxP</span>':'<span class="b ng">No GxP</span>';}
 // Acciones que NO deben registrarse en Auditrail (son del sistema, no del usuario)
 var _AUDIT_EXCLUIR=['Inicializacion','Consulta','OneDrive','Sync Copias',
-  'Revisión Documental','QR PDF','Descarga','Estado automático','Estado auto'];
+  'QR PDF','Estado automático','Estado auto'];
 
 // Mapeo de acción normalizada y módulo para el Auditrail
 function _auditNormalizar(a,d){
   var acc=a, mod='Sistema';
-  // Determinar módulo por acción
-  if(a==='Creacion'||a==='Edicion'||a==='Eliminacion'||a==='Aprobacion'||a==='Rechazo'||
-     a==='Obsoleto'||a==='Reversion Obsoleto'||a==='Extension Vigencia'||a==='Quitar Extension')
-    mod='Listado Maestro';
-  if(a==='Copia controlada'||a==='Importacion copias') mod='Copias Controladas';
+  // ── Listado Maestro / Documentos ─────────────────────────────────────
+  if(['Creacion','Edicion','Eliminacion','Aprobacion','Rechazo',
+      'Obsoleto','Reversion Obsoleto','Extension Vigencia','Quitar Extension',
+      'Envio a flujo'].indexOf(a)>=0) mod='Listado Maestro';
+  // ── Copias controladas ───────────────────────────────────────────────
+  if(['Copia controlada','Importacion copias'].indexOf(a)>=0) mod='Copias Controladas';
   if(a==='Acta Copias') mod='Entrega de Copias';
-  if(a==='Inspeccion') mod='Inspecciones';
-  if(a==='Solicitud RB'||a==='Oficialización') mod='Ruta de Borrador';
+  // ── Inspecciones ─────────────────────────────────────────────────────
+  if(a==='Inspeccion'||a==='Inspección') mod='Inspecciones';
+  // ── Ruta de Borrador ─────────────────────────────────────────────────
+  if(['Solicitud RB','Oficialización','Oficialización automática',
+      'Aprobación ruta','Oficialización ruta','Eliminación ruta',
+      'Aprobacion ruta'].indexOf(a)>=0) mod='Ruta de Borrador';
+  // ── Novedad de Documento ─────────────────────────────────────────────
   if(a==='Novedad de Documento') mod='Novedad de Documento';
+  // ── Extensión de Vigencia ────────────────────────────────────────────
+  if(a==='Extension Vigencia'||a==='Quitar Extension') mod='Extensión de Vigencia';
+  // ── Revisión de Documentos ───────────────────────────────────────────
+  if(a==='Revisión Documental'||a==='Revision Documental') mod='Revisión de Documentos';
+  // ── Estampar PDF ─────────────────────────────────────────────────────
+  if(a==='PDF Barcode'||a==='Estampar PDF') mod='Estampar PDF';
+  // ── Marcar Obsoleto ──────────────────────────────────────────────────
+  if(a==='Marcar Obsoleto') mod='Marcar Obsoleto';
+  // ── Usuarios ─────────────────────────────────────────────────────────
   if(a==='Usuarios') mod='Administración de Usuarios';
+  // ── Notificaciones ───────────────────────────────────────────────────
   if(a==='Notificacion'||a==='Correo') mod='Notificaciones';
+  // ── Importación ──────────────────────────────────────────────────────
   if(a==='Importacion') mod='Importación';
+  // ── Auditoría / Sistema ──────────────────────────────────────────────
+  if(a==='Cierre de sesión'||a==='Descarga'||a==='Informe') mod='Sistema';
+
   // Normalizar la acción a texto descriptivo
   var DESC={
     'Creacion':'Creación de código',
     'Edicion':'Modificación de código',
-    'Eliminacion':'Eliminación de código',
+    'Eliminacion':'Eliminación de registro',
     'Aprobacion':'Aprobación de documento',
     'Rechazo':'Rechazo de documento',
+    'Envio a flujo':'Envío a flujo de aprobación',
     'Obsoleto':'Documento marcado como Obsoleto',
-    'Reversion Obsoleto':'Reversión de Obsoleto',
-    'Extension Vigencia':'Extensión de vigencia',
-    'Quitar Extension':'Eliminación de extensión de vigencia',
+    'Marcar Obsoleto':'Documento marcado como Obsoleto',
+    'Reversion Obsoleto':'Reversión de estado Obsoleto',
+    'Extension Vigencia':'Extensión de vigencia aplicada',
+    'Quitar Extension':'Extensión de vigencia eliminada',
     'Copia controlada':'Registro de copia controlada',
     'Importacion copias':'Importación de copias controladas',
-    'Acta Copias':'Generación de acta de entrega',
+    'Acta Copias':'Generación de acta de entrega de copias',
     'Inspeccion':'Inspección de copias controladas',
+    'Inspección':'Inspección de copias controladas',
     'Solicitud RB':'Asignación a ruta de borrador',
     'Oficialización':'Oficialización de documento',
+    'Oficialización automática':'Oficialización automática al guardar documento',
+    'Aprobación ruta':'Aprobación — paso a proceso de firma',
+    'Aprobacion ruta':'Aprobación — paso a proceso de firma',
+    'Oficialización ruta':'Oficialización desde módulo Ruta de Borrador',
+    'Eliminación ruta':'Eliminación de solicitud de ruta de borrador',
     'Novedad de Documento':'Solicitud de novedad de documento',
+    'Revisión Documental':'Actualización de documentos relacionados',
+    'Revision Documental':'Actualización de documentos relacionados',
+    'PDF Barcode':'Estampado de código QR/barras en PDF',
+    'Estampar PDF':'Estampado de código QR/barras en PDF',
     'Usuarios':'Gestión de usuarios',
     'Notificacion':'Notificación enviada',
-    'Correo':'Notificación por correo',
-    'Importacion':'Importación de datos',
+    'Correo':'Notificación por correo enviada',
+    'Importacion':'Importación de datos desde archivo',
     'Cierre de sesión':'Cierre de sesión',
+    'Descarga':'Descarga de archivo',
     'Informe':'Generación de informe'
   };
   acc=DESC[a]||a;
@@ -17008,7 +18221,7 @@ function getSaludo(){var h=new Date().getHours();if(h>=5&&h<12)return'Buenos dia
 // NAV
 // ============================================================
 
-var PT={dash:'Dashboard',docs:'Documentos',flujos:'Flujos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Inspecciones Rutinarias',procs:'Mapa de Procesos',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',validacion:'Informe de Validación IQ/OQ/PQ',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento F-SOP-0001-5'};
+var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',flujos:'Flujos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Inspecciones Rutinarias',procs:'Mapa de Procesos',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',validacion:'Informe de Validación IQ/OQ/PQ',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento F-SOP-0001-5'};
 var PR={dash:renderDash,docs:renderDocs,venc:renderVenc,flujos:renderFlujos,copias:renderCopias,entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},procs:renderProcs,usrs:renderUsrs,notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,validacion:renderValidacion,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
 
 function nav(p,el){
@@ -17089,6 +18302,7 @@ function updBadges(){
 // DASHBOARD
 // ============================================================
 function renderDash(){
+  if(typeof homeInit==='function') homeInit();
   //  KPIs — excluir Obsoletos de todos los cálculos 
   // Un doc es obsoleto si: estado==='Obsoleto' O campo obsoleto es X/Si
   function esObsoleto(d){
@@ -17573,7 +18787,26 @@ function renderDocs(){
   renderDocsPage();
 }
 
+var _docsView='cards';
+function setDocsView(v){
+  _docsView=v;
+  var lv=document.getElementById('docs-list-view');
+  var cv=document.getElementById('docs-cards-view');
+  var bl=document.getElementById('dvt-list');
+  var bc=document.getElementById('dvt-cards');
+  if(lv&&cv){lv.style.display=v==='list'?'':'none';cv.style.display=v==='cards'?'':'none';}
+  if(bl&&bc){bl.classList.toggle('act',v==='list');bc.classList.toggle('act',v==='cards');}
+  renderDocsPage();
+}
+function docStripClass(estado){
+  if(!estado)return 'ng';
+  var e=estado.toLowerCase();
+  if(e==='vigente')return 'ap';
+  if(e==='vencido'||e==='obsoleto')return 'ob';
+  return 'rv';
+}
 function renderDocsPage(){
+  if(_docsView==='cards'){renderDocsCards();return;}
   var tb=document.getElementById('docs-tb');if(!tb)return;
   if(dFiltered.length===0&&docs.length>0){
     var anyFilter=(document.getElementById('f-tipo')||{}).value||(document.getElementById('f-est')||{}).value||(document.getElementById('f-proc')||{}).value||(document.getElementById('f-area')||{}).value||(document.getElementById('f-gxp')||{}).value||(document.getElementById('gs')||{}).value;
@@ -17584,25 +18817,24 @@ function renderDocsPage(){
   if(dPage>=tpg)dPage=tpg-1;
   var page=dFiltered.slice(dPage*dPSize,(dPage+1)*dPSize);
   var f=document.createDocumentFragment();
-  // Pre-warm cache antes del loop para no recalcularlo en cada fila
   if(!_rbCache||_rbCacheLen!==((solicitudes&&solicitudes.length)||0)) rbRecalcCache();
-  if(!page.length){var r=document.createElement('tr');r.innerHTML='<td colspan="11"><div class="emp"><div style="font-size:22px">📭</div><div style="font-size:12px">Sin documentos</div></div></td>';f.appendChild(r);}
+  if(!page.length){var r=document.createElement('tr');r.innerHTML='<td colspan="11"><div class="emp"><div style="font-size:22px">\u{1F4ED}</div><div style="font-size:12px">Sin documentos</div></div></td>';f.appendChild(r);}
   else page.forEach(function(d){
     var di=dH(d.fechaVencimiento);var r=document.createElement('tr');
     r.innerHTML='<td><span class="cd">'+d.codigoActual+'</span></td>'+
-      '<td style="font-size:10px;color:var(--tx3)">'+(d.codigoAntiguo||'—')+'</td>'+
-      '<td style="max-width:190px"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</div><div style="font-size:10px;color:var(--tx3)">'+(d.descriptionEn||'')+'</div></td>'+
-      '<td style="text-align:center;font-weight:600">'+(d.version!==null&&d.version!==undefined&&d.version!==''?d.version:'—')+'</td>'+
-      '<td><span class="b tl" style="font-size:9px">'+(d.tipoDocumento||'—')+'</span></td>'+
-      '<td style="font-size:11px">'+(d.areaGeneradora||'—')+'</td>'+
-      '<td><div style="font-size:11px">'+fDD(d.fechaVencimiento)+'</div>'+(d.estado!=='Obsoleto'?vB(di):'')+'</td>'+
+      '<td style="font-size:10px;color:var(--tx3)">'+( d.codigoAntiguo||'\u2014')+'</td>'+
+      '<td style="max-width:190px"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</div><div style="font-size:10px;color:var(--tx3)">'+( d.descriptionEn||'')+'</div></td>'+
+      '<td style="text-align:center;font-weight:600">'+( d.version!==null&&d.version!==undefined&&d.version!==''?d.version:'\u2014')+'</td>'+
+      '<td><span class="b tl" style="font-size:9px">'+( d.tipoDocumento||'\u2014')+'</span></td>'+
+      '<td style="font-size:11px">'+( d.areaGeneradora||'\u2014')+'</td>'+
+      '<td><div style="font-size:11px">'+fDD(d.fechaVencimiento)+'</div>'+( d.estado!=='Obsoleto'?vB(di):'')+'</td>'+
       '<td>'+eB(d.estado)+'</td>'+
       '<td>'+gB(d.docGxP)+'</td>'+
-      '<td style="font-size:11px">'+(d.administrador||'—')+'</td>'+
+      '<td style="font-size:11px">'+( d.administrador||'\u2014')+'</td>'+
       '<td><div style="display:flex;gap:2px;flex-wrap:wrap">'+
         '<button class="btn gh sm" onclick="verDoc('+d.id+')">Ver</button>'+
         '<button class="btn gh sm" onclick="editDoc('+d.id+')">Editar</button>'+
-        '<button class="btn dn sm" onclick="delDoc('+d.id+')">✕</button>'+
+        '<button class="btn dn sm" onclick="delDoc('+d.id+')">\u2715</button>'+
       '</div></td>';
     f.appendChild(r);
   });
@@ -17610,14 +18842,76 @@ function renderDocsPage(){
   var pc=document.getElementById('docs-pg');
   if(pc){var dis0=dPage===0?'disabled':'',disl=dPage>=tpg-1?'disabled':'';
     pc.innerHTML='<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--brd)">'+
-      '<span style="font-size:11px;color:var(--tx3)">'+(dPage*dPSize+1)+'–'+Math.min((dPage+1)*dPSize,total)+' de <strong>'+total+'</strong></span>'+
+      '<span style="font-size:11px;color:var(--tx3)">'+( dPage*dPSize+1)+'\u2013'+Math.min((dPage+1)*dPSize,total)+' de <strong>'+total+'</strong></span>'+
       '<select class="fsel" onchange="dPSize=parseInt(this.value);dPage=0;renderDocsPage()"><option value="50" '+(dPSize===50?'selected':'')+'>50/pag</option><option value="100" '+(dPSize===100?'selected':'')+'>100/pag</option><option value="200" '+(dPSize===200?'selected':'')+'>200/pag</option></select>'+
       '<div style="display:flex;gap:3px;margin-left:auto">'+
-        '<button class="btn gh sm" '+dis0+' onclick="dPage=0;renderDocsPage()">«</button>'+
-        '<button class="btn gh sm" '+dis0+' onclick="dPage--;renderDocsPage()">‹</button>'+
-        '<span style="font-size:11px;padding:4px 9px;background:var(--tl);border-radius:var(--r);font-weight:600">'+(dPage+1)+'/'+tpg+'</span>'+
-        '<button class="btn gh sm" '+disl+' onclick="dPage++;renderDocsPage()">›</button>'+
-        '<button class="btn gh sm" '+disl+' onclick="dPage='+(tpg-1)+';renderDocsPage()">»</button>'+
+        '<button class="btn gh sm" '+dis0+' onclick="dPage=0;renderDocsPage()">\u00AB</button>'+
+        '<button class="btn gh sm" '+dis0+' onclick="dPage--;renderDocsPage()">\u2039</button>'+
+        '<span style="font-size:11px;padding:4px 9px;background:var(--tl);border-radius:var(--r);font-weight:600">'+( dPage+1)+'/'+tpg+'</span>'+
+        '<button class="btn gh sm" '+disl+' onclick="dPage++;renderDocsPage()">\u203A</button>'+
+        '<button class="btn gh sm" '+disl+' onclick="dPage='+(tpg-1)+';renderDocsPage()">\u00BB</button>'+
+      '</div></div>';}
+}
+function renderDocsCards(){
+  if(dFiltered.length===0&&docs.length>0){
+    var anyFilter=(document.getElementById('f-tipo')||{}).value||(document.getElementById('f-est')||{}).value||(document.getElementById('f-proc')||{}).value||(document.getElementById('f-area')||{}).value||(document.getElementById('f-gxp')||{}).value||(document.getElementById('gs')||{}).value;
+    if(!anyFilter){dFiltered=docsEmpresa().slice();dFiltered.sort(sortCodigos);}
+  }
+  var total=dFiltered.length;
+  var tpg=Math.max(1,Math.ceil(total/dPSize));
+  if(dPage>=tpg)dPage=tpg-1;
+  var page=dFiltered.slice(dPage*dPSize,(dPage+1)*dPSize);
+  var grid=document.getElementById('docs-cards-grid');
+  if(!grid)return;
+  if(!_rbCache||_rbCacheLen!==((solicitudes&&solicitudes.length)||0)) rbRecalcCache();
+  if(!page.length){grid.innerHTML='<div class="emp" style="grid-column:1/-1"><div style="font-size:28px">\u{1F4ED}</div><div style="font-size:12px">Sin documentos</div></div>';return;}
+  var html='';
+  page.forEach(function(d){
+    var di=dH(d.fechaVencimiento);
+    var sc=docStripClass(d.estado);
+    var venc=fDD(d.fechaVencimiento);
+    var vbadge=d.estado!=='Obsoleto'?vB(di):'';
+    var ver=d.version!==null&&d.version!==undefined&&d.version!==''?d.version:'—';
+    html+=
+      '<div class="doc-card">'+
+        '<div style="height:3px;background:'+
+          (sc==='ap'?'var(--G)':sc==='ob'?'var(--R)':sc==='rv'?'var(--A)':'#bbb')+
+        '"></div>'+
+        '<div class="doc-card-top">'+
+          '<div class="doc-card-code">'+d.codigoActual+'</div>'+
+          '<div class="doc-card-desc" title="'+d.descripcion+'">'+d.descripcion+'</div>'+
+          (d.descriptionEn?'<div class="doc-card-desc-en">'+d.descriptionEn+'</div>':'')+
+          '<div class="doc-card-meta">'+
+            (d.tipoDocumento?'<span class="doc-card-pill tipo">\u{1F4C4} '+d.tipoDocumento+'</span>':'')+
+            (d.docGxP==='Si'?'<span class="doc-card-pill gxp">GxP</span>':'')+
+            eB(d.estado)+
+          '</div>'+
+          '<div class="doc-card-row">\u{1F3E2} <strong>'+( d.areaGeneradora||'—')+'</strong></div>'+
+          (d.administrador?'<div class="doc-card-row">\u{1F464} <strong>'+d.administrador+'</strong></div>':'')+
+          '<div class="doc-card-row">\u{1F4C5} Vence: <strong>'+venc+'</strong> '+vbadge+'</div>'+
+        '</div>'+
+        '<div class="doc-card-footer">'+
+          '<span class="doc-card-ver">v'+ver+'</span>'+
+          '<div class="doc-card-actions">'+
+            '<button class="btn gh sm" onclick="verDoc('+d.id+')">Ver</button>'+
+            '<button class="btn gh sm" onclick="editDoc('+d.id+')">Editar</button>'+
+            '<button class="btn dn sm" onclick="delDoc('+d.id+')">\u2715</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+  });
+  grid.innerHTML=html;
+  var pc=document.getElementById('docs-pg');
+  if(pc){var dis0=dPage===0?'disabled':'',disl=dPage>=tpg-1?'disabled':'';
+    pc.innerHTML='<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--brd)">'+
+      '<span style="font-size:11px;color:var(--tx3)">'+( dPage*dPSize+1)+'\u2013'+Math.min((dPage+1)*dPSize,total)+' de <strong>'+total+'</strong></span>'+
+      '<select class="fsel" onchange="dPSize=parseInt(this.value);dPage=0;renderDocsPage()"><option value="50" '+(dPSize===50?'selected':'')+'>50/pag</option><option value="100" '+(dPSize===100?'selected':'')+'>100/pag</option><option value="200" '+(dPSize===200?'selected':'')+'>200/pag</option></select>'+
+      '<div style="display:flex;gap:3px;margin-left:auto">'+
+        '<button class="btn gh sm" '+dis0+' onclick="dPage=0;renderDocsPage()">\u00AB</button>'+
+        '<button class="btn gh sm" '+dis0+' onclick="dPage--;renderDocsPage()">\u2039</button>'+
+        '<span style="font-size:11px;padding:4px 9px;background:var(--tl);border-radius:var(--r);font-weight:600">'+( dPage+1)+'/'+tpg+'</span>'+
+        '<button class="btn gh sm" '+disl+' onclick="dPage++;renderDocsPage()">\u203A</button>'+
+        '<button class="btn gh sm" '+disl+' onclick="dPage='+(tpg-1)+';renderDocsPage()">\u00BB</button>'+
       '</div></div>';}
 }
 
@@ -20661,15 +21955,34 @@ function renderAudit(){
     'Descarga':'#0ea5e9','Inicializacion':'#94a3b8','Reversion Obsoleto':'#22c55e',
     'Quitar Extension':'#94a3b8','Impresión ZPL':'#0d9488',
     'Traduccion':'#0d9488','OneDrive':'#0078d4','Acta Copias':'#10b981',
-    'Solicitud RB':'#6366f1','Inspeccion':'#f59e0b'
+    'Solicitud RB':'#6366f1','Inspeccion':'#f59e0b','Inspección':'#f59e0b',
+    'Oficialización':'#22c55e','Oficialización automática':'#22c55e','Oficialización ruta':'#22c55e',
+    'Aprobación ruta':'#3b82f6','Aprobacion ruta':'#3b82f6',
+    'Eliminación ruta':'#ef4444','Eliminacion':'#ef4444',
+    'Novedad de Documento':'#8b5cf6',
+    'Revisión Documental':'#0d9488','Revision Documental':'#0d9488',
+    'PDF Barcode':'#6366f1','Estampar PDF':'#6366f1',
+    'Marcar Obsoleto':'#94a3b8',
+    'Correo':'#06b6d4','Cierre de sesión':'#64748b',
+    'Informe':'#0ea5e9','Usuarios':'#7c3aed'
   };
   var icoAcc={
     'Creacion':'➕','Edicion':'✏️','Eliminacion':'🗑️','Aprobacion':'✅',
     'Rechazo':'❌','Obsoleto':'📦','Importacion':'📥','Descarga':'⬇️',
     'Extension Vigencia':'📅','Reversion Obsoleto':'♻️','Quitar Extension':'🔄',
     'Copia controlada':'📋','Acta Copias':'📄','Sync Copias':'🔄',
-    'Solicitud RB':'📝','Inspeccion':'🔍',
-    'Traduccion':'🌐','OneDrive':'☁️','Impresión ZPL':'🖨️'
+    'Solicitud RB':'📝','Inspeccion':'🔍','Inspección':'🔍',
+    'Traduccion':'🌐','OneDrive':'☁️','Impresión ZPL':'🖨️',
+    'Oficialización':'✅','Oficialización automática':'✅','Oficialización ruta':'✅',
+    'Aprobación ruta':'👍','Aprobacion ruta':'👍',
+    'Eliminación ruta':'🗑️',
+    'Novedad de Documento':'📢',
+    'Revisión Documental':'🔗','Revision Documental':'🔗',
+    'PDF Barcode':'🖨️','Estampar PDF':'🖨️',
+    'Marcar Obsoleto':'🚫',
+    'Correo':'✉️','Cierre de sesión':'🔒',
+    'Informe':'📈','Usuarios':'👥',
+    'Envio a flujo':'➡️','Notificacion':'🔔'
   };
 
   // Obtener usuarios únicos para el filtro
@@ -27951,24 +29264,27 @@ function odHookSaveInsp(){
   var prevSaveArr=saveArr;
   saveArr=function(k,v){
     prevSaveArr(k,v);
-    if((k==='insp'||k==='inspProg')&&OD.fileHandle&&OD.syncActivo){
+    // Trigger OD sync for inspecciones AND any other data array
+    var SYNC_KEYS=['insp','inspProg','sol','c','p','u','nh'];
+    if(SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },3000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2500);
     }
   };
 }
 
-//  HOOK saveArr → dispara guardado de copias en OneDrive 
+//  HOOK saveArr → dispara guardado en OneDrive para todos los módulos
 var _saveArrOD=null;
 function odHookSaveArr(){
   if(_saveArrOD) return; // solo una vez
   _saveArrOD=saveArr;
   saveArr=function(k,v){
     _saveArrOD(k,v);
-    // Si se guarda el array de copias ('c') y hay sync activo, programar guardado
-    if(k==='c'&&OD.fileHandle&&OD.syncActivo){
+    // Trigger sync para copias, solicitudes, procesos, usuarios, notificaciones
+    var OD_SYNC_KEYS=['c','sol','p','u','nh','insp','inspProg'];
+    if(OD_SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },3000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2500);
     }
   };
 }
@@ -31266,6 +32582,126 @@ var _origGuardarDoc = null;
 
 
 //  ACTUALIZAR DASHBOARD: re-lee Excel de OneDrive sin cambios 
+
+/* ═══════════════════════════════════════════════════
+   HOME — BIENVENIDA + TAREAS DEL DÍA
+   ═══════════════════════════════════════════════════ */
+var _homeTasks = [];
+
+function homeLoadTasks(){
+  try{ _homeTasks = JSON.parse(localStorage.getItem('home_tasks')||'[]'); }catch(e){ _homeTasks=[]; }
+}
+function homeSaveTasks(){
+  try{ localStorage.setItem('home_tasks', JSON.stringify(_homeTasks)); }catch(e){}
+}
+
+function homeInit(){
+  homeLoadTasks();
+  homeRenderGreeting();
+  homeRenderTasks();
+}
+
+function homeRenderGreeting(){
+  var h = new Date().getHours();
+  var saludo = h<12 ? 'Buenos días' : h<18 ? 'Buenas tardes' : 'Buenas noches';
+  var nombre = (currentUser && (currentUser.nombre||currentUser.login)) ? (currentUser.nombre||currentUser.login) : 'Usuario';
+  var initiales = nombre.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase() || 'U';
+  var dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var hoy = new Date();
+  var fechaStr = dias[hoy.getDay()]+', '+hoy.getDate()+' de '+meses[hoy.getMonth()]+' de '+hoy.getFullYear();
+  var pend = _homeTasks.filter(function(t){return !t.done;}).length;
+  var subtxt = fechaStr + (pend>0 ? ' · ' + pend + ' tarea'+(pend>1?'s':'')+' pendiente'+(pend>1?'s':'') : ' · Sin tareas pendientes');
+  var gEl=document.getElementById('home-greeting');
+  var sEl=document.getElementById('home-subgreeting');
+  var aEl=document.getElementById('home-avatar');
+  if(gEl) gEl.textContent = saludo+', '+nombre;
+  if(sEl) sEl.textContent = subtxt;
+  if(aEl) aEl.textContent = initiales;
+}
+
+function homeRenderTasks(){
+  var el = document.getElementById('home-tasks-list');
+  var badge = document.getElementById('home-tasks-badge');
+  if(!el) return;
+  var pend = _homeTasks.filter(function(t){return !t.done;}).length;
+  var total = _homeTasks.length;
+  if(badge) badge.textContent = (total-pend)+' de '+total+' listas';
+
+  if(!_homeTasks.length){
+    el.innerHTML='<div style="padding:24px 16px;text-align:center;color:var(--tx3);font-size:11px;line-height:1.7">Sin tareas aún.<br>Presiona <strong>➕ Agregar</strong> para crear una.</div>';
+    return;
+  }
+
+  var prioColors = {alta:'#E24B4A', media:'#EF9F27', baja:'#1D9E75'};
+  var prioBg    = {alta:'#fcebeb', media:'#faeeda', baja:'#e1f5ee'};
+  var prioText  = {alta:'#791f1f', media:'#633806', baja:'#085041'};
+  var prioLabel = {alta:'Alta', media:'Media', baja:'Baja'};
+
+  // Pending first, then done
+  var pending = _homeTasks.filter(function(t){return !t.done;});
+  var done    = _homeTasks.filter(function(t){return t.done;});
+  var ordered = pending.concat(done);
+
+  el.innerHTML = ordered.map(function(t, idx){
+    var realIdx = _homeTasks.indexOf(t);
+    var borderColor = t.done ? 'transparent' : (prioColors[t.prio]||'transparent');
+    var opacity = t.done ? '0.6' : '1';
+    return '<div style="display:flex;align-items:flex-start;gap:9px;padding:9px 12px;border-bottom:0.5px solid var(--brd);border-left:2px solid '+borderColor+';opacity:'+opacity+';transition:background .1s" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'\'">'
+      + '<div onclick="homeToggleTask('+realIdx+')" style="width:17px;height:17px;border-radius:50%;border:1.5px solid '+(t.done?'#1D9E75':'var(--brd2)')+';background:'+(t.done?'#1D9E75':'transparent')+';display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:2px">'
+        + (t.done?'<span style="font-size:9px;color:#fff">✓</span>':'')
+      + '</div>'
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:11px;font-weight:600;color:var(--tx);margin-bottom:2px;'+(t.done?'text-decoration:line-through;color:var(--tx3)':'')+'">'+homeEscape(t.title)+'</div>'
+        + (t.desc?'<div style="font-size:9px;color:var(--tx3);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+homeEscape(t.desc)+'</div>':'')
+        + (!t.done && t.prio ? '<span style="font-size:8px;font-weight:700;padding:2px 7px;border-radius:99px;background:'+prioBg[t.prio]+';color:'+prioText[t.prio]+'">'+prioLabel[t.prio]+' prioridad</span>' : '')
+        + (t.done && t.doneAt ? '<div style="font-size:9px;color:var(--tx3);margin-top:2px">Completada · '+t.doneAt+'</div>' : '')
+      + '</div>'
+      + '<button onclick="homeDeleteTask('+realIdx+')" style="font-size:11px;background:none;border:none;color:var(--tx3);cursor:pointer;padding:2px 4px;opacity:.5;flex-shrink:0" title="Eliminar">✕</button>'
+    + '</div>';
+  }).join('');
+}
+
+function homeEscape(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function homeToggleTask(idx){
+  if(!_homeTasks[idx]) return;
+  _homeTasks[idx].done = !_homeTasks[idx].done;
+  if(_homeTasks[idx].done){
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2,'0');
+    var mm = String(now.getMinutes()).padStart(2,'0');
+    _homeTasks[idx].doneAt = hh+':'+mm+' am'.replace('am', now.getHours()>=12?'pm':'am');
+  } else {
+    _homeTasks[idx].doneAt = '';
+  }
+  homeSaveTasks();
+  homeRenderTasks();
+  homeRenderGreeting();
+}
+
+function homeDeleteTask(idx){
+  _homeTasks.splice(idx,1);
+  homeSaveTasks();
+  homeRenderTasks();
+  homeRenderGreeting();
+}
+
+function homeAddTask(){
+  var title = prompt('Título de la tarea:');
+  if(!title || !title.trim()) return;
+  var desc  = prompt('Descripción (opcional, Enter para omitir):') || '';
+  var prioR = prompt('Prioridad: 1=Alta, 2=Media, 3=Baja (Enter para ninguna):') || '';
+  var prioMap = {'1':'alta','2':'media','3':'baja'};
+  var prio = prioMap[prioR.trim()] || '';
+  _homeTasks.unshift({id:Date.now(), title:title.trim(), desc:desc.trim(), prio:prio, done:false, doneAt:''});
+  homeSaveTasks();
+  homeRenderTasks();
+  homeRenderGreeting();
+}
+
 async function dashActualizar(){
   var btn=document.getElementById('dash-btn-actualizar');
   if(!OD.fileHandle){
@@ -31409,109 +32845,240 @@ function rbEscribirHoja(wb){
 }
 
 // Renderizar tabla
-function rbRender(){
-  var tbody=document.getElementById('rb-tbody');
-  if(!tbody) return;
+var _rbActiveSol = null; // consecutivo activo en split view
+
+function rbEstadoInfo(s){
+  var est=(s.estadoOficializacion||s.estatus||'').trim();
+  var esOfic=est.toLowerCase().indexOf('oficial')>=0;
+  var esRechazo=est.toLowerCase().indexOf('rechaz')>=0;
+  var esRevision=est.toLowerCase()==='en revisión'||est.toLowerCase()==='en revision'||est.toLowerCase()==='aceptada';
+  var esFirma=est.toLowerCase().indexOf('proceso de firma')>=0||est.toLowerCase()==='en proceso';
+  var color=esOfic?'var(--G)':esRechazo?'var(--R)':esFirma?'var(--T)':esRevision?'var(--A)':'#aaa';
+  var bg=esOfic?'#e6f9f3':esRechazo?'#fde8e8':esFirma?'#e0f5f3':esRevision?'#fff8e1':'#f0f0f0';
+  var tc=esOfic?'#0f7a50':esRechazo?'#a02020':esFirma?'var(--T3)':esRevision?'#a06000':'#666';
+  var label=esOfic?'Oficializado':esRechazo?'Rechazada':esFirma?'En proceso de firma':esRevision?'En revisión':est||'Pendiente';
+  return{color:color,bg:bg,tc:tc,label:label,esOfic:esOfic,esRechazo:esRechazo,esRevision:esRevision,esFirma:esFirma};
+}
+
+function rbSplitStageBar(s){
+  var info=rbEstadoInfo(s);
+  var stages=[
+    {key:'revision',  label:'En revisión',       done:info.esRevision||info.esFirma||info.esOfic, active:info.esRevision&&!info.esFirma&&!info.esOfic},
+    {key:'firma',     label:'En proceso de firma',done:info.esFirma||info.esOfic,                  active:info.esFirma&&!info.esOfic},
+    {key:'oficial',   label:'Oficializado',       done:info.esOfic,                                active:false}
+  ];
+  return stages.map(function(st,i){
+    var pillBg=st.done&&!st.active?'var(--G)':st.active?'var(--A)':'var(--bg4)';
+    var pillTc=st.done||st.active?'#fff':'var(--tx3)';
+    var icon=st.done&&!st.active?'✓ ':st.active?'⏱ ':'';
+    return '<span class="rb-det-stage-pill" style="background:'+pillBg+';color:'+pillTc+'">'+icon+st.label+'</span>'
+      +(i<stages.length-1?'<span class="rb-det-stage-arrow">›</span>':'');
+  }).join('');
+}
+
+function rbGetFiltered(){
   var fCod=((document.getElementById('rb-f-cod')||{}).value||'').trim().toLowerCase();
   var fConsec=((document.getElementById('rb-f-consec')||{}).value||'').trim().toLowerCase();
   var fSolit=((document.getElementById('rb-f-solit')||{}).value||'').trim().toLowerCase();
   var fNombre=((document.getElementById('rb-f-nombre')||{}).value||'').trim().toLowerCase();
   var fTipoSol=((document.getElementById('rb-f-tsol')||{}).value||'').trim().toLowerCase();
   var est=((document.getElementById('rb-filtro-estado')||{}).value||'').trim();
-
-  var filtrados=solicitudes.filter(function(s){
-    // Código
+  return (solicitudes||[]).filter(function(s){
     if(fCod&&(s.codigo||'').toLowerCase().indexOf(fCod)<0) return false;
-    // Consecutivo
     if(fConsec&&(s.consecutivo||'').toLowerCase().indexOf(fConsec)<0) return false;
-    // Solicitante
     if(fSolit&&(s.solicitante||'').toLowerCase().indexOf(fSolit)<0) return false;
-    // Nombre del documento
     if(fNombre&&(s.nombreDoc||'').toLowerCase().indexOf(fNombre)<0) return false;
-    // Tipo de modificación
     if(fTipoSol&&(s.tipoSolicitud||'').toLowerCase().indexOf(fTipoSol)<0) return false;
-    // Estado
-    if(est&&s.estatus!==est&&s.estadoOficializacion!==est) return false;
+    if(est){
+      var info=rbEstadoInfo(s);
+      if(est==='En revisión'&&!info.esRevision) return false;
+      if(est==='En proceso de firma'&&!info.esFirma) return false;
+      if(est==='Oficializado'&&!info.esOfic) return false;
+      if(est==='Rechazada'&&!info.esRechazo) return false;
+      if(est==='Pendiente'&&(info.esOfic||info.esRevision||info.esFirma||info.esRechazo)) return false;
+    }
     return true;
   });
+}
 
-  var cnt=document.getElementById('rb-contador');
-  if(cnt) cnt.textContent=filtrados.length+' resultado'+(filtrados.length!==1?'s':'');
-
-  // Poblar selector de tipo de solicitud con valores reales del Excel
+function rbRender(){
+  // Update tipo solicitud select
   var selTSol=document.getElementById('rb-f-tsol');
   if(selTSol){
-    var curTSol=selTSol.value;
-    var tSolSet={};
-    solicitudes.forEach(function(s){
-      var t=(s.tipoSolicitud||'').trim();
-      if(t) tSolSet[t]=1;
-    });
-    var tSolOrden=Object.keys(tSolSet).sort();
+    var cur=selTSol.value;
+    var tSet={};
+    (solicitudes||[]).forEach(function(s){var t=(s.tipoSolicitud||'').trim();if(t)tSet[t]=1;});
     selTSol.innerHTML='<option value="">Tipo de solicitud</option>'
-      +tSolOrden.map(function(t){
-        return '<option value="'+t+'"'+(t===curTSol?' selected':'')+'>'+t+'</option>';
-      }).join('');
+      +Object.keys(tSet).sort().map(function(t){return'<option value="'+t+'"'+(t===cur?' selected':'')+'>'+t+'</option>';}).join('');
   }
 
-  // Paginación: máx 50 por página
-  var rbPg=parseInt(document.getElementById('rb-pg-num')?document.getElementById('rb-pg-num').value||'1':'1')||1;
-  var rbPS=50;
-  var rbTotal=filtrados.length;
-  var rbPages=Math.max(1,Math.ceil(rbTotal/rbPS));
-  if(rbPg>rbPages) rbPg=rbPages;
-  var rbSlice=filtrados.slice((rbPg-1)*rbPS, rbPg*rbPS);
+  var filtrados=rbGetFiltered();
+  var cnt=document.getElementById('rb-contador');
+  if(cnt) cnt.textContent=filtrados.length+' solicitud'+(filtrados.length!==1?'es':'');
 
-  // Paginación UI
-  var pgBar=document.getElementById('rb-pgbar');
-  if(pgBar){
-    pgBar.innerHTML=rbTotal>rbPS
-      ?'<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:11px;color:var(--tx3);border-top:1px solid var(--brd)">'
-        +'<button class="btn gh sm" style="font-size:10px" onclick="rbIrPg('+rbPg+'-1)" '+(rbPg<=1?'disabled':'')+'>← Ant.</button>'
-        +'<span>Página '+rbPg+' de '+rbPages+' &nbsp;('+rbTotal+' solicitudes)</span>'
-        +'<button class="btn gh sm" style="font-size:10px" onclick="rbIrPg('+rbPg+'+1)" '+(rbPg>=rbPages?'disabled':'')+'>Sig. →</button>'
-        +'</div>'
-      :'';
+  rbRenderList(filtrados);
+  // Re-render detail if active sol still in filtrados
+  if(_rbActiveSol){
+    var still=filtrados.find(function(s){return String(s.consecutivo)===String(_rbActiveSol);});
+    if(still) rbRenderDetail(still);
   }
-
-  tbody.innerHTML=rbSlice.map(function(s,i){
-    var esOfic=(s.estadoOficializacion||'').toLowerCase().indexOf('oficial')>=0;
-    // Estado de oficialización como columna principal de Estatus
-    var estOfic=s.estadoOficializacion||s.estatus||'Pendiente';
-    var estatusBg=esOfic?'#e8f5e9':s.estatus==='Aceptada'?'#e0f5f3':s.estatus==='Rechazada'?'#fdeaea':'#fff8e1';
-    var estatusColor=esOfic?'#2e7d32':s.estatus==='Aceptada'?'#00695C':s.estatus==='Rechazada'?'#C62828':'#f57f17';
-    var bg=i%2===0?'var(--bg)':'var(--bg3)';
-    return '<tr style="background:'+bg+'">'
-      // Botón Ver fijo al inicio — siempre visible
-      +'<td style="padding:4px 8px;border-bottom:1px solid var(--brd);white-space:nowrap;position:sticky;left:0;background:'+bg+';z-index:1">'
-        +'<button class="btn gh sm" style="font-size:10px;padding:3px 8px" onclick="rbVerDetalle('+s.consecutivo+')">👁 Ver</button>'
-        +'<button class="btn dn sm" style="font-size:10px;padding:3px 7px;margin-left:3px" onclick="rbEliminarSolicitud(\''+s.consecutivo+'\')">🗑</button>'
-        +(!esOfic?' <button class="btn sm" style="font-size:10px;padding:3px 8px;background:var(--T);color:#fff" onclick="rbAbrirOficializar('+s.consecutivo+')">✅</button>':'')
-      +'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);white-space:nowrap">'
-        +'<span class="cd" style="font-size:10px">'+s.codigo+'</span>'
-      +'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.nombreDoc+'">'+s.nombreDoc+'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);white-space:nowrap;font-size:10px">'+s.tipoSolicitud+'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:center;font-weight:700;color:var(--T)">'+s.consecutivo+'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);white-space:nowrap;font-size:10px">'+s.solicitante+'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);white-space:nowrap;font-size:10px">'+s.areaGeneradora+'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);white-space:nowrap;font-size:10px">'+s.fechaSolicitud+'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);white-space:nowrap;font-size:10px">'+s.fechaRutaBorrador+'</td>'
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:center;font-size:10px">v'+s.version+'</td>'
-      // Estatus: muestra Estado De Oficialización
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:center">'
-        +'<span style="background:'+estatusBg+';color:'+estatusColor+';border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap">'+estOfic+'</span>'
-      +'</td>'
-      // F. Oficialización
-      +'<td style="padding:6px 10px;border-bottom:1px solid var(--brd);text-align:center;white-space:nowrap;font-size:10px">'
-        +(esOfic&&s.fechaOficializacion?s.fechaOficializacion:'<span style="color:var(--tx3)">—</span>')
-      +'</td>'
-          +'</tr>';
-  }).join('');
-
-  if(!filtrados.length) tbody.innerHTML='<tr><td colspan="12" style="padding:20px;text-align:center;color:var(--tx3)">Sin resultados para los filtros aplicados.</td></tr>';
 }
+
+function rbRenderList(filtrados, searchQ){
+  var listEl=document.getElementById('rb-split-list-body');
+  if(!listEl) return;
+  if(!filtrados) filtrados=rbGetFiltered();
+
+  // Apply inline search
+  var q=(searchQ||'').toLowerCase().trim();
+  if(q) filtrados=filtrados.filter(function(s){
+    return (s.codigo||'').toLowerCase().indexOf(q)>=0||(s.nombreDoc||'').toLowerCase().indexOf(q)>=0||(s.consecutivo||'').toLowerCase().indexOf(q)>=0;
+  });
+
+  if(!filtrados.length){
+    listEl.innerHTML='<div style="padding:24px 12px;text-align:center;font-size:11px;color:var(--tx3)">Sin resultados</div>';
+    return;
+  }
+
+  // Group: En proceso vs Oficializados
+  var enProceso=filtrados.filter(function(s){return !rbEstadoInfo(s).esOfic;});
+  var oficial=filtrados.filter(function(s){return rbEstadoInfo(s).esOfic;});
+
+  var html='';
+  function renderGroup(list, label){
+    if(!list.length) return;
+    html+='<div class="rb-split-group-hdr">'+label+' ('+list.length+')</div>';
+    list.forEach(function(s){
+      var info=rbEstadoInfo(s);
+      var isAct=String(s.consecutivo)===String(_rbActiveSol);
+      html+='<div class="rb-split-item'+(isAct?' act':'')+(info.esOfic?' done':'')+'" onclick="rbSelectSol(\''+s.consecutivo+'\')">'
+        +'<span class="rb-split-dot" style="background:'+info.color+'"></span>'
+        +'<div class="rb-split-info">'
+          +'<div class="rb-split-code" style="color:'+(info.esOfic?'var(--G)':info.esFirma?'var(--T3)':'var(--A2)')+'">'+
+            '#'+s.consecutivo+' — '+(s.codigo||'?')+
+          '</div>'
+          +'<div class="rb-split-name">'+(s.nombreDoc||'Sin nombre')+'</div>'
+        +'</div>'
+        +'<span class="rb-split-badge" style="background:'+info.bg+';color:'+info.tc+'">'+info.label+'</span>'
+      +'</div>';
+    });
+  }
+  renderGroup(enProceso, 'En proceso');
+  renderGroup(oficial, 'Oficializadas');
+  listEl.innerHTML=html;
+}
+
+function rbSplitSearch(q){
+  rbRenderList(rbGetFiltered(), q);
+}
+
+function rbSelectSol(consecutivo){
+  _rbActiveSol=consecutivo;
+  var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s) return;
+  // Update active state in list
+  document.querySelectorAll('.rb-split-item').forEach(function(el){el.classList.remove('act');});
+  var items=document.querySelectorAll('.rb-split-item');
+  items.forEach(function(el){
+    if(el.onclick&&el.getAttribute('onclick')&&el.getAttribute('onclick').indexOf("'"+consecutivo+"'")>=0)
+      el.classList.add('act');
+  });
+  rbRenderDetail(s);
+}
+
+function rbRenderDetail(s){
+  var panel=document.getElementById('rb-split-detail');
+  if(!panel) return;
+  var info=rbEstadoInfo(s);
+  function fv(v){return(v&&String(v).trim()&&String(v).trim()!=='undefined')?String(v).trim():'';}
+  function fi(label,val,color){
+    var v=fv(val);
+    return '<div class="rb-det-field">'
+      +'<div class="rb-det-label">'+label+'</div>'
+      +'<div class="rb-det-val'+(v?'':' empty')+'" '+(color?'style="color:'+color+'"':'')+'>'+( v||'—')+'</div>'
+      +'</div>';
+  }
+
+  panel.innerHTML=
+    // ── HEADER ──
+    '<div class="rb-det-head">'
+      +'<div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">'
+            +'<span style="font-size:10px;font-weight:700;background:#e0f5f3;color:var(--T3);padding:2px 9px;border-radius:99px">#'+s.consecutivo+'</span>'
+            +'<span style="font-family:\'Courier New\',monospace;font-size:11px;font-weight:700;color:var(--T3);background:var(--tl);padding:2px 8px;border-radius:4px">'+(s.codigo||'—')+'</span>'
+            +'<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:'+info.bg+';color:'+info.tc+'">'+info.label+'</span>'
+          +'</div>'
+          +'<div style="font-size:14px;font-weight:700;color:var(--tx);line-height:1.3;margin-bottom:3px">'+(s.nombreDoc||'—')+'</div>'
+          +'<div style="font-size:10px;color:var(--tx3)">'+(s.solicitante||'')+(s.areaGeneradora?' · '+s.areaGeneradora:'')+(s.fechaSolicitud?' · '+s.fechaSolicitud:'')+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div class="rb-det-stage" style="margin-top:10px">'+rbSplitStageBar(s)+'</div>'
+    +'</div>'
+    // ── GRID INFO ──
+    +'<div class="rb-det-grid">'
+      +'<div class="rb-det-sec">'
+        +'<div class="rb-det-sec-title">📄 Identificación</div>'
+        +fi('Código',s.codigo)
+        +fi('Nombre del documento',s.nombreDoc)
+        +fi('Versión',s.version)
+        +fi('Tipo de solicitud',s.tipoSolicitud)
+      +'</div>'
+      +'<div class="rb-det-sec">'
+        +'<div class="rb-det-sec-title">👤 Solicitante</div>'
+        +fi('Solicitante',s.solicitante)
+        +fi('Área generadora',s.areaGeneradora)
+        +fi('Correo',s.correoUsuario)
+      +'</div>'
+      +'<div class="rb-det-sec">'
+        +'<div class="rb-det-sec-title">📅 Fechas</div>'
+        +fi('Fecha solicitud',s.fechaSolicitud)
+        +fi('Fecha ruta borrador',s.fechaRutaBorrador)
+        +fi('F. revisión inicial',s.fechaRevIni)
+        +fi('F. revisión final',s.fechaRevFin)
+        +fi('F. entrega firma',s.fechaEntregaFirma)
+        +fi('F. oficialización',s.fechaOficializacion,'var(--G)')
+      +'</div>'
+      +'<div class="rb-det-sec">'
+        +'<div class="rb-det-sec-title">📝 Detalles</div>'
+        +fi('Descripción modificación',s.descripcionModif)
+        +fi('Criticidad resultado',s.criticidadResultado)
+        +fi('Criticidad conclusión',s.criticidadConclusion)
+        +fi('Retiro de ruta',s.retiroRuta)
+      +'</div>'
+    +'</div>'
+    // ── ACTIONS ──
+    +'<div class="rb-det-actions">'
+      +'<button class="btn gh sm" onclick="rbVerDetalle('+s.consecutivo+')">👁 Ver detalle completo</button>'
+      +(!info.esOfic&&!info.esFirma&&!info.esRechazo
+        ?'<button class="btn sm" style="background:var(--A);color:#fff;border-color:var(--A)" onclick="rbAprobar(\''+s.consecutivo+'\')">✏️ Aprobar → Proceso de firma</button>'
+        :'')
+      +(!info.esOfic
+        ?'<button class="btn sm" style="background:var(--T);color:#fff" onclick="rbAbrirOficializar('+s.consecutivo+')">✅ Oficializar</button>'
+        :'')
+      +'<button class="btn dn sm" style="margin-left:auto" onclick="rbEliminarSolicitud(\''+s.consecutivo+'\')">🗑</button>'
+    +'</div>';
+}
+
+function rbAprobar(consecutivo){
+  var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s) return;
+  if(!confirm('¿Confirmar aprobación? La solicitud pasará a "En proceso de firma".')) return;
+  s.estatus='En proceso de firma';
+  s.estadoOficializacion='En proceso de firma';
+  s.fechaEntregaFirma=s.fechaEntregaFirma||new Date().toISOString().split('T')[0];
+  saveArr('sol',solicitudes);
+  logA(currentUser?currentUser.nombre:'Usuario','Aprobación ruta',
+    'Solicitud #'+consecutivo+' — '+s.codigo+' | '+s.nombreDoc+' → En proceso de firma',
+    'Solicitante: '+(s.solicitante||'-')+' | Área: '+(s.areaGeneradora||'-'),
+    'Ruta de Borrador');
+  toast('Solicitud #'+consecutivo+' marcada como En proceso de firma','ok');
+  rbRender();
+  if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},2000);}
+}
+
+function rbToggleAcc(id){var el=document.getElementById(id);if(el)el.classList.toggle('rb-open');}
+
 
 function rbEliminarSolicitud(consecutivo){
   var s=solicitudes.find(function(x){return String(x.consecutivo)===String(consecutivo);});
@@ -31651,14 +33218,20 @@ function rbOficializarConfirmar(){
 
   document.getElementById('rb-mo-ofic').style.display='none';
   saveArr('sol', solicitudes);
-  logA(currentUser?currentUser.nombre:'Admin','Oficialización','Solicitud '+s.consecutivo+' — '+s.codigo+' oficializada el '+s.fechaOficializacion);
+  if(typeof rbRecalcCache==='function') rbRecalcCache();
+  logA(currentUser?currentUser.nombre:'Admin','Oficialización ruta',
+    'Solicitud #'+s.consecutivo+' — '+s.codigo+' | '+s.nombreDoc+' | oficializada el '+s.fechaOficializacion,
+    'F.Rev.Ini:'+s.fechaRevIni+' F.Rev.Fin:'+s.fechaRevFin+' F.Firma:'+s.fechaEntregaFirma,
+    'Ruta de Borrador');
   toast('✅ Documento '+s.codigo+' oficializado correctamente','ok');
-  rbRender();
-  // Disparar guardado en Excel
-  if(OD.fileHandle&&OD.syncActivo){
+  // Forzar guardado inmediato en OneDrive
+  if(OD.fileHandle&&window.currentUser){
+    OD.syncActivo=true;
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},2000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1000);
+    if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
+  rbRender();
 }
 
 // Actualizar oficialización automática cuando se crea/edita un doc
@@ -31669,9 +33242,10 @@ function rbActualizarOficializacion(codigo){
     return String(x.codigo||'').trim().toUpperCase()===cod;
   });
   if(!s) return; // no está en solicitudes
-  var estado=(s.estadoOficializacion||'').toLowerCase().trim();
-  // Solo actuar si está "en proceso" (no si está vacío, anulado, oficializado, etc.)
-  if(estado!=='en proceso') return;
+  var estado=(s.estadoOficializacion||s.estatus||'').toLowerCase().trim();
+  // Actuar si está "en proceso de firma" (listo para oficializar desde módulo documentos)
+  var lista=['en proceso de firma','en proceso','proceso de firma'];
+  if(lista.indexOf(estado)<0) return;
   var hoy=new Date().toISOString().split('T')[0];
   s.estadoOficializacion='Oficializado';
   s.estatus='Oficializado';
@@ -31681,7 +33255,9 @@ function rbActualizarOficializacion(codigo){
   s.fechaActListado=s.fechaActListado||hoy;
   saveArr('sol',solicitudes);
   logA(window.currentUser?currentUser.nombre:'Sistema','Oficialización automática',
-    'Solicitud '+s.consecutivo+' — '+cod+' marcada como Oficializado al guardar documento');
+    'Solicitud #'+s.consecutivo+' — '+cod+' marcada automáticamente como Oficializado al guardar documento en módulo Documentos',
+    'Estado anterior: '+estado,
+    'Ruta de Borrador');
   toast('✅ Solicitud '+s.consecutivo+' actualizada a Oficializado en Ruta de Borrador','ok');
   // Guardar en Excel si hay conexión
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
@@ -34311,20 +35887,19 @@ function nfVerificarRutaBorrador(cod){
     return fb.localeCompare(fa);
   });
   if(!coincidencias.length) return null;
+  // Solo generar alerta si la solicitud más reciente está en estado Pendiente
+  // Estados que NO generan alerta: Oficializado, En revisión, En proceso de firma, Rechazada, Aceptada
   var ultima=coincidencias[0];
   var estatus=(ultima.estatus||ultima.estadoOficializacion||'').toLowerCase().trim();
-  // Si no está oficializado → retornar info de alerta
-  var esOficializado=(estatus.indexOf('oficial')>=0||estatus.indexOf('oficializ')>=0);
-  if(!esOficializado){
-    return {
-      solicitante: ultima.solicitante||'(desconocido)',
-      fecha: ultima.fechaSolicitud||ultima.fechaRutaBorrador||'(sin fecha)',
-      motivo: ultima.descripcionModif||ultima.tipoSolicitud||'(sin descripción)',
-      estatus: ultima.estatus||'(sin estado)',
-      consecutivo: ultima.consecutivo||''
-    };
-  }
-  return null;
+  var esPendiente = estatus===''||estatus==='pendiente';
+  if(!esPendiente) return null;
+  return {
+    solicitante: ultima.solicitante||'(desconocido)',
+    fecha: ultima.fechaSolicitud||ultima.fechaRutaBorrador||'(sin fecha)',
+    motivo: ultima.descripcionModif||ultima.tipoSolicitud||'(sin descripción)',
+    estatus: ultima.estatus||'Pendiente',
+    consecutivo: ultima.consecutivo||''
+  };
 }
 
 function nfValidarCampos(){
@@ -34395,10 +35970,10 @@ function nfGuardarEjecutar(){
     descripcionModif:   document.getElementById('nf-descripcion').value.trim(),
     criticidadResultado:String(nfCalcResultado()),
     criticidadConclusion:nfGetConclusion(),
-    estatus:            document.getElementById('nf-estatus').value||'Pendiente',
+    estatus:            'En revisión',
     fechaRevIni:'',fechaRevFin:'',fechaEntregaFirma:'',
     fechaOficializacion:'',fechaActListado:'',fechaIntranet:'',
-    estadoOficializacion:'',
+    estadoOficializacion:'En revisión',
     correoUsuario:      (document.getElementById('nf-correo')||{}).value||'',
     retiroRuta:''
   };
@@ -34803,54 +36378,52 @@ document.addEventListener('click',function(e){
   <!-- PÁGINA: RUTA DE BORRADOR — SOLICITUDES DE USUARIOS        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <div class="pg" id="pg-rutabor">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-size:16px;font-weight:700">📋 Ruta de Borrador</div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:2px">Consulta y gestión de solicitudes de documentos en proceso</div>
+    <!-- Header + Filtros -->
+    <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--tx)">📋 Ruta de Borrador</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:1px">Consulta y gestión de solicitudes de documentos en proceso</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="rb-contador" style="font-size:11px;color:var(--tx3);font-weight:600"></span>
+          <button class="btn gh sm" onclick="rbLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
+        </div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;justify-content:flex-start">
-        <button class="btn gh sm" onclick="rbLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
-        <input id="rb-f-cod" type="text" class="fi" placeholder="Código" style="width:100px;font-size:12px" oninput="rbFiltrar()" title="Filtrar por código">
-        <input id="rb-f-consec" type="text" class="fi" placeholder="Consecutivo" style="width:100px;font-size:12px" oninput="rbFiltrar()" title="Filtrar por consecutivo">
-        <input id="rb-f-solit" type="text" class="fi" placeholder="Solicitante" style="width:140px;font-size:12px" oninput="rbFiltrar()" title="Filtrar por solicitante">
-        <input id="rb-f-nombre" type="text" class="fi" placeholder="Nombre del documento" style="width:190px;font-size:12px" oninput="rbFiltrar()" title="Filtrar por nombre">
-        <select id="rb-f-tsol" class="fi" style="font-size:12px;width:150px" onchange="rbFiltrar()" title="Tipo de solicitud">
-          <option value="">Tipo de solicitud</option>
-        </select>
-        <select id="rb-filtro-estado" class="fi" style="font-size:12px;width:130px" onchange="rbFiltrar()">
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <input id="rb-f-cod" type="text" class="fi" placeholder="🔍 Código" style="width:100px;font-size:11px" oninput="rbFiltrar()">
+        <input id="rb-f-consec" type="text" class="fi" placeholder="# Consecutivo" style="width:100px;font-size:11px" oninput="rbFiltrar()">
+        <input id="rb-f-solit" type="text" class="fi" placeholder="👤 Solicitante" style="width:130px;font-size:11px" oninput="rbFiltrar()">
+        <input id="rb-f-nombre" type="text" class="fi" placeholder="📄 Nombre del documento" style="width:190px;font-size:11px" oninput="rbFiltrar()">
+        <select id="rb-f-tsol" class="fi" style="font-size:11px;width:150px" onchange="rbFiltrar()"><option value="">Tipo de solicitud</option></select>
+        <select id="rb-filtro-estado" class="fi" style="font-size:11px;width:150px" onchange="rbFiltrar()">
           <option value="">Todos los estados</option>
-          <option>Aceptada</option><option>En proceso</option><option>Oficializado</option>
+          <option>En revisión</option><option>En proceso de firma</option><option>Oficializado</option>
           <option>Rechazada</option><option>Pendiente</option>
         </select>
-        <span id="rb-contador" style="font-size:11px;color:var(--tx3)"></span>
       </div>
     </div>
 
-    <!-- Tabla principal -->
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:11px" id="rb-tabla">
-          <thead>
-            <tr style="background:var(--bg3);position:sticky;top:0;z-index:2">
-              <th style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--brd);min-width:90px;position:sticky;left:0;background:var(--bg3);z-index:2">Acciones</th>
-              <th style="padding:8px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--brd);min-width:100px">Código</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--brd);min-width:200px">Nombre del Documento</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--brd);min-width:100px">Tipo Solicitud</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--brd);min-width:80px">Consecutivo</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--brd);min-width:130px">Solicitante</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--brd);min-width:130px">Área</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--brd);min-width:90px">F. Solicitud</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--brd);min-width:90px">F. Ruta Borr.</th>
-              <th style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--brd);min-width:50px">Ver.</th>
-              <th style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--brd);min-width:130px">Estado Oficialización</th>
-              <th style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--brd);min-width:90px">F. Oficialización</th>
-            </tr>
-          </thead>
-          <tbody id="rb-tbody"></tbody>
-        </table>
+    <!-- Split view: lista + detalle -->
+    <div class="rb-split">
+      <div class="rb-split-list">
+        <div class="rb-split-list-search">
+          <input id="rb-split-search" placeholder="Buscar en lista..." oninput="rbSplitSearch(this.value)">
+        </div>
+        <div id="rb-split-list-body" style="max-height:calc(100vh - 220px);overflow-y:auto"></div>
       </div>
-      <div id="rb-pgbar"></div>
+      <div class="rb-split-detail" id="rb-split-detail">
+        <div class="rb-split-empty">
+          <div style="font-size:32px;margin-bottom:10px">📋</div>
+          <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:5px">Selecciona una solicitud</div>
+          <div>Haz clic en cualquier solicitud de la lista<br>para ver su información completa aquí.</div>
+        </div>
+      </div>
     </div>
+    <div id="rb-pgbar" style="margin-top:8px"></div>
+    <input type="hidden" id="rb-pg-num" value="1">
+    <!-- hidden compat -->
+    <div style="display:none"><div class="rb-accordion" id="rb-accordion"></div></div>
 
     <!-- Modal Oficializar -->
     <div id="rb-mo-ofic" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
