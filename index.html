@@ -45,10 +45,12 @@ body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:14px;m
 .btn.ol{background:#fff;color:var(--T);border:1.5px solid var(--T)}.btn.ol:hover{background:var(--tl)}
 .btn.sm{padding:4px 9px;font-size:11px;border-radius:6px}
 
-.pg{display:none;padding:18px 22px;width:100%}
+.pg{display:none!important;padding:18px 22px;width:100%}
+.pg.act{display:block!important}
 .pg.act{display:block;width:100%;min-height:calc(100vh - 60px);}
 
-.pg{display:none;padding:18px 22px;width:100%}
+.pg{display:none!important;padding:18px 22px;width:100%}
+.pg.act{display:block!important}
 .pg.act{display:block;width:100%;min-height:calc(100vh - 60px);}
 
 
@@ -498,6 +500,9 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn gh sm" onclick="dashMostrarFiltroAreas()" id="dash-btn-areas" style="position:relative">
           🏢 Filtrar Áreas <span id="dash-areas-badge" style="display:none;background:var(--T);color:#fff;border-radius:99px;padding:0 6px;font-size:10px;font-weight:700;margin-left:4px">0</span>
         </button>
+        <button class="btn gh sm" id="dash-btn-nofinan" onclick="dashToggleExcluirFinanciera()" title="Excluye áreas: Control Cambiario, Gestión Tributaria, Planeación Financiera, Costos, Tesorería, Cartera, Contabilidad" style="border-color:var(--brd2)">
+          🏦 Sin Financiera
+        </button>
       </div>
     </div>
     <!-- Panel de selección de áreas -->
@@ -673,6 +678,22 @@ tbody tr:last-child td{border-bottom:none}
 
     <!-- ── LANDING: barra superior + tarjetas de acceso rápido ── -->
     <div id="dcp-landing">
+      <!-- Banner: Total docs / Obsoletos / Próximos a vencer -->
+      <div id="dcp-stats-banner" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+        <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 14px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px;cursor:pointer" onclick="dcpBannerClick('total')">
+          <div style="width:36px;height:36px;border-radius:8px;background:#e1f5ee;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📄</div>
+          <div><div style="font-size:11px;color:var(--tx3);margin-bottom:2px">Total documentos</div><div style="font-size:22px;font-weight:700;color:var(--T3);line-height:1" id="dcp-stat-total">—</div></div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 14px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px;cursor:pointer" onclick="dcpBannerClick('obsoleto')">
+          <div style="width:36px;height:36px;border-radius:8px;background:#fcebeb;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🚫</div>
+          <div><div style="font-size:11px;color:var(--tx3);margin-bottom:2px">Obsoletos</div><div style="font-size:22px;font-weight:700;color:#A32D2D;line-height:1" id="dcp-stat-obs">—</div></div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 14px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px;cursor:pointer" onclick="dcpBannerClick('vencer')">
+          <div style="width:36px;height:36px;border-radius:8px;background:#faeeda;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">⏰</div>
+          <div><div style="font-size:11px;color:var(--tx3);margin-bottom:2px">Próximos a vencer ≤30d</div><div style="font-size:22px;font-weight:700;color:#854F0B;line-height:1" id="dcp-stat-vencer">—</div></div>
+        </div>
+      </div>
+
       <!-- Barra búsqueda principal -->
       <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh)">
         <div style="display:flex;align-items:center;gap:10px">
@@ -684,6 +705,7 @@ tbody tr:last-child td{border-bottom:none}
             </span>
           </div>
           <button class="btn sm" onclick="dcpOpen()" style="white-space:nowrap;padding:9px 18px">Buscar</button>
+          <button class="btn sm" onclick="openNewDoc()" style="white-space:nowrap;padding:9px 16px;background:var(--T);color:#fff;border-color:var(--T)">➕ Nuevo documento</button>
         </div>
       </div>
 
@@ -831,10 +853,6 @@ tbody tr:last-child td{border-bottom:none}
         <select class="fsel" id="fv" onchange="renderVenc()"><option value="t">Todos</option><option value="v">Vencidos</option><option value="p">Por vencer</option><option value="g">Vigentes</option></select>
       </div>
       <div class="tw"><table><thead><tr><th>Código</th><th>Descripción</th><th>Administrador</th><th>Líder</th><th>Vencimiento</th><th>Días</th><th>Estado</th><th></th></tr></thead><tbody id="venc-tb"></tbody></table></div>
-    </div>
-  </div>
-
-      <div class="tw"><table><thead><tr><th>Código</th><th>Descripción</th><th>Administrador</th><th>Asignado</th><th>Etapa</th><th>Fecha</th><th></th></tr></thead><tbody id="flujos-tb"></tbody></table></div>
     </div>
   </div>
 
@@ -2003,6 +2021,392 @@ tbody tr:last-child td{border-bottom:none}
 
 
 
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PÁGINA: RUTA DE BORRADOR — SOLICITUDES DE USUARIOS        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="pg" id="pg-rutabor">
+    <!-- Header + Filtros -->
+    <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--tx)">📋 Ruta de Borrador</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:1px">Consulta y gestión de solicitudes de documentos en proceso</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="rb-contador" style="font-size:11px;color:var(--tx3);font-weight:600"></span>
+          <button class="btn gh sm" onclick="rbLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <input id="rb-f-cod" type="text" class="fi" placeholder="🔍 Código" style="width:100px;font-size:11px" oninput="rbFiltrar()">
+        <input id="rb-f-consec" type="text" class="fi" placeholder="# Consecutivo" style="width:100px;font-size:11px" oninput="rbFiltrar()">
+        <input id="rb-f-solit" type="text" class="fi" placeholder="👤 Solicitante" style="width:130px;font-size:11px" oninput="rbFiltrar()">
+        <input id="rb-f-nombre" type="text" class="fi" placeholder="📄 Nombre del documento" style="width:190px;font-size:11px" oninput="rbFiltrar()">
+        <select id="rb-f-tsol" class="fi" style="font-size:11px;width:150px" onchange="rbFiltrar()"><option value="">Tipo de solicitud</option></select>
+        <select id="rb-filtro-estado" class="fi" style="font-size:11px;width:150px" onchange="rbFiltrar()">
+          <option value="">Todos los estados</option>
+          <option>En revisión</option><option>En proceso de firma</option><option>Oficializado</option>
+          <option>Rechazada</option><option>Pendiente</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Split view: lista + detalle -->
+    <div class="rb-split">
+      <div class="rb-split-list">
+        <div class="rb-split-list-search">
+          <input id="rb-split-search" placeholder="Buscar en lista..." oninput="rbFiltrarConSearch(this.value)">
+        </div>
+        <div id="rb-split-list-body" style="max-height:calc(100vh - 220px);overflow-y:auto"></div>
+      </div>
+      <div class="rb-split-detail" id="rb-split-detail">
+        <div class="rb-split-empty">
+          <div style="font-size:32px;margin-bottom:10px">📋</div>
+          <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:5px">Selecciona una solicitud</div>
+          <div>Haz clic en cualquier solicitud de la lista<br>para ver su información completa aquí.</div>
+        </div>
+      </div>
+    </div>
+    <div id="rb-pgbar" style="margin-top:8px"></div>
+    <input type="hidden" id="rb-pg-num" value="1">
+    <!-- hidden compat -->
+    <div style="display:none"><div class="rb-accordion" id="rb-accordion"></div></div>
+
+    <!-- Modal Oficializar -->
+    <div id="rb-mo-ofic" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:10px;padding:22px 24px;width:520px;max-width:96vw;box-shadow:0 8px 32px rgba(0,0,0,.22);max-height:90vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span style="font-size:22px">✅</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--T)">Oficializar Documento</div>
+            <div style="font-size:11px;color:var(--tx3)" id="rb-mo-ofic-desc"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div class="fp"><label class="fl">F. Revisión Inicial</label><input type="date" class="fi" id="rb-of-frev-ini"></div>
+          <div class="fp"><label class="fl">F. Revisión Final</label><input type="date" class="fi" id="rb-of-frev-fin"></div>
+          <div class="fp"><label class="fl">F. Entrega Firma</label><input type="date" class="fi" id="rb-of-fentrega"></div>
+          <div class="fp"><label class="fl">F. Oficialización</label><input type="date" class="fi" id="rb-of-fofic"></div>
+          <div class="fp"><label class="fl">F. Actualiz. Listado</label><input type="date" class="fi" id="rb-of-flistado"></div>
+          <div class="fp"><label class="fl">F. Colocación Intranet</label><input type="date" class="fi" id="rb-of-fintranet"></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <button class="btn gh sm" onclick="document.getElementById('rb-mo-ofic').style.display='none'">Cancelar</button>
+          <button class="btn sm" style="background:var(--T);color:#fff" onclick="rbOficializarConfirmar()">✅ Confirmar Oficialización</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Ver Detalle -->
+    <div id="rb-mo-det" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:10px;padding:20px 24px;width:600px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.22)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:14px;font-weight:700">📋 Detalle de Solicitud</div>
+          <button class="btn gh sm" onclick="document.getElementById('rb-mo-det').style.display='none'">✕ Cerrar</button>
+        </div>
+        <div id="rb-mo-det-body" style="font-size:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PÁGINA: ETIQUETA COPIA CONTROLADA                         -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+
+  <div class="pg" id="pg-novedad">
+    <div style="display:flex;align-items:center;justify-content:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">Formato F-SOP-0001-5 — Novedad de Documento</div>
+        <div style="font-size:11px;color:var(--tx3)">Solicitud de creación, modificación o anulación de documentos</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn gh sm" onclick="nfLimpiar()">🔄 Nuevo formulario</button>
+        <button class="btn gh sm" onclick="nfRecuperarUltimo()" title="Recupera el último formato de novedad generado en esta sesión">📋 Recuperar último</button>
+        <button class="btn gh sm" onclick="nfCargarPlantilla()" title="Llenar formulario desde Excel plantilla">📂 Cargar plantilla</button>
+        <button class="btn sm" style="background:var(--T)" onclick="nfGuardar()">💾 Guardar solicitud</button>
+        <button class="btn gh sm" onclick="nfDescargarPDF()" title="Descargar formulario como PDF">📄 PDF</button>
+        <span style="font-size:11px;color:var(--tx3);margin-left:8px">N° Solicitud:</span>
+        <span style="background:var(--T);color:#fff;border-radius:20px;padding:2px 14px;font-size:13px;font-weight:700" id="nf-consec-badge">—</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:visible;max-width:980px;margin:0 auto">
+      <div style="display:grid;grid-template-columns:1fr auto;background:var(--T);color:#fff;padding:10px 16px;align-items:center;border-radius:var(--r) var(--r) 0 0">
+        <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Formato Novedad de Documento</div>
+        <div style="font-size:9px;text-align:right;line-height:1.7;opacity:.85">CÓDIGO: F-SOP-0001-5<br>VERSIÓN: 05</div>
+      </div>
+
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+
+        <!-- SEC 1 -->
+        <div>
+          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">1. Datos del solicitante</div>
+          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+              <div style="position:relative">
+                <div class="fp">
+                  <label class="fl rq">Nombres y apellidos</label>
+                  <input class="fi" type="text" id="nf-nombre" placeholder="Escriba para buscar..." oninput="nfBuscarColab(this.value)" autocomplete="off">
+                </div>
+                <div id="nf-colab-list" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--bg);border:1px solid var(--brd);border-radius:4px;z-index:9999;max-height:200px;overflow-y:auto;box-shadow:0 6px 16px rgba(0,0,0,.18)"></div>
+              </div>
+              <div class="fp">
+                <label class="fl">Cargo</label>
+                <input class="fi au" type="text" id="nf-cargo" readonly placeholder="Auto al seleccionar">
+              </div>
+              <div class="fp">
+                <label class="fl rq">Área</label>
+                <input class="fi" type="text" id="nf-area" placeholder="Área a la que pertenece">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div class="fp">
+                <label class="fl">Fecha de solicitud</label>
+                <input class="fi au" type="text" id="nf-fecha" readonly>
+              </div>
+              <div class="fp">
+                <label class="fl rq">Tipo de novedad</label>
+                <select class="fi" id="nf-tipo">
+                  <option value="">Seleccionar...</option>
+                  <option>Creación</option>
+                  <option>Modificación</option>
+                  <option>Eliminación</option>
+                </select>
+              </div>
+              <div class="fp">
+                <label class="fl">Correo del solicitante</label>
+                <div style="display:flex;gap:6px">
+                  <input class="fi au" type="text" id="nf-correo-vis" readonly placeholder="Auto al seleccionar" style="flex:1;min-width:0">
+                  <button class="btn gh sm" style="flex-shrink:0" onclick="nfEnviarCorreo()" title="Enviar correo al solicitante">✉️</button>
+                  <input type="hidden" id="nf-correo">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC 2 -->
+        <div>
+          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">2. Información de la novedad</div>
+          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
+            <!-- Fila extra solo para Creación -->
+            <div id="nf-creacion-extra" style="display:none;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:10px 12px;margin-bottom:8px">
+              <div style="font-size:11px;font-weight:700;color:var(--T);margin-bottom:8px">📋 Parámetros para documento nuevo</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                <div class="fp">
+                  <label class="fl rq">Tipo de documento</label>
+                  <select class="fi" id="nf-tipo-doc-nuevo" onchange="nfEvaluarCodigoNuevo()">
+                    <option value="">Seleccionar tipo...</option>
+                  </select>
+                </div>
+                <div class="fp">
+                  <label class="fl rq">¿Es corporativo?</label>
+                  <select class="fi" id="nf-corporativo" onchange="nfEvaluarCodigoNuevo()">
+                    <option value="">Seleccionar...</option>
+                    <option value="si">Sí — Corporativo</option>
+                    <option value="no">No — Local</option>
+                  </select>
+                </div>
+                <div class="fp">
+                  <label class="fl">Código asignado</label>
+                  <input class="fi au" type="text" id="nf-cod-asignado" readonly placeholder="Se calcula automáticamente" style="font-weight:700;color:var(--T);font-size:13px">
+                </div>
+              </div>
+              <div id="nf-cod-msg" style="font-size:11px;margin-top:6px;padding:4px 8px;border-radius:4px;display:none"></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+              <div class="fp">
+                <label class="fl rq">Código del documento</label>
+                <input class="fi" type="text" id="nf-cod" placeholder="Ej: SOP-0001" oninput="nfBuscarDoc(this.value)" style="text-transform:uppercase;font-weight:600;font-size:13px">
+                <div id="nf-area-info" style="display:none;font-size:10px;color:var(--T);font-weight:600;margin-top:4px;padding:3px 8px;background:var(--bg3);border-radius:4px;border-left:3px solid var(--T)"></div>
+              </div>
+              <div class="fp">
+                <label class="fl">Tipo de documento</label>
+                <input class="fi au" type="text" id="nf-tipodoc" readonly placeholder="Auto por prefijo del código">
+              </div>
+              <div class="fp">
+                <label class="fl rq">Versión a trabajar</label>
+                <input class="fi" type="text" id="nf-version" placeholder="Ej: 01">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px">
+              <div class="fp">
+                <label class="fl rq">Nombre del documento</label>
+                <input class="fi" type="text" id="nf-nombredoc" placeholder="Se completa del Listado Maestro o ingrese manualmente">
+              </div>
+              <div class="fp">
+                <label class="fl">Origen de la novedad</label>
+                <select class="fi" id="nf-origen" style="color:var(--tx)">
+                  <option value="">Seleccionar origen...</option>
+                  <option>Alertas de Calidad</option><option>Auditorias Control Interno</option><option>Auditorias Externas</option><option>Auditorias Internas de Sistema de Calidad y Gestión integral</option><option>Cambio en Documento Relacionado</option><option>Cambios en la Estructura del Mapa de procesos</option><option>Cambios en la Planeación y Despliegue Estratégico</option><option>Cumplimiento de Requisitos de Clientes</option><option>Cumplimiento de Requisitos Legales</option><option>Cumplimiento de Requisitos Organizacionales</option><option>Cumplimiento Normativo</option><option>Cumplimiento Regulatorio</option><option>Desviaciones</option><option>Emergencias</option><option>Fuera de Tendencia / Fuera de Especificaciones</option><option>Gestión de Acuerdos de Calidad</option><option>Gestión de Control de Cambios</option><option>Gestión de Indicadores</option><option>Gestión de Quejas y Reclamos</option><option>Gestión de Riesgos</option><option>Incidentes de Continuidad de Negocios</option><option>Inspecciones de Seguridad</option><option>Inspecciones Rutinarias</option><option>Investigación</option><option>Investigaciones de Accidentes de Seguridad y Salud en el Trabajo</option><option>Mejoramiento de Procesos</option><option>Proyectos de Mejora</option><option>Revisión Anual de Productos</option><option>Revisión del Sistema de Calidad y Gestión Integral</option><option>Revisión Periódica del Documento</option><option>Otros</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div class="fp">
+                <label class="fl">¿Documento GXP?</label>
+                <div style="display:flex;align-items:center;height:34px;gap:8px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);padding:7px 10px">
+                  <span id="nf-gxp-disp" style="font-size:13px;font-weight:700;color:var(--T)">—</span>
+                  <span style="font-size:10px;color:var(--tx3)">(Listado Maestro)</span>
+                </div>
+              </div>
+              <div class="fp">
+                <label class="fl">¿Requiere copia controlada?</label>
+                <div style="display:flex;align-items:center;height:34px;gap:8px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);padding:7px 10px">
+                  <span id="nf-copia-disp" style="font-size:13px;font-weight:700;color:var(--T)">—</span>
+                  <span style="font-size:10px;color:var(--tx3)">(Copias Controladas)</span>
+                </div>
+              </div>
+              <div class="fp" id="nf-cant-wrap" style="visibility:hidden">
+                <label class="fl">Cantidad de copias</label>
+                <input class="fi" type="number" min="1" max="99" id="nf-cant-copias" placeholder="N°">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC 3 -->
+        <div>
+          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">3. Descripción de la novedad</div>
+          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
+            <div class="fp">
+              <label class="fl rq">Resumen de los principales cambios que se realizarán al documento</label>
+              <textarea class="fi" id="nf-descripcion" rows="3" style="resize:vertical" placeholder="Ingrese un breve resumen de los principales cambios..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC 4+5 -->
+        <div>
+          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">4. Matriz de autorización</div>
+          <div style="border:1px solid var(--brd);border-top:none;border-radius:0 0 6px 6px;overflow:hidden">
+            <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead>
+                <tr style="background:var(--bg3)">
+                  <th style="border:1px solid var(--brd);padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase;width:29%">Nombre</th>
+                  <th style="border:1px solid var(--brd);padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase;width:24%">Cargo</th>
+                  <th style="border:1px solid var(--brd);padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase;width:10%">Rol</th>
+                  <th style="border:1px solid var(--brd);padding:4px;width:6%;text-align:center"></th>
+                </tr>
+              </thead>
+              <tbody id="nf-mtx-body"></tbody>
+            </table>
+            <button class="btn gh sm" style="margin-top:6px;font-size:11px" onclick="nfMtxAgregarFila()">+ Agregar fila</button>
+          </div>
+        </div>
+
+        <!-- SEC 5: CARGO A ENTRENAR -->
+        <div>
+          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">5. Nombre del cargo del colaborador a entrenar / divulgar</div>
+          <div style="border:1px solid var(--brd);border-top:none;border-radius:0 0 6px 6px;overflow:visible">
+            <!-- Área de pegado masivo -->
+          <div style="padding:8px 10px;background:var(--bg3);border-bottom:1px solid var(--brd);display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;font-weight:600">📋 PEGAR LISTA (uno por línea o separado por comas)</div>
+              <textarea id="nf-entrenar-paste" rows="3" placeholder="Pegar aquí la lista de cargos..." style="width:100%;border:1px solid var(--brd);background:var(--bg);font-size:11px;color:var(--tx);font-family:var(--fn);padding:6px;border-radius:4px;resize:vertical;outline:none"></textarea>
+            </div>
+            <button class="btn gh sm" style="margin-top:18px;flex-shrink:0" onclick="nfEntrenarPegarLista()">✅ Agregar lista</button>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+              <thead>
+                <tr style="background:var(--bg3)">
+                  <th style="border:1px solid var(--brd);padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase">Nombre del cargo a entrenar / divulgar</th>
+                  <th style="border:1px solid var(--brd);padding:4px;width:6%;text-align:center"></th>
+                </tr>
+              </thead>
+              <tbody id="nf-entrenar-body"></tbody>
+            </table>
+            <button class="btn gh sm" style="margin-top:6px;font-size:11px" onclick="nfEntrenarAgregarFila()">+ Agregar cargo individual</button>
+          </div>
+        </div>
+
+        <!-- SEC 6 -->
+        <div>
+          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">6. Análisis de criticidad — evaluación de conocimientos</div>
+          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
+            <div style="font-size:10px;font-style:italic;color:var(--tx3);margin-bottom:8px">La falla en la ejecución de la actividad…</div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
+              <thead>
+                <tr style="background:var(--bg3)">
+                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase" colspan="2">Aspectos</th>
+                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase">Criterios</th>
+                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;width:72px;text-align:center">Calificación</th>
+                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;width:72px;text-align:center">Resultado</th>
+                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;width:110px;text-align:center">Consecuencia × Detección</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td rowspan="4" style="border:1px solid var(--brd);padding:4px;font-size:10px;font-weight:700;text-align:center;background:var(--bg3);writing-mode:vertical-rl;transform:rotate(180deg);width:26px">Consecuencia</td>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">Calidad producto / materiales</td>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Afecta parámetro crítico del lote</span><span style="color:#e67e22;display:block">(2) Afecta parámetros críticos o calidad de materiales</span><span style="color:#27ae60;display:block">(1) No afecta la calidad del material o producto</span></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nc1" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nr1">—</td>
+
+                </tr>
+                <tr>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">Seguridad de las personas</td>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Genera muerte o incapacidad permanente</span><span style="color:#e67e22;display:block">(2) Genera incapacidad parcial o total</span><span style="color:#27ae60;display:block">(1) No genera incapacidad</span></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nc2" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nr2">—</td>
+                </tr>
+                <tr>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">Seguridad del paciente</td>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Genera daño grave permanente o muerte del paciente</span><span style="color:#e67e22;display:block">(2) Genera probables efectos adversos sobre el paciente</span><span style="color:#27ae60;display:block">(1) No genera impacto sobre el paciente</span></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nc3" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nr3">—</td>
+                </tr>
+                <tr>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">Desempeño del proceso</td>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Afecta cumplimiento objetivos del negocio / regulatorio</span><span style="color:#e67e22;display:block">(2) Afecta los objetivos de desempeño del proceso</span><span style="color:#27ae60;display:block">(1) No afecta directamente los objetivos</span></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nc4" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nr4">—</td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;background:var(--bg3);text-transform:uppercase">Consecuencia Máxima</td>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;color:var(--tx3)" colspan="3">Valor máximo entre los 4 aspectos calificados</td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-size:18px;font-weight:700;background:var(--bg3)" id="nval-c">—</td>
+                </tr>
+              <tr>
+                  <td colspan="2" style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;background:var(--bg3);text-transform:uppercase">Detección de falla</td>
+                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Detectada por otro proceso o partes interesadas externas</span><span style="color:#e67e22;display:block">(2) Detectada al final del proceso</span><span style="color:#27ae60;display:block">(1) Detectada durante el desarrollo del proceso</span></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nd1" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nrd">—</td>
+                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-size:24px;font-weight:700;background:var(--bg3)" id="nval-d">—</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="border:2px solid var(--brd);border-radius:6px;padding:10px 16px;text-align:center;font-size:13px;font-weight:700;background:var(--bg3);color:var(--tx3)" id="nf-conclusion">
+              Ingrese las calificaciones para calcular el resultado
+            </div>
+          </div>
+        </div>
+
+        <!-- SEC REVISIÓN -->
+        <div>
+          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">7. Revisión de la solicitud — espacio reservado para el administrador</div>
+          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
+            <div style="display:grid;grid-template-columns:200px 1fr;gap:10px">
+              <div class="fp">
+                <label class="fl">Solicitud</label>
+                <select class="fi" id="nf-estatus">
+                  <option value="Pendiente">Pendiente de revisión</option>
+                  <option value="Aceptada" selected>Aceptada</option>
+                  <option value="Rechazada">Rechazada</option>
+                </select>
+              </div>
+              <div class="fp">
+                <label class="fl">Observaciones</label>
+                <textarea class="fi" id="nf-obs" rows="2" style="resize:vertical" placeholder="Observaciones del administrador...">Sin Observaciones</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
 </main>
 
 
@@ -2847,9 +3251,12 @@ var PR={dash:renderDash,kpi:function(){renderKPI();},docs:renderDocs,venc:render
 function nav(p,el){
   document.querySelectorAll('.pg').forEach(function(x){
     x.classList.remove('act');
-    x.style.display='';
+    x.style.display='none';
     x.style.minHeight='';
     x.style.width='';
+    x.style.position='';
+    x.style.top='';x.style.left='';x.style.right='';x.style.bottom='';
+    x.style.zIndex='';
   });
   document.querySelectorAll('.ni').forEach(function(x){x.classList.remove('act');});
   var pg=document.getElementById('pg-'+p);
@@ -2874,7 +3281,7 @@ function nav(p,el){
     }
   }
 
-  if(p==='pdfbarcode'||p==='revdoc'||p==='validacion'||p==='rutabor'||p==='novedad'){
+  if(p==='pdfbarcode'||p==='revdoc'||p==='validacion'){
     pg.style.position='fixed';
     pg.style.top='60px';
     pg.style.left='0';
@@ -3436,7 +3843,37 @@ function dcpFmtDate(s){
 function dcpFv(v){ return (v&&String(v).trim()&&v!=='undefined')?String(v).trim():''; }
 
 /* ── Landing: renderizar ────────────────────────── */
+function dcpActualizarStatsBanner(){
+  var todos = docsEmpresa();
+  var total = todos.length;
+  var hoy = new Date();
+  var en30 = new Date(hoy); en30.setDate(en30.getDate()+30);
+  var obs = todos.filter(function(d){
+    var o=String(d.obsoleto||'').toUpperCase().trim();
+    var e=String(d.estado||'').toUpperCase().trim();
+    return o==='X'||o==='SI'||o==='SÍ'||o==='YES'||o==='1'||o==='S'||e==='OBSOLETO';
+  }).length;
+  var vencer = todos.filter(function(d){
+    if(!d.fechaVencimiento) return false;
+    var fv=new Date(d.fechaVencimiento);
+    return !isNaN(fv)&&fv>=hoy&&fv<=en30;
+  }).length;
+  var elT=document.getElementById('dcp-stat-total'); if(elT) elT.textContent=total;
+  var elO=document.getElementById('dcp-stat-obs');   if(elO) elO.textContent=obs;
+  var elV=document.getElementById('dcp-stat-vencer');if(elV) elV.textContent=vencer;
+}
+
+function dcpBannerClick(tipo){
+  // Open command palette pre-filtered
+  dcpOpen();
+  if(tipo==='obsoleto'){
+    var inp=document.getElementById('dcp-search-input');
+    if(inp){inp.value='';} // let user search
+  }
+}
+
 function dcpRenderLanding(){
+  dcpActualizarStatsBanner();
   dcpLoadStorage();
   // Recientes — horizontal pills
   var rEl=document.getElementById('dcp-landing-recent');
@@ -3682,6 +4119,31 @@ function dcpRenderDetailPanel(d){
             + (gxpSi ? '<span style="background:#e8f0fb;color:#1a5fa0;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">GxP</span>' : '')
             + '<span style="font-size:10px;color:var(--tx3);background:var(--bg4);padding:2px 8px;border-radius:99px">v'+(dcpFv(d.version)||'—')+'</span>'
           + '</div>'
+          // ── Barra de estado Ruta de Borrador ──
+          + (function(){
+              var _rb=typeof rbGetEstadoCodigo==='function'?rbGetEstadoCodigo(d.codigoActual):null;
+              if(!_rb) return '';
+              var _est=(_rb.estadoOficializacion||_rb.estatus||'').toLowerCase().trim();
+              var _isOfic=_est.indexOf('oficial')>=0;
+              var _isFirma=_est.indexOf('proceso de firma')>=0||_est.indexOf('firma')>=0;
+              var _isRev=_est==='en revisión'||_est==='en revision'||_est==='aceptada';
+              var _stages=[
+                {lbl:'En revisión',        done:_isRev||_isFirma||_isOfic, active:_isRev&&!_isFirma&&!_isOfic},
+                {lbl:'En proceso de firma',done:_isFirma||_isOfic,         active:_isFirma&&!_isOfic},
+                {lbl:'Oficializado',       done:_isOfic,                   active:false}
+              ];
+              var _pills=_stages.map(function(st,i){
+                var _bg=st.done&&!st.active?'#1D9E75':st.active?'#EF9F27':'#e8e8e8';
+                var _tc=st.done||st.active?'#fff':'#888';
+                var _ico=st.done&&!st.active?'✓ ':st.active?'⏱ ':'';
+                return '<span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:'+_bg+';color:'+_tc+';white-space:nowrap">'+_ico+st.lbl+'</span>'
+                  +(i<2?'<span style="font-size:12px;color:#ccc;margin:0 3px">›</span>':'');
+              }).join('');
+              return '<div style="margin-top:10px;padding:9px 14px;background:'+(_isOfic?'#e1f5ee':_isFirma?'#e0f5f3':_isRev?'#fff8e1':'#f9f9f9')+';border-radius:7px;border:1px solid '+(_isOfic?'#9FE1CB':_isFirma?'#5DCAA5':_isRev?'#FFD08A':'#e0e0e0')+'">'
+                +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#666;margin-bottom:8px">📋 Ruta de borrador — #'+(_rb.consecutivo||'?')+'</div>'
+                +'<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">'+_pills+'</div>'
+                +'</div>';
+            })()
         + '</div>'
         + '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">'
           + '<button class="btn gh sm" onclick="verDoc('+d.id+')">👁 Ver</button>'
@@ -3782,6 +4244,35 @@ function dcpShowPaletteDoc(d){
         +(gxpSi?'<span style="background:#e8f0fb;color:#1a5fa0;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">GxP</span>':'')
         +'<span style="font-size:10px;color:var(--tx3);margin-left:4px">v'+(dcpFv(d.version)||'—')+'</span>'
       +'</div>'
+      // ── Ruta de borrador status bar ──
+      +(function(){
+        var _rb=typeof rbGetEstadoCodigo==='function'?rbGetEstadoCodigo(d.codigoActual):null;
+        if(!_rb) return '';
+        var _est=(_rb.estadoOficializacion||_rb.estatus||'').toLowerCase().trim();
+        var _isOfic=_est.indexOf('oficial')>=0;
+        var _isFirma=_est.indexOf('proceso de firma')>=0||_est.indexOf('firma')>=0;
+        var _isRev=_est==='en revisión'||_est==='en revision'||_est==='aceptada';
+        // Stage pills
+        var _stages=[
+          {k:'revision',  lbl:'En revisión',        done:_isRev||_isFirma||_isOfic, active:_isRev&&!_isFirma&&!_isOfic},
+          {k:'firma',     lbl:'En proceso de firma', done:_isFirma||_isOfic,         active:_isFirma&&!_isOfic},
+          {k:'oficial',   lbl:'Oficializado',        done:_isOfic,                   active:false}
+        ];
+        var _pills=_stages.map(function(st,i){
+          var _bg=st.done&&!st.active?'#1D9E75':st.active?'#EF9F27':'#e8e8e8';
+          var _tc=st.done||st.active?'#fff':'#888';
+          var _ico=st.done&&!st.active?'✓ ':st.active?'⏱ ':'';
+          return '<span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:'+_bg+';color:'+_tc+';white-space:nowrap">'+_ico+st.lbl+'</span>'
+            +(i<_stages.length-1?'<span style="font-size:11px;color:#bbb;margin:0 2px">›</span>':'');
+        }).join('');
+        var _cons='#'+(_rb.consecutivo||'?');
+        return '<div style="margin-top:10px;padding:9px 12px;background:'+(
+          _isOfic?'#e1f5ee':_isFirma?'#e0f5f3':_isRev?'#fff8e1':'#f5f5f5'
+        )+';border-radius:7px;border:1px solid '+(_isOfic?'#9FE1CB':_isFirma?'#5DCAA5':_isRev?'#FFD08A':'#e0e0e0')+'">'
+          +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#555;margin-bottom:7px">📋 Ruta de borrador — '+_cons+'</div>'
+          +'<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap">'+_pills+'</div>'
+        +'</div>';
+      })()
     +'</div>'
     +'<div class="dcp-sections">'
       +'<div><div class="dcp-sec-title">📄 Clasificación</div><div class="dcp-grid3">'+fi('Tipo',d.tipoDocumento)+fi('Proceso',d.proceso)+fi('Versión',d.version)+'</div></div>'
@@ -3891,6 +4382,7 @@ function filterDocs(){dPage=0;renderDocs();}
 function clearFiltros(){['f-tipo','f-est','f-proc','f-area','f-gxp'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var gs=document.getElementById('gs');if(gs)gs.value='';dPage=0;renderDocs();toast('Filtros limpiados','if');}
 var _docsLenCache=-1;
 function renderDocs(){
+  if(typeof dcpActualizarStatsBanner==='function') dcpActualizarStatsBanner();
   if(docs.length!==_docsLenCache){ populateFiltros(); _docsLenCache=docs.length; }
   var fT=(document.getElementById('f-tipo')||{}).value||'';
   var fE=(document.getElementById('f-est')||{}).value||'';
@@ -13490,7 +13982,7 @@ var OD_ARCHIVOS = {
   solicitudes:  'Solicitudes.xlsx',
   inspecciones: 'Inspecciones.xlsx',
   colaboradores:'Colaboradores.xlsx',
-  actividades:  'Actividades del dia.xlsx'
+  actividades:  'Actividadesdeldia.xlsx'
 };
 
 var OD = {
@@ -13937,6 +14429,71 @@ function odEscribirCodigosDocNuevos(wb){
   else { XLSX.utils.book_append_sheet(wb,ws,nombreHoja); }
   console.log('OD: '+nombreHoja+' escrita: '+codigosNuevos.length+' entradas');
 }
+
+/* ══ AUDITRAIL: escribir pendientes filtrados por módulo en un workbook ══ */
+function _auditAppendToWB(wb, modulosFiltro){
+  // modulosFiltro: array de strings que deben aparecer en a.modulo para incluir la fila
+  // Si modulosFiltro es null/vacío, incluye TODOS los pendientes
+  var pendientes = _auditPendientes.filter(function(a){
+    if(!modulosFiltro||!modulosFiltro.length) return true;
+    var mod=(a.modulo||'').toLowerCase();
+    return modulosFiltro.some(function(m){ return mod.indexOf(m.toLowerCase())>=0; });
+  });
+  if(!pendientes.length) return 0;
+
+  function _t(s){s=String(s||'');return s.length>32767?s.slice(0,32764)+'...':s;}
+  var hdrs=['FECHA','USUARIO','MÓDULO','ACCIÓN','DETALLE','CAMBIOS (antes → después)','EMPRESA'];
+
+  // Buscar hoja Auditrail en el workbook
+  var wsA=null, hojaName=null;
+  ['Auditrail','AuditTrail','Auditoria','Auditoría'].forEach(function(n){
+    if(!wsA&&wb.Sheets[n]){wsA=wb.Sheets[n];hojaName=n;}
+  });
+
+  if(!wsA){
+    // Crear hoja nueva
+    wsA={};
+    hojaName='Auditrail';
+    hdrs.forEach(function(h,ci){wsA[String.fromCharCode(65+ci)+'1']={v:h,t:'s'};});
+    wsA['!ref']='A1:G1';
+    XLSX.utils.book_append_sheet(wb,wsA,hojaName);
+  } else {
+    // Verificar/crear encabezado si falta
+    var hasHdr=wsA['A1']&&wsA['A1'].v&&String(wsA['A1'].v).toUpperCase().indexOf('FECHA')>=0;
+    if(!hasHdr){
+      hdrs.forEach(function(h,ci){wsA[String.fromCharCode(65+ci)+'1']={v:h,t:'s'};});
+    }
+  }
+
+  // Última fila con datos
+  var ref=wsA['!ref']||'A1';
+  var rng=XLSX.utils.decode_range(ref);
+  var lastRow=rng.e.r; // 0-based
+  if(lastRow<1) lastRow=1; // al menos la fila de encabezado
+
+  pendientes.forEach(function(a,i){
+    var r=lastRow+1+i;
+    wsA['A'+(r+1)]={v:_t(a.f),t:'s'};
+    wsA['B'+(r+1)]={v:_t(a.u||'Sistema'),t:'s'};
+    wsA['C'+(r+1)]={v:_t(a.modulo||''),t:'s'};
+    wsA['D'+(r+1)]={v:_t(a.a),t:'s'};
+    wsA['E'+(r+1)]={v:_t(a.d),t:'s'};
+    wsA['F'+(r+1)]={v:_t(a.cambios),t:'s'};
+    wsA['G'+(r+1)]={v:_t(a.empresa),t:'s'};
+  });
+  var newLast=lastRow+pendientes.length;
+  wsA['!ref']='A1:G'+(newLast+1);
+  wb.Sheets[hojaName]=wsA;
+  console.log('[OD] Auditrail ('+hojaName+') +'+pendientes.length+' filas en '+wb.SheetNames.join(','));
+  return pendientes.length;
+}
+
+// Módulos por archivo Excel
+var _AUDIT_MODULOS_LM     = ['Listado Maestro','Documentos','Extensión de Vigencia','Extensión Vigencia','Marcar Obsoleto','Revisión de Documentos','Estampar PDF','Sistema','Importación','Administración','Notificaciones','Correo'];
+var _AUDIT_MODULOS_COPIAS = ['Copias Controladas','Entrega de Copias','Inspecciones'];
+var _AUDIT_MODULOS_SOL    = ['Ruta de Borrador','Novedad de Documento'];
+var _AUDIT_MODULOS_INSP   = ['Inspecciones'];
+
 
 function odEscribirAuditrailEnExcel(wb){
   if(!auditoria||!auditoria.length) return;
@@ -15373,6 +15930,7 @@ async function odGuardarListado(silencioso){
         var nCop='Copias_Controladas';
         if(wbCop.Sheets[nCop])wbCop.Sheets[nCop]=wsCop2; else XLSX.utils.book_append_sheet(wbCop,wsCop2,nCop);
         odEscribirActasEnExcel(wbCop);
+        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbCop,_AUDIT_MODULOS_COPIAS);
         await _escribirArchivo(OD_ARCHIVOS.copias,wbCop);
       }catch(eCop){console.warn('Error guardando CopiaControladas:',eCop);}
 
@@ -15381,6 +15939,7 @@ async function odGuardarListado(silencioso){
         var inspData2=await odLeerArchivo(OD_ARCHIVOS.inspecciones);
         var wbInsp2=inspData2?XLSX.read(inspData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
         odEscribirInspeccionesEnExcel(wbInsp2);
+        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbInsp2,_AUDIT_MODULOS_INSP);
         await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
       }catch(eInsp){console.warn('Error guardando Inspecciones:',eInsp);}
 
@@ -15390,6 +15949,7 @@ async function odGuardarListado(silencioso){
         var wbSol2=solData2?XLSX.read(solData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
         if(solicitudes&&solicitudes.length) rbEscribirHoja(wbSol2);
         try{odEscribirCodigosDocNuevos(wbSol2);}catch(eCN){console.warn('CDN:',eCN);}
+        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbSol2,_AUDIT_MODULOS_SOL);
         await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2);
       }catch(eSol){console.warn('Error guardando Solicitudes:',eSol);}
 
@@ -15447,51 +16007,18 @@ async function odGuardarListado(silencioso){
       return;
     }
 
-    // ── AUDITRAIL APPEND-ONLY ───────────────────────────────────
-    // En lugar de sobreescribir toda la hoja Auditrail, leer las filas existentes
-    // y AGREGAR solo los eventos nuevos de esta sesión al final.
-    // Esto permite que múltiples usuarios escriban en el Auditrail sin colisión.
+    // ── AUDITRAIL: Escribir en ListadoMaestro y limpiar pendientes ──
     if(_auditPendientes.length>0){
       try{
-        var wsAuditExist=null;
-        var nombreAudit=null;
-        ['Auditrail','AuditTrail','Auditoria','Auditoría'].forEach(function(n){
-          if(!wsAuditExist&&wb.Sheets[n]){wsAuditExist=wb.Sheets[n];nombreAudit=n;}
-        });
-        if(wsAuditExist&&nombreAudit){
-          // Encontrar la última fila con datos
-          var refExist=wsAuditExist['!ref']||'A1';
-          var rng=XLSX.utils.decode_range(refExist);
-          var lastRowExist=rng.e.r; // 0-based, última fila actual
-          // Verificar que la fila 1 sea encabezado (no escribir sobre datos)
-          if(lastRowExist<1) lastRowExist=1;
-          // Agregar solo las filas pendientes al final
-          function _trunc2(s){s=String(s||'');return s.length>32767?s.slice(0,32764)+'...':s;}
-          _auditPendientes.forEach(function(a,idx){
-            var row=lastRowExist+1+idx; // siguiente fila disponible (0-based)
-            wsAuditExist['A'+( row+1)]={v:_trunc2(a.f),t:'s'};
-            wsAuditExist['B'+( row+1)]={v:_trunc2(a.u||'Sistema'),t:'s'};
-            wsAuditExist['C'+( row+1)]={v:_trunc2(a.modulo||''),t:'s'};
-            wsAuditExist['D'+( row+1)]={v:_trunc2(a.a),t:'s'};
-            wsAuditExist['E'+( row+1)]={v:_trunc2(a.d),t:'s'};
-            wsAuditExist['F'+( row+1)]={v:_trunc2(a.cambios),t:'s'};
-            wsAuditExist['G'+( row+1)]={v:_trunc2(a.empresa),t:'s'};
-          });
-          // Actualizar !ref para cubrir las nuevas filas
-          var newLastRow=lastRowExist+_auditPendientes.length;
-          wsAuditExist['!ref']='A1:G'+(newLastRow+1);
-          wb.Sheets[nombreAudit]=wsAuditExist;
-          console.log('[OD] Auditrail append: +'+_auditPendientes.length+' filas → total fila '+(newLastRow+1));
-        } else {
-          // La hoja no existe aún — crearla desde cero
-          odEscribirAuditrailEnExcel(wb);
-        }
-        // Limpiar pendientes tras escritura exitosa
+        // LM: módulos propios
+        if(typeof _auditAppendToWB==='function') _auditAppendToWB(wb, _AUDIT_MODULOS_LM);
+        else odEscribirAuditrailEnExcel(wb);
+        // Limpiar pendientes (ya escritos en cada archivo)
         _auditPendientes=[];
       }catch(eAud){
-        console.warn('[OD] Error en Auditrail append:',eAud);
-        // Fallback: escribir todo
-        odEscribirAuditrailEnExcel(wb);
+        console.warn('[OD] Error auditrail LM:',eAud);
+        try{odEscribirAuditrailEnExcel(wb);}catch(e2){}
+        _auditPendientes=[];
       }
     }
     // Actualizar timestamp de referencia
@@ -15787,7 +16314,7 @@ function odMostrarReconectar(dirHandle){
 :root{--T:#00A99E;--T2:#008880;--T3:#006860;--tl:rgba(0,169,158,.10);--tlx:rgba(0,169,158,.04);--tb:rgba(0,169,158,.28);--bg:#f0f5f5;--bg3:#f5f9f9;--bg4:#e8f0f0;--brd:#c8dede;--brd2:#b0cecd;--tx:#0a2828;--tx2:#336666;--tx3:#5e9090;--G:#1ab87a;--A:#e08a00;--R:#d63b3b;--r:8px;--rl:14px;--fn:'Inter',sans-serif;--sh:0 1px 4px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.04)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:14px;min-height:100vh}
-.sb{position:fixed;left:0;top:0;bottom:0;width:236px;background:var(--T3);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sb{display:none!important}
 .sb-logo{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
 .sb-lw{display:flex;align-items:center;gap:10px}
 .sb-ic{width:40px;height:40px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -15802,7 +16329,7 @@ body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:14px;m
 .nic{width:15px;text-align:center;font-size:13px;flex-shrink:0}
 .nb{margin-left:auto;font-size:9px;font-weight:700;border-radius:99px;padding:1px 6px}
 .nb.r{background:#d63b3b;color:#fff}.nb.a{background:#e08a00;color:#fff}.nb.t{background:rgba(255,255,255,.22);color:#fff}
-.mn{margin-left:236px;min-height:100vh;display:block;}
+.mn{margin-left:0;min-height:100vh;display:block;}
 .topb{background:#fff;border-bottom:1px solid var(--brd);padding:11px 22px;display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:50;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .topb-t{font-size:15px;font-weight:600;color:var(--tx);flex:1}
 .srch{background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);padding:6px 11px;color:var(--tx);font-family:var(--fn);font-size:12px;width:200px;outline:none;transition:border .12s}
@@ -15817,10 +16344,12 @@ body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:14px;m
 .btn.ol{background:#fff;color:var(--T);border:1.5px solid var(--T)}.btn.ol:hover{background:var(--tl)}
 .btn.sm{padding:4px 9px;font-size:11px;border-radius:6px}
 
-.pg{display:none;padding:18px 22px;width:100%}
+.pg{display:none!important;padding:18px 22px;width:100%}
+.pg.act{display:block!important}
 .pg.act{display:block;width:100%;min-height:calc(100vh - 60px);}
 
-.pg{display:none;padding:18px 22px;width:100%}
+.pg{display:none!important;padding:18px 22px;width:100%}
+.pg.act{display:block!important}
 .pg.act{display:block;width:100%;min-height:calc(100vh - 60px);}
 
 
@@ -16091,6 +16620,9 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn gh sm" onclick="dashActualizar()" id="dash-btn-actualizar">🔄 Actualizar</button>
         <button class="btn gh sm" onclick="dashMostrarFiltroAreas()" id="dash-btn-areas" style="position:relative">
           🏢 Filtrar Áreas <span id="dash-areas-badge" style="display:none;background:var(--T);color:#fff;border-radius:99px;padding:0 6px;font-size:10px;font-weight:700;margin-left:4px">0</span>
+        </button>
+        <button class="btn gh sm" id="dash-btn-nofinan" onclick="dashToggleExcluirFinanciera()" title="Excluye áreas: Control Cambiario, Gestión Tributaria, Planeación Financiera, Costos, Tesorería, Cartera, Contabilidad" style="border-color:var(--brd2)">
+          🏦 Sin Financiera
         </button>
       </div>
     </div>
@@ -16428,79 +16960,7 @@ tbody tr:last-child td{border-bottom:none}
     </div>
   </div>
 
-      <div class="tw"><table><thead><tr><th>Código</th><th>Descripción</th><th>Administrador</th><th>Asignado</th><th>Etapa</th><th>Fecha</th><th></th></tr></thead><tbody id="flujos-tb"></tbody></table></div>
-    </div>
-  </div>
 
-  <div class="pg" id="pg-copias">
-    <div id="cop-alerts" style="margin-bottom:6px"></div>
-    <div id="cop-od-status" style="display:none;background:var(--tl);border:1px solid var(--tb);border-radius:var(--r);padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--T3)"></div>
-
-    <!-- Barra de acciones + búsqueda -->
-    <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 14px;margin-bottom:12px;box-shadow:var(--sh);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <input class="srch" type="text" id="fc-q" placeholder="🔍 Buscar código..." oninput="ccRenderTree();renderCopias()" style="width:150px;font-size:11px">
-      <select class="fsel" id="fc-estado" onchange="ccRenderTree();renderCopias()" title="Filtrar por estado" style="font-size:11px;width:130px"><option value="">Todos los estados</option></select>
-      <button class="btn gh sm" onclick="ccLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
-      <!-- Hidden selects for compat -->
-      <select id="fc-area" style="display:none"><option value="">Todas las áreas</option></select>
-      <select id="fc-sub" style="display:none"><option value="">Todas las subáreas</option></select>
-      <div style="margin-left:auto;display:flex;gap:7px">
-        <button class="btn gh sm" onclick="copCargarDesdeOD(this)" style="background:#e0f5f3;border-color:var(--T);color:var(--T3)">☁️ OneDrive</button>
-        <button class="btn gh sm" onclick="openMo('mo-impcop')">📥 Importar</button>
-        <button class="btn sm" onclick="openNewCopia()">+ Registrar</button>
-      </div>
-    </div>
-
-    <!-- Split: árbol + tabla -->
-    <div class="cc-split">
-      <!-- Árbol de áreas/subáreas -->
-      <div class="cc-tree">
-        <div class="cc-tree-header">Áreas</div>
-        <div id="cc-tree-body" style="max-height:calc(100vh - 220px);overflow-y:auto"></div>
-        <div class="cc-tree-divider"></div>
-        <div class="cc-tree-action" onclick="openMo('mo-acta')">📋 Generar acta de entrega</div>
-        <div class="cc-tree-action" onclick="nav('entregacc',document.querySelector('[data-p=entregacc]'))">📷 Verificar copias QR</div>
-      </div>
-
-      <!-- Panel detalle: estado strip + tabla filtrada -->
-      <div class="cc-detail">
-        <div class="cc-detail-topbar">
-          <span id="cc-detail-title" style="font-size:13px;font-weight:700;color:var(--tx);flex:1">Todas las áreas</span>
-          <span id="cc-detail-count" style="font-size:11px;color:var(--tx3)"></span>
-        </div>
-        <!-- Strip de estado -->
-        <div class="cc-state-strip" id="cc-state-strip">
-          <div class="cc-state-cell" style="background:#e1f5ee;cursor:default">
-            <div><div class="cc-state-num" style="color:#0F6E56" id="cc-cnt-vig">0</div><div class="cc-state-lbl" style="color:#0F6E56">Total listado</div></div>
-          </div>
-          <div class="cc-state-cell" style="background:#e0f5f3;cursor:default">
-            <div><div class="cc-state-num" style="color:#0F6E56" id="cc-cnt-desc">0</div><div class="cc-state-lbl" style="color:#0F6E56">Vigentes</div></div>
-          </div>
-          <div class="cc-state-cell" style="background:#fcebeb;cursor:pointer" onclick="ccFilterByEstado('Obsoleto')">
-            <div><div class="cc-state-num" style="color:#A32D2D" id="cc-cnt-obs">0</div><div class="cc-state-lbl" style="color:#A32D2D">Obsoletas</div></div>
-          </div>
-        </div>
-        <div class="tw"><table><thead><tr><th>Código</th><th>Subárea</th><th>Responsable</th><th>Correo</th><th>Proceso</th><th style="text-align:center">Ver. copia</th><th style="text-align:center">Ver. LM</th><th>Estado</th><th></th></tr></thead><tbody id="copias-tb"></tbody></table></div>
-        <div class="pgctrl" id="copias-pg"></div>
-      </div>
-    </div>
-  </div>
-
-<div class="pg" id="pg-docsrel">
-  <div style="max-width:600px;margin:0 auto 24px auto">
-    <div style="background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:20px">
-      <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--tx)">🔗 Consultar documentos que mencionan un código</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input class="fi" id="rel-query" placeholder="Ej: INST-0002" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')buscarDocsRel()">
-        <button class="btn" onclick="buscarDocsRel()">🔍 Consultar</button>
-      </div>
-    </div>
-  </div>
-  <div id="rel-resultado"></div>
-</div>
-
-
-  <!-- INSPECCIONES RUTINARIAS -->
 
   <div class="pg" id="pg-insp">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -18441,9 +18901,12 @@ var PR={dash:renderDash,kpi:function(){renderKPI();},docs:renderDocs,venc:render
 function nav(p,el){
   document.querySelectorAll('.pg').forEach(function(x){
     x.classList.remove('act');
-    x.style.display='';
+    x.style.display='none';
     x.style.minHeight='';
     x.style.width='';
+    x.style.position='';
+    x.style.top='';x.style.left='';x.style.right='';x.style.bottom='';
+    x.style.zIndex='';
   });
   document.querySelectorAll('.ni').forEach(function(x){x.classList.remove('act');});
   var pg=document.getElementById('pg-'+p);
@@ -18468,7 +18931,7 @@ function nav(p,el){
     }
   }
 
-  if(p==='pdfbarcode'||p==='revdoc'||p==='validacion'||p==='rutabor'||p==='novedad'){
+  if(p==='pdfbarcode'||p==='revdoc'||p==='validacion'){
     pg.style.position='fixed';
     pg.style.top='60px';
     pg.style.left='0';
@@ -18973,6 +19436,7 @@ function filterDocs(){dPage=0;renderDocs();}
 function clearFiltros(){['f-tipo','f-est','f-proc','f-area','f-gxp'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var gs=document.getElementById('gs');if(gs)gs.value='';dPage=0;renderDocs();toast('Filtros limpiados','if');}
 var _docsLenCache=-1;
 function renderDocs(){
+  if(typeof dcpActualizarStatsBanner==='function') dcpActualizarStatsBanner();
   if(docs.length!==_docsLenCache){ populateFiltros(); _docsLenCache=docs.length; }
   var fT=(document.getElementById('f-tipo')||{}).value||'';
   var fE=(document.getElementById('f-est')||{}).value||'';
@@ -30254,6 +30718,7 @@ async function odGuardarListado(silencioso){
         var nCop='Copias_Controladas';
         if(wbCop.Sheets[nCop])wbCop.Sheets[nCop]=wsCop2; else XLSX.utils.book_append_sheet(wbCop,wsCop2,nCop);
         odEscribirActasEnExcel(wbCop);
+        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbCop,_AUDIT_MODULOS_COPIAS);
         await _escribirArchivo(OD_ARCHIVOS.copias,wbCop);
       }catch(eCop){console.warn('Error guardando CopiaControladas:',eCop);}
 
@@ -30262,6 +30727,7 @@ async function odGuardarListado(silencioso){
         var inspData2=await odLeerArchivo(OD_ARCHIVOS.inspecciones);
         var wbInsp2=inspData2?XLSX.read(inspData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
         odEscribirInspeccionesEnExcel(wbInsp2);
+        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbInsp2,_AUDIT_MODULOS_INSP);
         await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
       }catch(eInsp){console.warn('Error guardando Inspecciones:',eInsp);}
 
@@ -30271,6 +30737,7 @@ async function odGuardarListado(silencioso){
         var wbSol2=solData2?XLSX.read(solData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
         if(solicitudes&&solicitudes.length) rbEscribirHoja(wbSol2);
         try{odEscribirCodigosDocNuevos(wbSol2);}catch(eCN){console.warn('CDN:',eCN);}
+        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbSol2,_AUDIT_MODULOS_SOL);
         await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2);
       }catch(eSol){console.warn('Error guardando Solicitudes:',eSol);}
 
@@ -30340,14 +30807,22 @@ async function odGuardarListado(silencioso){
           if(!wsAuditExist&&wb.Sheets[n]){wsAuditExist=wb.Sheets[n];nombreAudit=n;}
         });
         if(wsAuditExist&&nombreAudit){
+          function _trunc2(s){s=String(s||'');return s.length>32767?s.slice(0,32764)+'...':s;}
+          // Verificar si la fila 1 tiene encabezado; si no, crearlo
+          var _hdrs=['FECHA','USUARIO','MÓDULO','ACCIÓN','DETALLE','CAMBIOS (antes → después)','EMPRESA'];
+          var _hasHdr=wsAuditExist['A1']&&wsAuditExist['A1'].v&&String(wsAuditExist['A1'].v).toUpperCase().indexOf('FECHA')>=0;
+          if(!_hasHdr){
+            _hdrs.forEach(function(h,ci){
+              wsAuditExist[String.fromCharCode(65+ci)+'1']={v:h,w:h,t:'s'};
+            });
+            console.log('[OD] Auditrail: encabezado creado en fila 1');
+          }
           // Encontrar la última fila con datos
           var refExist=wsAuditExist['!ref']||'A1';
           var rng=XLSX.utils.decode_range(refExist);
           var lastRowExist=rng.e.r; // 0-based, última fila actual
-          // Verificar que la fila 1 sea encabezado (no escribir sobre datos)
-          if(lastRowExist<1) lastRowExist=1;
+          if(lastRowExist<1) lastRowExist=1; // al menos fila de encabezado
           // Agregar solo las filas pendientes al final
-          function _trunc2(s){s=String(s||'');return s.length>32767?s.slice(0,32764)+'...':s;}
           _auditPendientes.forEach(function(a,idx){
             var row=lastRowExist+1+idx; // siguiente fila disponible (0-based)
             wsAuditExist['A'+( row+1)]={v:_trunc2(a.f),t:'s'};
@@ -32750,7 +33225,7 @@ async function odGuardarActividades(){
   if(!OD.carpetaHandle) return;
   try{
     var wb;
-    // Intentar abrir archivo existente
+    // Intentar abrir archivo existente (Actividadesdeldia.xlsx)
     try{
       var fh=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.actividades,{create:false});
       var file=await fh.getFile();
@@ -32759,11 +33234,10 @@ async function odGuardarActividades(){
     }catch(e){
       wb=XLSX.utils.book_new();
     }
-    // Escribir hoja Actividades del dia
+    // Escribir hoja SIN encabezado — solo datos
     var HOJA='Actividades del dia';
-    var headers=['ID','Titulo','Descripcion','Prioridad','Estado','Hora Completada','Fecha'];
-    var rows=[headers];
     var hoy=new Date().toISOString().split('T')[0];
+    var rows=[];
     (_homeTasks||[]).forEach(function(t){
       rows.push([
         String(t.id||''),
@@ -32775,19 +33249,22 @@ async function odGuardarActividades(){
         hoy
       ]);
     });
+    if(!rows.length){
+      // Si no hay tareas, escribir fila vacía para que el archivo exista
+      rows.push(['','','','','','',hoy]);
+    }
     var ws=XLSX.utils.aoa_to_sheet(rows);
-    // Ancho de columnas
     ws['!cols']=[{wch:14},{wch:35},{wch:40},{wch:10},{wch:12},{wch:16},{wch:12}];
     var idx=wb.SheetNames.indexOf(HOJA);
     if(idx>=0) wb.Sheets[HOJA]=ws; else XLSX.utils.book_append_sheet(wb,ws,HOJA);
-    // Guardar
+    // Guardar archivo
     var buf2=XLSX.write(wb,{type:'array',bookType:'xlsx'});
     var fhW=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.actividades,{create:true});
     var w=await fhW.createWritable();
     await w.write(buf2); await w.close();
-    console.log('[OD] Actividades del dia guardadas OK');
+    console.log('[OD] Actividadesdeldia.xlsx guardado OK');
   }catch(e){
-    console.warn('[OD] Error guardando Actividades del dia:',e);
+    console.warn('[OD] Error guardando Actividadesdeldia:',e);
   }
 }
 
@@ -32938,6 +33415,36 @@ async function dashActualizar(){
 }
 
 // Refresca todos los módulos visibles con los datos actuales en memoria
+
+/* ─ KPI: Excluir áreas de Financiera ─────────────────────────────── */
+var _dashExcluirFinanciera = false;
+var _AREAS_FINANCIERA = ['Control Cambiario','Gestion Tributaria','Gestión Tributaria','Planeación Financiera','Planeacion Financiera','Costos','Tesorería','Tesoreria','Cartera','Contabilidad'];
+
+function dashToggleExcluirFinanciera(){
+  _dashExcluirFinanciera = !_dashExcluirFinanciera;
+  var btn = document.getElementById('dash-btn-nofinan');
+  if(btn){
+    btn.style.background = _dashExcluirFinanciera ? 'var(--tl)' : '';
+    btn.style.borderColor = _dashExcluirFinanciera ? 'var(--T)' : '';
+    btn.style.color = _dashExcluirFinanciera ? 'var(--T3)' : '';
+    btn.innerHTML = (_dashExcluirFinanciera ? '✓ ' : '') + '🏦 Sin Financiera';
+  }
+  dashActualizar();
+}
+
+function dashDocsBase(){
+  var base = docsEmpresa();
+  if(_dashExcluirFinanciera){
+    base = base.filter(function(d){
+      var area = (d.areaGeneradora||'').trim();
+      return !_AREAS_FINANCIERA.some(function(a){
+        return area.toLowerCase() === a.toLowerCase();
+      });
+    });
+  }
+  return base;
+}
+
 function dashActualizarUI(){
   try{ recalcEstados(); }catch(e){}
   // Actualizar estados de copias desde Listado Maestro
@@ -33082,25 +33589,39 @@ function rbSplitStageBar(s){
 }
 
 function rbGetFiltered(){
-  var fCod=((document.getElementById('rb-f-cod')||{}).value||'').trim().toLowerCase();
-  var fConsec=((document.getElementById('rb-f-consec')||{}).value||'').trim().toLowerCase();
-  var fSolit=((document.getElementById('rb-f-solit')||{}).value||'').trim().toLowerCase();
-  var fNombre=((document.getElementById('rb-f-nombre')||{}).value||'').trim().toLowerCase();
-  var fTipoSol=((document.getElementById('rb-f-tsol')||{}).value||'').trim().toLowerCase();
-  var est=((document.getElementById('rb-filtro-estado')||{}).value||'').trim();
+  var fCod    = ((document.getElementById('rb-f-cod')||{}).value||'').trim().toLowerCase();
+  var fConsec = ((document.getElementById('rb-f-consec')||{}).value||'').trim().toLowerCase();
+  var fSolit  = ((document.getElementById('rb-f-solit')||{}).value||'').trim().toLowerCase();
+  var fNombre = ((document.getElementById('rb-f-nombre')||{}).value||'').trim().toLowerCase();
+  var fTipoSol= ((document.getElementById('rb-f-tsol')||{}).value||'').trim().toLowerCase();
+  var est     = ((document.getElementById('rb-filtro-estado')||{}).value||'').trim();
+  var fSearch = (window._rbSplitQ||'').toLowerCase().trim(); // caja búsqueda del split
+
   return (solicitudes||[]).filter(function(s){
-    if(fCod&&(s.codigo||'').toLowerCase().indexOf(fCod)<0) return false;
-    if(fConsec&&(s.consecutivo||'').toLowerCase().indexOf(fConsec)<0) return false;
-    if(fSolit&&(s.solicitante||'').toLowerCase().indexOf(fSolit)<0) return false;
-    if(fNombre&&(s.nombreDoc||'').toLowerCase().indexOf(fNombre)<0) return false;
-    if(fTipoSol&&(s.tipoSolicitud||'').toLowerCase().indexOf(fTipoSol)<0) return false;
+    // Filtros del panel superior
+    if(fCod    && (s.codigo||'').toLowerCase().indexOf(fCod)<0)         return false;
+    if(fConsec && String(s.consecutivo||'').toLowerCase().indexOf(fConsec)<0) return false;
+    if(fSolit  && (s.solicitante||'').toLowerCase().indexOf(fSolit)<0
+               && (s.correoUsuario||'').toLowerCase().indexOf(fSolit)<0)  return false;
+    if(fNombre && (s.nombreDoc||'').toLowerCase().indexOf(fNombre)<0)   return false;
+    if(fTipoSol&& (s.tipoSolicitud||'').toLowerCase().indexOf(fTipoSol)<0) return false;
+    // Estado
     if(est){
       var info=rbEstadoInfo(s);
-      if(est==='En revisión'&&!info.esRevision) return false;
-      if(est==='En proceso de firma'&&!info.esFirma) return false;
-      if(est==='Oficializado'&&!info.esOfic) return false;
-      if(est==='Rechazada'&&!info.esRechazo) return false;
+      if(est==='En revisión'      && !info.esRevision) return false;
+      if(est==='En proceso de firma'&&!info.esFirma)   return false;
+      if(est==='Oficializado'     && !info.esOfic)     return false;
+      if(est==='Rechazada'        && !info.esRechazo)  return false;
       if(est==='Pendiente'&&(info.esOfic||info.esRevision||info.esFirma||info.esRechazo)) return false;
+    }
+    // Búsqueda libre (caja del split) — busca en código, nombre, solicitante, consecutivo
+    if(fSearch){
+      var inCod  = (s.codigo||'').toLowerCase().indexOf(fSearch)>=0;
+      var inNom  = (s.nombreDoc||'').toLowerCase().indexOf(fSearch)>=0;
+      var inSol  = (s.solicitante||'').toLowerCase().indexOf(fSearch)>=0;
+      var inCons = String(s.consecutivo||'').toLowerCase().indexOf(fSearch)>=0;
+      var inArea = (s.areaGeneradora||'').toLowerCase().indexOf(fSearch)>=0;
+      if(!inCod&&!inNom&&!inSol&&!inCons&&!inArea) return false;
     }
     return true;
   });
@@ -33129,16 +33650,11 @@ function rbRender(){
   }
 }
 
-function rbRenderList(filtrados, searchQ){
+function rbRenderList(filtrados){
   var listEl=document.getElementById('rb-split-list-body');
   if(!listEl) return;
-  if(!filtrados) filtrados=rbGetFiltered();
-
-  // Apply inline search
-  var q=(searchQ||'').toLowerCase().trim();
-  if(q) filtrados=filtrados.filter(function(s){
-    return (s.codigo||'').toLowerCase().indexOf(q)>=0||(s.nombreDoc||'').toLowerCase().indexOf(q)>=0||(s.consecutivo||'').toLowerCase().indexOf(q)>=0;
-  });
+  // Always use rbGetFiltered() which includes all filter fields + split search
+  filtrados=rbGetFiltered();
 
   if(!filtrados.length){
     listEl.innerHTML='<div style="padding:24px 12px;text-align:center;font-size:11px;color:var(--tx3)">Sin resultados</div>';
@@ -33174,7 +33690,8 @@ function rbRenderList(filtrados, searchQ){
 }
 
 function rbSplitSearch(q){
-  rbRenderList(rbGetFiltered(), q);
+  window._rbSplitQ=(q||'').trim().toLowerCase();
+  rbRender();
 }
 
 function rbSelectSol(consecutivo){
@@ -33326,7 +33843,13 @@ function rbEliminarSolicitud(consecutivo){
 function rbFiltrar(){
   var pg=document.getElementById('rb-pg-num');
   if(pg) pg.value='1';
-  rbRender(); 
+  rbRender();
+}
+// Llamado desde la caja de búsqueda del split — aplica todos los filtros juntos
+function rbFiltrarConSearch(q){
+  // Actualizar el campo oculto de búsqueda interna
+  window._rbSplitQ = (q||'').trim().toLowerCase();
+  rbRender();
 }
 function rbIrPg(n){
   var pg=document.getElementById('rb-pg-num');
@@ -33346,8 +33869,10 @@ function rbLimpiarFiltros(){
   ['rb-f-tsol','rb-filtro-estado'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.selectedIndex=0;
   });
-  // Compatibilidad con campo viejo si existe
+  var ss=document.getElementById('rb-split-search');if(ss)ss.value='';
+  window._rbSplitQ='';
   var b=document.getElementById('rb-buscar'); if(b) b.value='';
+  _rbActiveSol=null;
   rbRender();
 }
 
@@ -36159,6 +36684,52 @@ function nfGuardar(){
   nfGuardarEjecutar();
 }
 // Extraer la lógica de guardado para llamarla tras el modal
+
+/* Recuperar último formato de novedad guardado en esta sesión */
+var _nfUltimoGuardado = null;
+
+function nfRecuperarUltimo(){
+  // Try localStorage first
+  try{
+    var stored = localStorage.getItem('nf_ultimo_guardado');
+    if(stored) _nfUltimoGuardado = JSON.parse(stored);
+  }catch(e){}
+
+  if(!_nfUltimoGuardado){
+    // Try to get last solicitud from array
+    var sols = solicitudes||[];
+    if(sols.length){
+      var last = sols[0]; // newest is at index 0
+      _nfUltimoGuardado = {
+        solicitante: last.solicitante||'',
+        area: last.areaGeneradora||'',
+        correo: last.correoUsuario||'',
+        tipoSolicitud: last.tipoSolicitud||'',
+        codigo: last.codigo||'',
+        nombre: last.nombreDoc||'',
+        descripcion: last.descripcionModif||'',
+        consecutivo: last.consecutivo||'',
+        fecha: last.fechaSolicitud||''
+      };
+    }
+  }
+
+  if(!_nfUltimoGuardado){ toast('No se encontró ningún formato reciente','er'); return; }
+
+  // Populate form fields
+  var f = _nfUltimoGuardado;
+  function setV(id,v){ var el=document.getElementById(id); if(el&&v) el.value=v; }
+  setV('nf-solicitante', f.solicitante);
+  setV('nf-area', f.area);
+  setV('nf-correo', f.correo);
+  setV('nf-tipo-solicitud', f.tipoSolicitud);
+  setV('nf-codigo', f.codigo);
+  setV('nf-nombre-doc', f.nombre);
+  setV('nf-descripcion-modif', f.descripcion);
+  if(f.consecutivo){ var b=document.getElementById('nf-consec-badge'); if(b) b.textContent='#'+f.consecutivo; }
+  toast('Último formato recuperado (consecutivo #'+( f.consecutivo||'?')+')','ok');
+}
+
 function nfGuardarEjecutar(){
   var hoy = nfFechaHoy();
   nfActualizarConsec(); // asegurar consecutivo correcto antes de guardar
@@ -36185,6 +36756,13 @@ function nfGuardarEjecutar(){
   solicitudes.unshift(sol);
   saveArr('sol', solicitudes);
   if(typeof rbRecalcCache==='function') rbRecalcCache();
+  // Guardar referencia del último formato para recuperación
+  try{
+    _nfUltimoGuardado={solicitante:sol.solicitante,area:sol.areaGeneradora,correo:sol.correoUsuario,
+      tipoSolicitud:sol.tipoSolicitud,codigo:sol.codigo,nombre:sol.nombreDoc,
+      descripcion:sol.descripcionModif,consecutivo:sol.consecutivo,fecha:sol.fechaSolicitud};
+    localStorage.setItem('nf_ultimo_guardado',JSON.stringify(_nfUltimoGuardado));
+  }catch(e){}
   // Si es Creación, también registrar en codigosNuevos (se guardará en Codigo_Doc_Nuevos)
   if(sol.tipoSolicitud==='Creación'&&sol.codigo){
     var entradaCN={fecha:sol.fechaSolicitud,codigo:sol.codigo.toUpperCase(),nombre:sol.nombreDoc};
@@ -36579,391 +37157,6 @@ document.addEventListener('click',function(e){
   
 
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- PÁGINA: RUTA DE BORRADOR — SOLICITUDES DE USUARIOS        -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <div class="pg" id="pg-rutabor">
-    <!-- Header + Filtros -->
-    <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:15px;font-weight:700;color:var(--tx)">📋 Ruta de Borrador</div>
-          <div style="font-size:11px;color:var(--tx3);margin-top:1px">Consulta y gestión de solicitudes de documentos en proceso</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span id="rb-contador" style="font-size:11px;color:var(--tx3);font-weight:600"></span>
-          <button class="btn gh sm" onclick="rbLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
-        <input id="rb-f-cod" type="text" class="fi" placeholder="🔍 Código" style="width:100px;font-size:11px" oninput="rbFiltrar()">
-        <input id="rb-f-consec" type="text" class="fi" placeholder="# Consecutivo" style="width:100px;font-size:11px" oninput="rbFiltrar()">
-        <input id="rb-f-solit" type="text" class="fi" placeholder="👤 Solicitante" style="width:130px;font-size:11px" oninput="rbFiltrar()">
-        <input id="rb-f-nombre" type="text" class="fi" placeholder="📄 Nombre del documento" style="width:190px;font-size:11px" oninput="rbFiltrar()">
-        <select id="rb-f-tsol" class="fi" style="font-size:11px;width:150px" onchange="rbFiltrar()"><option value="">Tipo de solicitud</option></select>
-        <select id="rb-filtro-estado" class="fi" style="font-size:11px;width:150px" onchange="rbFiltrar()">
-          <option value="">Todos los estados</option>
-          <option>En revisión</option><option>En proceso de firma</option><option>Oficializado</option>
-          <option>Rechazada</option><option>Pendiente</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Split view: lista + detalle -->
-    <div class="rb-split">
-      <div class="rb-split-list">
-        <div class="rb-split-list-search">
-          <input id="rb-split-search" placeholder="Buscar en lista..." oninput="rbSplitSearch(this.value)">
-        </div>
-        <div id="rb-split-list-body" style="max-height:calc(100vh - 220px);overflow-y:auto"></div>
-      </div>
-      <div class="rb-split-detail" id="rb-split-detail">
-        <div class="rb-split-empty">
-          <div style="font-size:32px;margin-bottom:10px">📋</div>
-          <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:5px">Selecciona una solicitud</div>
-          <div>Haz clic en cualquier solicitud de la lista<br>para ver su información completa aquí.</div>
-        </div>
-      </div>
-    </div>
-    <div id="rb-pgbar" style="margin-top:8px"></div>
-    <input type="hidden" id="rb-pg-num" value="1">
-    <!-- hidden compat -->
-    <div style="display:none"><div class="rb-accordion" id="rb-accordion"></div></div>
-
-    <!-- Modal Oficializar -->
-    <div id="rb-mo-ofic" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
-      <div style="background:var(--bg);border-radius:10px;padding:22px 24px;width:520px;max-width:96vw;box-shadow:0 8px 32px rgba(0,0,0,.22);max-height:90vh;overflow-y:auto">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-          <span style="font-size:22px">✅</span>
-          <div>
-            <div style="font-size:14px;font-weight:700;color:var(--T)">Oficializar Documento</div>
-            <div style="font-size:11px;color:var(--tx3)" id="rb-mo-ofic-desc"></div>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-          <div class="fp"><label class="fl">F. Revisión Inicial</label><input type="date" class="fi" id="rb-of-frev-ini"></div>
-          <div class="fp"><label class="fl">F. Revisión Final</label><input type="date" class="fi" id="rb-of-frev-fin"></div>
-          <div class="fp"><label class="fl">F. Entrega Firma</label><input type="date" class="fi" id="rb-of-fentrega"></div>
-          <div class="fp"><label class="fl">F. Oficialización</label><input type="date" class="fi" id="rb-of-fofic"></div>
-          <div class="fp"><label class="fl">F. Actualiz. Listado</label><input type="date" class="fi" id="rb-of-flistado"></div>
-          <div class="fp"><label class="fl">F. Colocación Intranet</label><input type="date" class="fi" id="rb-of-fintranet"></div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
-          <button class="btn gh sm" onclick="document.getElementById('rb-mo-ofic').style.display='none'">Cancelar</button>
-          <button class="btn sm" style="background:var(--T);color:#fff" onclick="rbOficializarConfirmar()">✅ Confirmar Oficialización</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Ver Detalle -->
-    <div id="rb-mo-det" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;align-items:center;justify-content:center">
-      <div style="background:var(--bg);border-radius:10px;padding:20px 24px;width:600px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.22)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div style="font-size:14px;font-weight:700">📋 Detalle de Solicitud</div>
-          <button class="btn gh sm" onclick="document.getElementById('rb-mo-det').style.display='none'">✕ Cerrar</button>
-        </div>
-        <div id="rb-mo-det-body" style="font-size:12px"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- PÁGINA: ETIQUETA COPIA CONTROLADA                         -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-
-  <div class="pg" id="pg-novedad">
-    <div style="display:flex;align-items:center;justify-content:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div>
-        <div style="font-size:18px;font-weight:700;color:var(--tx)">Formato F-SOP-0001-5 — Novedad de Documento</div>
-        <div style="font-size:11px;color:var(--tx3)">Solicitud de creación, modificación o anulación de documentos</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="btn gh sm" onclick="nfLimpiar()">🔄 Nuevo formulario</button>
-        <button class="btn gh sm" onclick="nfCargarPlantilla()" title="Llenar formulario desde Excel plantilla">📂 Cargar plantilla</button>
-        <button class="btn sm" style="background:var(--T)" onclick="nfGuardar()">💾 Guardar solicitud</button>
-        <button class="btn gh sm" onclick="nfDescargarPDF()" title="Descargar formulario como PDF">📄 PDF</button>
-        <span style="font-size:11px;color:var(--tx3);margin-left:8px">N° Solicitud:</span>
-        <span style="background:var(--T);color:#fff;border-radius:20px;padding:2px 14px;font-size:13px;font-weight:700" id="nf-consec-badge">—</span>
-      </div>
-    </div>
-
-    <div class="card" style="padding:0;overflow:visible;max-width:980px;margin:0 auto">
-      <div style="display:grid;grid-template-columns:1fr auto;background:var(--T);color:#fff;padding:10px 16px;align-items:center;border-radius:var(--r) var(--r) 0 0">
-        <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Formato Novedad de Documento</div>
-        <div style="font-size:9px;text-align:right;line-height:1.7;opacity:.85">CÓDIGO: F-SOP-0001-5<br>VERSIÓN: 05</div>
-      </div>
-
-      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
-
-        <!-- SEC 1 -->
-        <div>
-          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">1. Datos del solicitante</div>
-          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-              <div style="position:relative">
-                <div class="fp">
-                  <label class="fl rq">Nombres y apellidos</label>
-                  <input class="fi" type="text" id="nf-nombre" placeholder="Escriba para buscar..." oninput="nfBuscarColab(this.value)" autocomplete="off">
-                </div>
-                <div id="nf-colab-list" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--bg);border:1px solid var(--brd);border-radius:4px;z-index:9999;max-height:200px;overflow-y:auto;box-shadow:0 6px 16px rgba(0,0,0,.18)"></div>
-              </div>
-              <div class="fp">
-                <label class="fl">Cargo</label>
-                <input class="fi au" type="text" id="nf-cargo" readonly placeholder="Auto al seleccionar">
-              </div>
-              <div class="fp">
-                <label class="fl rq">Área</label>
-                <input class="fi" type="text" id="nf-area" placeholder="Área a la que pertenece">
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-              <div class="fp">
-                <label class="fl">Fecha de solicitud</label>
-                <input class="fi au" type="text" id="nf-fecha" readonly>
-              </div>
-              <div class="fp">
-                <label class="fl rq">Tipo de novedad</label>
-                <select class="fi" id="nf-tipo">
-                  <option value="">Seleccionar...</option>
-                  <option>Creación</option>
-                  <option>Modificación</option>
-                  <option>Eliminación</option>
-                </select>
-              </div>
-              <div class="fp">
-                <label class="fl">Correo del solicitante</label>
-                <div style="display:flex;gap:6px">
-                  <input class="fi au" type="text" id="nf-correo-vis" readonly placeholder="Auto al seleccionar" style="flex:1;min-width:0">
-                  <button class="btn gh sm" style="flex-shrink:0" onclick="nfEnviarCorreo()" title="Enviar correo al solicitante">✉️</button>
-                  <input type="hidden" id="nf-correo">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- SEC 2 -->
-        <div>
-          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">2. Información de la novedad</div>
-          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
-            <!-- Fila extra solo para Creación -->
-            <div id="nf-creacion-extra" style="display:none;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:10px 12px;margin-bottom:8px">
-              <div style="font-size:11px;font-weight:700;color:var(--T);margin-bottom:8px">📋 Parámetros para documento nuevo</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-                <div class="fp">
-                  <label class="fl rq">Tipo de documento</label>
-                  <select class="fi" id="nf-tipo-doc-nuevo" onchange="nfEvaluarCodigoNuevo()">
-                    <option value="">Seleccionar tipo...</option>
-                  </select>
-                </div>
-                <div class="fp">
-                  <label class="fl rq">¿Es corporativo?</label>
-                  <select class="fi" id="nf-corporativo" onchange="nfEvaluarCodigoNuevo()">
-                    <option value="">Seleccionar...</option>
-                    <option value="si">Sí — Corporativo</option>
-                    <option value="no">No — Local</option>
-                  </select>
-                </div>
-                <div class="fp">
-                  <label class="fl">Código asignado</label>
-                  <input class="fi au" type="text" id="nf-cod-asignado" readonly placeholder="Se calcula automáticamente" style="font-weight:700;color:var(--T);font-size:13px">
-                </div>
-              </div>
-              <div id="nf-cod-msg" style="font-size:11px;margin-top:6px;padding:4px 8px;border-radius:4px;display:none"></div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-              <div class="fp">
-                <label class="fl rq">Código del documento</label>
-                <input class="fi" type="text" id="nf-cod" placeholder="Ej: SOP-0001" oninput="nfBuscarDoc(this.value)" style="text-transform:uppercase;font-weight:600;font-size:13px">
-                <div id="nf-area-info" style="display:none;font-size:10px;color:var(--T);font-weight:600;margin-top:4px;padding:3px 8px;background:var(--bg3);border-radius:4px;border-left:3px solid var(--T)"></div>
-              </div>
-              <div class="fp">
-                <label class="fl">Tipo de documento</label>
-                <input class="fi au" type="text" id="nf-tipodoc" readonly placeholder="Auto por prefijo del código">
-              </div>
-              <div class="fp">
-                <label class="fl rq">Versión a trabajar</label>
-                <input class="fi" type="text" id="nf-version" placeholder="Ej: 01">
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px">
-              <div class="fp">
-                <label class="fl rq">Nombre del documento</label>
-                <input class="fi" type="text" id="nf-nombredoc" placeholder="Se completa del Listado Maestro o ingrese manualmente">
-              </div>
-              <div class="fp">
-                <label class="fl">Origen de la novedad</label>
-                <select class="fi" id="nf-origen" style="color:var(--tx)">
-                  <option value="">Seleccionar origen...</option>
-                  <option>Alertas de Calidad</option><option>Auditorias Control Interno</option><option>Auditorias Externas</option><option>Auditorias Internas de Sistema de Calidad y Gestión integral</option><option>Cambio en Documento Relacionado</option><option>Cambios en la Estructura del Mapa de procesos</option><option>Cambios en la Planeación y Despliegue Estratégico</option><option>Cumplimiento de Requisitos de Clientes</option><option>Cumplimiento de Requisitos Legales</option><option>Cumplimiento de Requisitos Organizacionales</option><option>Cumplimiento Normativo</option><option>Cumplimiento Regulatorio</option><option>Desviaciones</option><option>Emergencias</option><option>Fuera de Tendencia / Fuera de Especificaciones</option><option>Gestión de Acuerdos de Calidad</option><option>Gestión de Control de Cambios</option><option>Gestión de Indicadores</option><option>Gestión de Quejas y Reclamos</option><option>Gestión de Riesgos</option><option>Incidentes de Continuidad de Negocios</option><option>Inspecciones de Seguridad</option><option>Inspecciones Rutinarias</option><option>Investigación</option><option>Investigaciones de Accidentes de Seguridad y Salud en el Trabajo</option><option>Mejoramiento de Procesos</option><option>Proyectos de Mejora</option><option>Revisión Anual de Productos</option><option>Revisión del Sistema de Calidad y Gestión Integral</option><option>Revisión Periódica del Documento</option><option>Otros</option>
-                </select>
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-              <div class="fp">
-                <label class="fl">¿Documento GXP?</label>
-                <div style="display:flex;align-items:center;height:34px;gap:8px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);padding:7px 10px">
-                  <span id="nf-gxp-disp" style="font-size:13px;font-weight:700;color:var(--T)">—</span>
-                  <span style="font-size:10px;color:var(--tx3)">(Listado Maestro)</span>
-                </div>
-              </div>
-              <div class="fp">
-                <label class="fl">¿Requiere copia controlada?</label>
-                <div style="display:flex;align-items:center;height:34px;gap:8px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);padding:7px 10px">
-                  <span id="nf-copia-disp" style="font-size:13px;font-weight:700;color:var(--T)">—</span>
-                  <span style="font-size:10px;color:var(--tx3)">(Copias Controladas)</span>
-                </div>
-              </div>
-              <div class="fp" id="nf-cant-wrap" style="visibility:hidden">
-                <label class="fl">Cantidad de copias</label>
-                <input class="fi" type="number" min="1" max="99" id="nf-cant-copias" placeholder="N°">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- SEC 3 -->
-        <div>
-          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">3. Descripción de la novedad</div>
-          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
-            <div class="fp">
-              <label class="fl rq">Resumen de los principales cambios que se realizarán al documento</label>
-              <textarea class="fi" id="nf-descripcion" rows="3" style="resize:vertical" placeholder="Ingrese un breve resumen de los principales cambios..."></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- SEC 4+5 -->
-        <div>
-          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">4. Matriz de autorización</div>
-          <div style="border:1px solid var(--brd);border-top:none;border-radius:0 0 6px 6px;overflow:hidden">
-            <table style="width:100%;border-collapse:collapse;font-size:11px">
-              <thead>
-                <tr style="background:var(--bg3)">
-                  <th style="border:1px solid var(--brd);padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase;width:29%">Nombre</th>
-                  <th style="border:1px solid var(--brd);padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase;width:24%">Cargo</th>
-                  <th style="border:1px solid var(--brd);padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase;width:10%">Rol</th>
-                  <th style="border:1px solid var(--brd);padding:4px;width:6%;text-align:center"></th>
-                </tr>
-              </thead>
-              <tbody id="nf-mtx-body"></tbody>
-            </table>
-            <button class="btn gh sm" style="margin-top:6px;font-size:11px" onclick="nfMtxAgregarFila()">+ Agregar fila</button>
-          </div>
-        </div>
-
-        <!-- SEC 5: CARGO A ENTRENAR -->
-        <div>
-          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">5. Nombre del cargo del colaborador a entrenar / divulgar</div>
-          <div style="border:1px solid var(--brd);border-top:none;border-radius:0 0 6px 6px;overflow:visible">
-            <!-- Área de pegado masivo -->
-          <div style="padding:8px 10px;background:var(--bg3);border-bottom:1px solid var(--brd);display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
-            <div style="flex:1;min-width:200px">
-              <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;font-weight:600">📋 PEGAR LISTA (uno por línea o separado por comas)</div>
-              <textarea id="nf-entrenar-paste" rows="3" placeholder="Pegar aquí la lista de cargos..." style="width:100%;border:1px solid var(--brd);background:var(--bg);font-size:11px;color:var(--tx);font-family:var(--fn);padding:6px;border-radius:4px;resize:vertical;outline:none"></textarea>
-            </div>
-            <button class="btn gh sm" style="margin-top:18px;flex-shrink:0" onclick="nfEntrenarPegarLista()">✅ Agregar lista</button>
-          </div>
-          <table style="width:100%;border-collapse:collapse;font-size:11px">
-              <thead>
-                <tr style="background:var(--bg3)">
-                  <th style="border:1px solid var(--brd);padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase">Nombre del cargo a entrenar / divulgar</th>
-                  <th style="border:1px solid var(--brd);padding:4px;width:6%;text-align:center"></th>
-                </tr>
-              </thead>
-              <tbody id="nf-entrenar-body"></tbody>
-            </table>
-            <button class="btn gh sm" style="margin-top:6px;font-size:11px" onclick="nfEntrenarAgregarFila()">+ Agregar cargo individual</button>
-          </div>
-        </div>
-
-        <!-- SEC 6 -->
-        <div>
-          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">6. Análisis de criticidad — evaluación de conocimientos</div>
-          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
-            <div style="font-size:10px;font-style:italic;color:var(--tx3);margin-bottom:8px">La falla en la ejecución de la actividad…</div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
-              <thead>
-                <tr style="background:var(--bg3)">
-                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase" colspan="2">Aspectos</th>
-                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase">Criterios</th>
-                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;width:72px;text-align:center">Calificación</th>
-                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;width:72px;text-align:center">Resultado</th>
-                  <th style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;width:110px;text-align:center">Consecuencia × Detección</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td rowspan="4" style="border:1px solid var(--brd);padding:4px;font-size:10px;font-weight:700;text-align:center;background:var(--bg3);writing-mode:vertical-rl;transform:rotate(180deg);width:26px">Consecuencia</td>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">Calidad producto / materiales</td>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Afecta parámetro crítico del lote</span><span style="color:#e67e22;display:block">(2) Afecta parámetros críticos o calidad de materiales</span><span style="color:#27ae60;display:block">(1) No afecta la calidad del material o producto</span></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nc1" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nr1">—</td>
-
-                </tr>
-                <tr>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">Seguridad de las personas</td>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Genera muerte o incapacidad permanente</span><span style="color:#e67e22;display:block">(2) Genera incapacidad parcial o total</span><span style="color:#27ae60;display:block">(1) No genera incapacidad</span></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nc2" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nr2">—</td>
-                </tr>
-                <tr>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">Seguridad del paciente</td>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Genera daño grave permanente o muerte del paciente</span><span style="color:#e67e22;display:block">(2) Genera probables efectos adversos sobre el paciente</span><span style="color:#27ae60;display:block">(1) No genera impacto sobre el paciente</span></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nc3" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nr3">—</td>
-                </tr>
-                <tr>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:600;white-space:nowrap">Desempeño del proceso</td>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Afecta cumplimiento objetivos del negocio / regulatorio</span><span style="color:#e67e22;display:block">(2) Afecta los objetivos de desempeño del proceso</span><span style="color:#27ae60;display:block">(1) No afecta directamente los objetivos</span></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nc4" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nr4">—</td>
-                </tr>
-                <tr>
-                  <td colspan="2" style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;background:var(--bg3);text-transform:uppercase">Consecuencia Máxima</td>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;color:var(--tx3)" colspan="3">Valor máximo entre los 4 aspectos calificados</td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-size:18px;font-weight:700;background:var(--bg3)" id="nval-c">—</td>
-                </tr>
-              <tr>
-                  <td colspan="2" style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;font-weight:700;background:var(--bg3);text-transform:uppercase">Detección de falla</td>
-                  <td style="border:1px solid var(--brd);padding:5px 8px;font-size:10px;line-height:1.5"><span style="color:#c0392b;display:block">(3) Detectada por otro proceso o partes interesadas externas</span><span style="color:#e67e22;display:block">(2) Detectada al final del proceso</span><span style="color:#27ae60;display:block">(1) Detectada durante el desarrollo del proceso</span></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center"><input class="fi" type="number" min="1" max="3" id="nd1" oninput="this.value=Math.min(3,Math.max(1,parseInt(this.value)||1));nfCalcCrit()" style="width:48px;text-align:center;font-weight:700;font-size:14px;padding:4px" step="1"></td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-weight:700;font-size:16px" id="nrd">—</td>
-                  <td style="border:1px solid var(--brd);padding:5px;text-align:center;font-size:24px;font-weight:700;background:var(--bg3)" id="nval-d">—</td>
-                </tr>
-              </tbody>
-            </table>
-            <div style="border:2px solid var(--brd);border-radius:6px;padding:10px 16px;text-align:center;font-size:13px;font-weight:700;background:var(--bg3);color:var(--tx3)" id="nf-conclusion">
-              Ingrese las calificaciones para calcular el resultado
-            </div>
-          </div>
-        </div>
-
-        <!-- SEC REVISIÓN -->
-        <div>
-          <div style="background:var(--T);color:#fff;padding:5px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:4px 4px 0 0">7. Revisión de la solicitud — espacio reservado para el administrador</div>
-          <div style="border:1px solid var(--brd);border-top:none;padding:12px;border-radius:0 0 6px 6px">
-            <div style="display:grid;grid-template-columns:200px 1fr;gap:10px">
-              <div class="fp">
-                <label class="fl">Solicitud</label>
-                <select class="fi" id="nf-estatus">
-                  <option value="Pendiente">Pendiente de revisión</option>
-                  <option value="Aceptada" selected>Aceptada</option>
-                  <option value="Rechazada">Rechazada</option>
-                </select>
-              </div>
-              <div class="fp">
-                <label class="fl">Observaciones</label>
-                <textarea class="fi" id="nf-obs" rows="2" style="resize:vertical" placeholder="Observaciones del administrador...">Sin Observaciones</textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
 
 
 
