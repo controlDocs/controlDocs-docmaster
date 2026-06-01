@@ -1209,7 +1209,7 @@ tbody tr:last-child td{border-bottom:none}
     Selecciona el archivo <strong>LM-0019.xlsx</strong> de tu carpeta OneDrive local. Los cambios se guardan automáticamente y OneDrive los sube a la nube. <span style="color:var(--T3);font-weight:600">No requiere Azure AD.</span>
   </div>
   <div style="background:var(--tl);border:1px solid var(--tb);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--T3)">
-    &#128193; Ruta típica: <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px">OneDrive - Grupo Procaps\Listado_Maestro\LM-0019.xlsx</code>
+    &#128193; Busca la carpeta <strong>Listado_Maestro</strong> dentro de <strong>OneDrive – Grupo Procaps</strong> en el Explorador de Windows de tu PC.
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
     <button class="btn" onclick="odConectar()">&#128194; Seleccionar archivo Excel</button>
@@ -16441,22 +16441,37 @@ function odOcultarCargando(){
 
 //  PANTALLA DE SELECCIÓN (primera vez) 
 function odMostrarSeleccion(){
-  // login overlay se mostrará después de cargar datos exitosamente
   var d=document.createElement('div');
   d.id='od-seleccion-screen';
   d.style.cssText='position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#003e37,#006860);display:flex;align-items:center;justify-content:center;padding:16px';
-  var html='<div style="background:#fff;border-radius:16px;padding:32px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">';
+  var html='<div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">';
   html+='<div style="font-size:40px;margin-bottom:12px">📋</div>';
   html+='<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>';
   html+='<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Sofgen Pharma &middot; Grupo Procaps</div>';
+
   html+='<div style="background:#f0f9f8;border:1px solid #c8dede;border-radius:10px;padding:14px;margin-bottom:16px;text-align:left">';
-  html+='<div style="font-size:12px;font-weight:700;color:#006860;margin-bottom:6px">📁 Archivos requeridos en la carpeta</div>';
-  html+='<div style="font-size:11px;color:#336666;line-height:1.6;margin-bottom:8px">El archivo se encuentra en la carpeta de SharePoint sincronizada localmente:</div>';
-  html+='<div style="font-size:10px;font-family:monospace;background:#e8f0f0;padding:8px 10px;border-radius:6px;color:#0a4a4a;word-break:break-all;border-left:3px solid #006860">D:\\Users\\jarevalo\\Grupo Procaps\\Sistema De Documentación - Documentos\\Listado_Maestro</div>';
-  html+='<div style="margin-top:10px;font-size:11px;color:#336666;line-height:1.6"><strong>Pasos:</strong><br>1. Haz clic en el botón de abajo<br>2. Navega a la ruta indicada<br>3. Haz clic en <strong>Seleccionar carpeta</strong><br>4. La app lo recordará para las próximas sesiones</div>';
+  html+='<div style="font-size:12px;font-weight:700;color:#006860;margin-bottom:8px">📁 ¿Cómo encontrar la carpeta?</div>';
+
+  html+='<div style="font-size:11px;color:#336666;line-height:1.8">';
+  html+='Cada usuario debe buscar la carpeta sincronizada de SharePoint en <strong>su propio PC</strong>. La ruta varía según el equipo, pero sigue este patrón:<br>';
   html+='</div>';
-  html+='<button onclick="odSeleccionarDesdeSeleccion()" style="width:100%;padding:14px;background:#00A99E;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px">📁 &nbsp;Seleccionar carpeta DocControl_Sofgen</button>';
-  html+='<div style="margin-top:10px;font-size:10px;color:#5e9090;text-align:center">Solo debes hacerlo <strong>una vez</strong> — la app lo recordará automáticamente</div>';
+
+  html+='<div style="margin:10px 0;background:#e8f0f0;border-radius:6px;padding:8px 10px;border-left:3px solid #006860">';
+  html+='<div style="font-size:9px;font-weight:700;color:#006860;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">📌 Cómo llegar:</div>';
+  html+='<div style="font-size:11px;color:#0a4a4a;line-height:1.8">';
+  html+='1. Abre el <strong>Explorador de archivos</strong> de Windows<br>';
+  html+='2. En el panel izquierdo busca <strong>OneDrive – Grupo Procaps</strong><br>';
+  html+='3. Dentro, navega a la carpeta <strong>Listado_Maestro</strong><br>';
+  html+='4. Esa es la carpeta que debes seleccionar aquí abajo';
+  html+='</div></div>';
+
+  html+='<div style="background:#fff9e8;border:1px solid #ffd97a;border-radius:6px;padding:8px 10px;font-size:11px;color:#7a4e00;line-height:1.6">';
+  html+='⚠️ <strong>Requisito:</strong> OneDrive debe estar instalado y la biblioteca de SharePoint sincronizada en tu PC. Si no ves la carpeta, contacta al administrador de sistemas.';
+  html+='</div>';
+  html+='</div>';
+
+  html+='<button onclick="odSeleccionarDesdeSeleccion()" style="width:100%;padding:14px;background:#00A99E;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px">📁 &nbsp;Seleccionar carpeta Listado_Maestro</button>';
+  html+='<div style="margin-top:10px;font-size:10px;color:#5e9090;text-align:center">Solo debes hacerlo <strong>una vez</strong> por equipo — la app lo recordará automáticamente</div>';
   html+='</div>';
   d.innerHTML=html;
   document.body.appendChild(d);
