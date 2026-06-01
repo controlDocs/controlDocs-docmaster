@@ -33531,8 +33531,7 @@ function homeAddTask(){
   var title = prompt('📋 Ingrese una nueva actividad:','');
   if(!title || !title.trim()) return;
   var desc  = prompt('Descripción (opcional — presione Enter para omitir):', '') || '';
-  var prioR = prompt('Prioridad: 1 = Alta  |  2 = Media  |  3 = Baja
-(Enter para sin prioridad):', '') || '';
+  var prioR = prompt('Prioridad: 1 = Alta  |  2 = Media  |  3 = Baja\n(Enter para sin prioridad):', '') || '';
   var prioMap = {'1':'alta','2':'media','3':'baja'};
   var prio = prioMap[prioR.trim()] || '';
   _homeTasks.unshift({id:Date.now(), title:title.trim(), desc:desc.trim(), prio:prio, done:false, doneAt:''});
