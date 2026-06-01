@@ -15619,22 +15619,58 @@ async function odCargarListado(){
       }
     }catch(eCN){ console.warn('OD: error leyendo Codigo_Doc_Nuevos:',eCN.message); }
 
-    // Leer hoja Auditrail del Excel
+    // ── Leer hoja Auditrail de TODOS los Excel de SharePoint ──────────────
     odSetProgreso(96,'Cargando auditoría...');
-    // Auditrail está en ListadoMaestro.xlsx (archivo principal)
-    var audExcel=await odLeerHojaAuditrail(buf, wb);
-    if(audExcel!==null){
-      // Filtrar registros automáticos del sistema al cargar desde Excel
-      auditoria=audExcel.filter(function(r){
-        return ['Estado automático','Estado auto','Inicializacion','Consulta',
-                'Sync Copias','OneDrive','Revisión Documental','QR PDF']
-               .indexOf(r.a)<0;
-      });
-      console.log('OD: '+auditoria.length+' registros de auditoría cargados desde Excel ('+audExcel.length+' en bruto)');
-    // Registrar timestamp de carga para detección de colisión
-    try{var fTs=await OD.fileHandle.getFile();_odTsUltimaCarga=fTs.lastModified;}catch(e){}
-    _auditPendientes=[]; // limpiar pendientes al recargar (datos frescos del servidor)
+    var _AUDIT_EXCLUIR_LOAD=['Estado automático','Estado auto','Inicializacion',
+                             'Consulta','Sync Copias','OneDrive','Revisión Documental','QR PDF'];
+    function _filtrarAudit(arr){
+      return (arr||[]).filter(function(r){ return _AUDIT_EXCLUIR_LOAD.indexOf(r.a)<0; });
     }
+    var todosAudit=[];
+
+    // 1. ListadoMaestro.xlsx — ya está en buf/wb (en memoria)
+    try{
+      var audLM=await odLeerHojaAuditrail(buf, wb);
+      if(audLM&&audLM.length){ todosAudit=todosAudit.concat(_filtrarAudit(audLM)); }
+      console.log('OD Audit LM: '+(audLM?audLM.length:0)+' registros');
+    }catch(eAudLM){ console.warn('OD: error leyendo Auditrail LM:',eAudLM); }
+
+    // 2. CopiaControladas.xlsx
+    try{
+      var copAudData=await odLeerArchivo(OD_ARCHIVOS.copias);
+      if(copAudData){
+        var wbCopAud=XLSX.read(copAudData.buf,{type:'array',cellDates:false,raw:false});
+        var audCop=await odLeerHojaAuditrail(copAudData.buf, wbCopAud);
+        if(audCop&&audCop.length){ todosAudit=todosAudit.concat(_filtrarAudit(audCop)); }
+        console.log('OD Audit Copias: '+(audCop?audCop.length:0)+' registros');
+      }
+    }catch(eAudCop){ console.warn('OD: error leyendo Auditrail Copias:',eAudCop); }
+
+    // 3. Solicitudes.xlsx
+    try{
+      var solAudData=await odLeerArchivo(OD_ARCHIVOS.solicitudes);
+      if(solAudData){
+        var wbSolAud=XLSX.read(solAudData.buf,{type:'array',cellDates:false,raw:false});
+        var audSol=await odLeerHojaAuditrail(solAudData.buf, wbSolAud);
+        if(audSol&&audSol.length){ todosAudit=todosAudit.concat(_filtrarAudit(audSol)); }
+        console.log('OD Audit Solicitudes: '+(audSol?audSol.length:0)+' registros');
+      }
+    }catch(eAudSol){ console.warn('OD: error leyendo Auditrail Solicitudes:',eAudSol); }
+
+    // Fusionar, deduplicar por (f+u+a+d) y ordenar por fecha descendente
+    var _visto={};
+    auditoria=todosAudit.filter(function(r){
+      var key=(r.f||'')+'|'+(r.u||'')+'|'+(r.a||'')+'|'+(r.d||'').slice(0,60);
+      if(_visto[key]) return false;
+      _visto[key]=true;
+      return true;
+    }).sort(function(a,b){
+      return (b.f||'').localeCompare(a.f||'');
+    });
+
+    console.log('OD: '+auditoria.length+' registros de auditoría fusionados de todos los Excel');
+    try{var fTs=await OD.fileHandle.getFile();_odTsUltimaCarga=fTs.lastModified;}catch(e){}
+    _auditPendientes=[]; // datos frescos del servidor
 
     odSetProgreso(95,'Actualizando app...');
     // Limpiar IndexedDB local — datos frescos vienen del Excel
@@ -18866,6 +18902,11 @@ async function dashActualizar(){
     // Refrescar explícitamente el módulo KPI con los datos frescos
     try{ recalcEstados(); }catch(e){}
     dashActualizarUI();
+    // Si el módulo de auditoría está activo, refrescarlo con los datos nuevos
+    var _pgAud=document.getElementById('pg-audit');
+    if(_pgAud&&_pgAud.classList.contains('act')){
+      try{ renderAudit(); }catch(e){}
+    }
     toast('✅ Datos recargados desde SharePoint','ok');
   }catch(e){
     console.error('dashActualizar error:',e);
