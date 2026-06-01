@@ -2792,7 +2792,7 @@ function saveDocs(arr){
   // Disparar guardado en OneDrive si está conectado
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2000);
+    OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
 }
@@ -3028,7 +3028,7 @@ function recalcEstados(){
     // Guardar cambios en Excel de OneDrive inmediatamente
     if(OD&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},2000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
     }
     console.log('✅ '+cambios+' documentos actualizaron su estado automáticamente');
@@ -5823,7 +5823,7 @@ function generarActaCopias() {
   // Guardar en Excel de OneDrive inmediatamente
   if(OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
   var win=window.open('','_blank','width=940,height=1100,scrollbars=yes');
@@ -5918,7 +5918,7 @@ function delCop(id){
     if(OD.fileHandle&&window.currentUser){
       OD.syncActivo=true;
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
     }
     toast('Copia eliminada — guardando en SharePoint...','if');
     renderCopias();
@@ -11049,7 +11049,7 @@ function ecc_generarInformeVerif(){
       // Disparar guardado inmediato al Excel de OneDrive
       if(OD.fileHandle&&OD.syncActivo){
         if(OD.saveTimer) clearTimeout(OD.saveTimer);
-        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
       }
       renderDashInsp&&renderDashInsp();
       renderTablaProg&&renderTablaProg();
@@ -14466,26 +14466,31 @@ function _auditAppendToWB(wb, modulosFiltro){
     }
   }
 
-  // Última fila con datos
-  var ref=wsA['!ref']||'A1';
-  var rng=XLSX.utils.decode_range(ref);
-  var lastRow=rng.e.r; // 0-based
+  // Calcular la última fila REAL buscando la celda A más alta con datos
+  // No confiar en !ref porque puede estar desactualizado si el archivo fue editado en Excel
+  var lastRow = 0;
+  Object.keys(wsA).forEach(function(k){
+    if(k[0]==='!') return;
+    var m = k.match(/^A(\d+)$/);
+    if(m){ var n=parseInt(m[1]); if(n>lastRow) lastRow=n; }
+  });
+  // lastRow es 1-based; la fila 1 es el encabezado si existe
   if(lastRow<1) lastRow=1; // al menos la fila de encabezado
 
   pendientes.forEach(function(a,i){
-    var r=lastRow+1+i;
-    wsA['A'+(r+1)]={v:_t(a.f),t:'s'};
-    wsA['B'+(r+1)]={v:_t(a.u||'Sistema'),t:'s'};
-    wsA['C'+(r+1)]={v:_t(a.modulo||''),t:'s'};
-    wsA['D'+(r+1)]={v:_t(a.a),t:'s'};
-    wsA['E'+(r+1)]={v:_t(a.d),t:'s'};
-    wsA['F'+(r+1)]={v:_t(a.cambios),t:'s'};
-    wsA['G'+(r+1)]={v:_t(a.empresa),t:'s'};
+    var r=lastRow+1+i; // 1-based, siguiente fila disponible
+    wsA['A'+r]={v:_t(a.f),      t:'s'};
+    wsA['B'+r]={v:_t(a.u||'Sistema'),t:'s'};
+    wsA['C'+r]={v:_t(a.modulo||''), t:'s'};
+    wsA['D'+r]={v:_t(a.a),      t:'s'};
+    wsA['E'+r]={v:_t(a.d),      t:'s'};
+    wsA['F'+r]={v:_t(a.cambios),t:'s'};
+    wsA['G'+r]={v:_t(a.empresa),t:'s'};
   });
   var newLast=lastRow+pendientes.length;
-  wsA['!ref']='A1:G'+(newLast+1);
+  wsA['!ref']='A1:G'+newLast;
   wb.Sheets[hojaName]=wsA;
-  console.log('[OD] Auditrail ('+hojaName+') +'+pendientes.length+' filas en '+wb.SheetNames.join(','));
+  console.log('[OD] Auditrail ('+hojaName+') +'+pendientes.length+' filas → última fila: '+newLast);
   return pendientes.length;
 }
 
@@ -15096,7 +15101,7 @@ function odHookSaveInsp(){
     var SYNC_KEYS=['insp','inspProg','sol','c','p','u','nh'];
     if(SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2500);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
     }
   };
 }
@@ -15112,7 +15117,7 @@ function odHookSaveArr(){
     var OD_SYNC_KEYS=['c','sol','p','u','nh','insp','inspProg'];
     if(OD_SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2500);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
     }
   };
 }
@@ -15697,18 +15702,63 @@ async function odGuardarListado(silencioso){
     // ── Función helper: guardar un workbook en un archivo de la carpeta ──
     async function _escribirArchivo(nombreArchivo, wbToWrite){
       if(!OD.carpetaHandle) return false;
+      // ── Esperar a que OneDrive no esté sincronizando el archivo ──────────
+      // Si el archivo se modificó hace menos de OD_SYNC_WAIT ms, esperar.
+      // Esto evita escribir mientras OneDrive está subiendo la versión anterior.
+      var OD_SYNC_WAIT  = 3500;  // ms mínimos entre escrituras del mismo archivo
+      var OD_SYNC_POLLS = 6;     // cuántas veces verificar que el tamaño estabilizó
+      var OD_POLL_GAP   = 600;   // ms entre cada verificación de estabilidad
       try{
         var fh=await OD.carpetaHandle.getFileHandle(nombreArchivo,{create:false});
         var perm=await fh.queryPermission({mode:'readwrite'});
         if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
         if(perm!=='granted'){ console.warn('Sin permiso escritura en '+nombreArchivo); return false; }
-        var bufW=XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
-        var wr=await fh.createWritable();
+
+        // 1. Leer tamaño y lastModified actuales
+        var fBefore = await fh.getFile();
+        var tamBefore = fBefore.size;
+        var tsBefore  = fBefore.lastModified;
+        var ahora     = Date.now();
+
+        // 2. Si el archivo cambió muy recientemente (OneDrive acaba de subir algo),
+        //    esperar OD_SYNC_WAIT ms para que el cliente de sync lo libere
+        if((ahora - tsBefore) < OD_SYNC_WAIT){
+          var espera = OD_SYNC_WAIT - (ahora - tsBefore);
+          console.log('[OD] Esperando '+espera+'ms para que OneDrive libere '+nombreArchivo);
+          await new Promise(function(r){ setTimeout(r, espera); });
+        }
+
+        // 3. Verificar que el tamaño no cambió durante la espera
+        //    (si cambió, OneDrive está sincronizando — esperar un ciclo más)
+        for(var i=0; i<OD_SYNC_POLLS; i++){
+          var fCheck = await fh.getFile();
+          if(fCheck.size !== tamBefore || fCheck.lastModified !== tsBefore){
+            // El archivo cambió mientras esperábamos — actualizar referencia y seguir esperando
+            tamBefore = fCheck.size;
+            tsBefore  = fCheck.lastModified;
+            console.log('[OD] Archivo '+nombreArchivo+' cambió durante espera — ciclo '+(i+1));
+            await new Promise(function(r){ setTimeout(r, OD_POLL_GAP); });
+          } else {
+            break; // estable
+          }
+        }
+
+        // 4. Escribir el archivo con keepExistingData:false para reemplazar completamente
+        var bufW = XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
+        var wr   = await fh.createWritable({keepExistingData: false});
         await wr.write(new Uint8Array(bufW));
         await wr.close();
-        console.log('[OD] Guardado: '+nombreArchivo);
+        console.log('[OD] Guardado OK: '+nombreArchivo+' ('+bufW.length+' bytes)');
+
+        // 5. Post-escritura: esperar un momento para que OneDrive detecte el cambio
+        //    y empiece a subir. Esto evita que la siguiente escritura llegue antes
+        //    de que el sync termine.
+        await new Promise(function(r){ setTimeout(r, 1200); });
         return true;
-      }catch(e){ console.error('[OD] Error guardando '+nombreArchivo+':',e.message); return false; }
+      }catch(e){
+        console.error('[OD] Error guardando '+nombreArchivo+':',e.message);
+        return false;
+      }
     }
 
     // ── Leer ListadoMaestro.xlsx (archivo principal) ──────────
@@ -16105,7 +16155,7 @@ async function odGuardarListado(silencioso){
     if(_odColaGuardado){
       _odColaGuardado=false;
       console.log('[OD] Procesando guardado encolado...');
-      setTimeout(function(){odGuardarListado(true);},1000);
+      setTimeout(function(){odGuardarListado(true);},7000); // esperar 7s para que OneDrive termine sync
     }
   }
 }
@@ -16114,7 +16164,7 @@ async function odGuardarListado(silencioso){
 async function odGuardarUsuariosEnExcel(){
   if(!OD.fileHandle) return;
   if(OD.saveTimer) clearTimeout(OD.saveTimer);
-  OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2000);
+  OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
 }
 
 //  HOOK saveDocs → auto-guardar en OneDrive 
@@ -16127,7 +16177,7 @@ function odHookSaveDocs(){
     if(OD.fileHandle&&OD.syncActivo){
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },3000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
     }
   };
 }
@@ -18443,7 +18493,7 @@ function saveDocs(arr){
   // Disparar guardado en OneDrive si está conectado
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2000);
+    OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
 }
@@ -18679,7 +18729,7 @@ function recalcEstados(){
     // Guardar cambios en Excel de OneDrive inmediatamente
     if(OD&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},2000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
     }
     console.log('✅ '+cambios+' documentos actualizaron su estado automáticamente');
@@ -20678,7 +20728,7 @@ function generarActaCopias() {
   // Guardar en Excel de OneDrive inmediatamente
   if(OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
   var win=window.open('','_blank','width=940,height=1100,scrollbars=yes');
@@ -20773,7 +20823,7 @@ function delCop(id){
     if(OD.fileHandle&&window.currentUser){
       OD.syncActivo=true;
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
     }
     toast('Copia eliminada — guardando en SharePoint...','if');
     renderCopias();
@@ -25904,7 +25954,7 @@ function ecc_generarInformeVerif(){
       // Disparar guardado inmediato al Excel de OneDrive
       if(OD.fileHandle&&OD.syncActivo){
         if(OD.saveTimer) clearTimeout(OD.saveTimer);
-        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
       }
       renderDashInsp&&renderDashInsp();
       renderTablaProg&&renderTablaProg();
@@ -29885,7 +29935,7 @@ function odHookSaveInsp(){
     var SYNC_KEYS=['insp','inspProg','sol','c','p','u','nh'];
     if(SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2500);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
     }
   };
 }
@@ -29901,7 +29951,7 @@ function odHookSaveArr(){
     var OD_SYNC_KEYS=['c','sol','p','u','nh','insp','inspProg'];
     if(OD_SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2500);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
     }
   };
 }
@@ -30486,18 +30536,63 @@ async function odGuardarListado(silencioso){
     // ── Función helper: guardar un workbook en un archivo de la carpeta ──
     async function _escribirArchivo(nombreArchivo, wbToWrite){
       if(!OD.carpetaHandle) return false;
+      // ── Esperar a que OneDrive no esté sincronizando el archivo ──────────
+      // Si el archivo se modificó hace menos de OD_SYNC_WAIT ms, esperar.
+      // Esto evita escribir mientras OneDrive está subiendo la versión anterior.
+      var OD_SYNC_WAIT  = 3500;  // ms mínimos entre escrituras del mismo archivo
+      var OD_SYNC_POLLS = 6;     // cuántas veces verificar que el tamaño estabilizó
+      var OD_POLL_GAP   = 600;   // ms entre cada verificación de estabilidad
       try{
         var fh=await OD.carpetaHandle.getFileHandle(nombreArchivo,{create:false});
         var perm=await fh.queryPermission({mode:'readwrite'});
         if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
         if(perm!=='granted'){ console.warn('Sin permiso escritura en '+nombreArchivo); return false; }
-        var bufW=XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
-        var wr=await fh.createWritable();
+
+        // 1. Leer tamaño y lastModified actuales
+        var fBefore = await fh.getFile();
+        var tamBefore = fBefore.size;
+        var tsBefore  = fBefore.lastModified;
+        var ahora     = Date.now();
+
+        // 2. Si el archivo cambió muy recientemente (OneDrive acaba de subir algo),
+        //    esperar OD_SYNC_WAIT ms para que el cliente de sync lo libere
+        if((ahora - tsBefore) < OD_SYNC_WAIT){
+          var espera = OD_SYNC_WAIT - (ahora - tsBefore);
+          console.log('[OD] Esperando '+espera+'ms para que OneDrive libere '+nombreArchivo);
+          await new Promise(function(r){ setTimeout(r, espera); });
+        }
+
+        // 3. Verificar que el tamaño no cambió durante la espera
+        //    (si cambió, OneDrive está sincronizando — esperar un ciclo más)
+        for(var i=0; i<OD_SYNC_POLLS; i++){
+          var fCheck = await fh.getFile();
+          if(fCheck.size !== tamBefore || fCheck.lastModified !== tsBefore){
+            // El archivo cambió mientras esperábamos — actualizar referencia y seguir esperando
+            tamBefore = fCheck.size;
+            tsBefore  = fCheck.lastModified;
+            console.log('[OD] Archivo '+nombreArchivo+' cambió durante espera — ciclo '+(i+1));
+            await new Promise(function(r){ setTimeout(r, OD_POLL_GAP); });
+          } else {
+            break; // estable
+          }
+        }
+
+        // 4. Escribir el archivo con keepExistingData:false para reemplazar completamente
+        var bufW = XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
+        var wr   = await fh.createWritable({keepExistingData: false});
         await wr.write(new Uint8Array(bufW));
         await wr.close();
-        console.log('[OD] Guardado: '+nombreArchivo);
+        console.log('[OD] Guardado OK: '+nombreArchivo+' ('+bufW.length+' bytes)');
+
+        // 5. Post-escritura: esperar un momento para que OneDrive detecte el cambio
+        //    y empiece a subir. Esto evita que la siguiente escritura llegue antes
+        //    de que el sync termine.
+        await new Promise(function(r){ setTimeout(r, 1200); });
         return true;
-      }catch(e){ console.error('[OD] Error guardando '+nombreArchivo+':',e.message); return false; }
+      }catch(e){
+        console.error('[OD] Error guardando '+nombreArchivo+':',e.message);
+        return false;
+      }
     }
 
     // ── Leer ListadoMaestro.xlsx (archivo principal) ──────────
@@ -30935,7 +31030,7 @@ async function odGuardarListado(silencioso){
     if(_odColaGuardado){
       _odColaGuardado=false;
       console.log('[OD] Procesando guardado encolado...');
-      setTimeout(function(){odGuardarListado(true);},1000);
+      setTimeout(function(){odGuardarListado(true);},7000); // esperar 7s para que OneDrive termine sync
     }
   }
 }
@@ -30944,7 +31039,7 @@ async function odGuardarListado(silencioso){
 async function odGuardarUsuariosEnExcel(){
   if(!OD.fileHandle) return;
   if(OD.saveTimer) clearTimeout(OD.saveTimer);
-  OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },2000);
+  OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
 }
 
 //  HOOK saveDocs → auto-guardar en OneDrive 
@@ -30957,7 +31052,7 @@ function odHookSaveDocs(){
     if(OD.fileHandle&&OD.syncActivo){
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },3000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
     }
   };
 }
@@ -33236,35 +33331,86 @@ async function odGuardarActividades(){
     }catch(e){
       wb=XLSX.utils.book_new();
     }
-    // Escribir hoja SIN encabezado — solo datos
+    // Escribir hoja Actividades del dia
+    // Si ya tiene encabezado en fila 1, conservarlo y escribir datos desde fila 2.
+    // Si no tiene encabezado, crearlo.
     var HOJA='Actividades del dia';
+    var HDRS_ACT=['ID','Titulo','Descripcion','Prioridad','Estado','Hora Completada','Fecha'];
     var hoy=new Date().toISOString().split('T')[0];
-    var rows=[];
-    (_homeTasks||[]).forEach(function(t){
-      rows.push([
-        String(t.id||''),
-        t.title||'',
-        t.desc||'',
-        t.prio||'',
-        t.done?'Completada':'Pendiente',
-        t.doneAt||'',
-        hoy
-      ]);
-    });
-    if(!rows.length){
-      // Si no hay tareas, escribir fila vacía para que el archivo exista
-      rows.push(['','','','','','',hoy]);
+
+    // Obtener o crear la hoja
+    var wsAct=null;
+    var hojaIdx=wb.SheetNames.indexOf(HOJA);
+    if(hojaIdx>=0){
+      wsAct=wb.Sheets[HOJA];
+    } else {
+      // Hoja no existe — buscar con nombres alternativos
+      ['Actividadesdeldia','actividades del dia','Actividades Del Dia'].forEach(function(n){
+        if(!wsAct && wb.Sheets[n]){ wsAct=wb.Sheets[n]; HOJA=n; }
+      });
     }
-    var ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:14},{wch:35},{wch:40},{wch:10},{wch:12},{wch:16},{wch:12}];
-    var idx=wb.SheetNames.indexOf(HOJA);
-    if(idx>=0) wb.Sheets[HOJA]=ws; else XLSX.utils.book_append_sheet(wb,ws,HOJA);
-    // Guardar archivo
+
+    if(!wsAct){
+      // Crear hoja nueva con encabezado
+      wsAct={};
+      HDRS_ACT.forEach(function(h,ci){ wsAct[String.fromCharCode(65+ci)+'1']={v:h,t:'s'}; });
+      wsAct['!ref']='A1:G1';
+      XLSX.utils.book_append_sheet(wb,wsAct,HOJA);
+    } else {
+      // Verificar si la fila 1 tiene encabezado
+      var tieneHdr = wsAct['A1'] && wsAct['A1'].v &&
+        (String(wsAct['A1'].v).toUpperCase().indexOf('ID')>=0 ||
+         String(wsAct['A1'].v).toUpperCase().indexOf('TITULO')>=0 ||
+         String(wsAct['A1'].v).toUpperCase().indexOf('TÍTULO')>=0);
+      if(!tieneHdr){
+        // Crear encabezado en fila 1 — desplazar datos existentes si los hay
+        HDRS_ACT.forEach(function(h,ci){ wsAct[String.fromCharCode(65+ci)+'1']={v:h,t:'s'}; });
+      }
+    }
+
+    // Borrar todas las filas de datos (fila 2 en adelante) para reescribir
+    // (siempre sobreescribimos con el estado actual de las tareas)
+    Object.keys(wsAct).forEach(function(k){
+      if(k[0]==='!') return;
+      var m=k.match(/^([A-G])(\d+)$/);
+      if(m && parseInt(m[2])>=2) delete wsAct[k];
+    });
+
+    // Escribir tareas desde fila 2
+    var dataRows=(_homeTasks||[]);
+    dataRows.forEach(function(t,i){
+      var r=i+2; // fila 2 en adelante
+      wsAct['A'+r]={v:String(t.id||''),  t:'s'};
+      wsAct['B'+r]={v:t.title||'',       t:'s'};
+      wsAct['C'+r]={v:t.desc||'',        t:'s'};
+      wsAct['D'+r]={v:t.prio||'',        t:'s'};
+      wsAct['E'+r]={v:t.done?'Completada':'Pendiente', t:'s'};
+      wsAct['F'+r]={v:t.doneAt||'',      t:'s'};
+      wsAct['G'+r]={v:hoy,               t:'s'};
+    });
+
+    // Si no hay tareas, dejar solo el encabezado
+    var lastActRow = Math.max(1, dataRows.length+1);
+    wsAct['!ref']='A1:G'+lastActRow;
+    wsAct['!cols']=[{wch:16},{wch:38},{wch:42},{wch:10},{wch:12},{wch:18},{wch:12}];
+    wb.Sheets[HOJA]=wsAct;
+    // Guardar archivo usando helper con espera de sync
+    // Intentar con _escribirArchivo si está disponible (tiene anti-conflicto)
     var buf2=XLSX.write(wb,{type:'array',bookType:'xlsx'});
-    var fhW=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.actividades,{create:true});
-    var w=await fhW.createWritable();
-    await w.write(buf2); await w.close();
-    console.log('[OD] Actividadesdeldia.xlsx guardado OK');
+    var guardadoOK=false;
+    try{
+      var fhW=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.actividades,{create:true});
+      // Verificar que OneDrive no está sincronizando el archivo
+      try{
+        var fBef=await fhW.getFile();
+        var tsW=fBef.lastModified;
+        if((Date.now()-tsW)<3000){ await new Promise(function(r){setTimeout(r,3000-(Date.now()-tsW));}) ;}
+      }catch(ew){}
+      var w=await fhW.createWritable({keepExistingData:false});
+      await w.write(buf2); await w.close();
+      guardadoOK=true;
+    }catch(eW){ console.warn('[OD] createWritable actividades falló:',eW.message); }
+    console.log('[OD] Actividadesdeldia.xlsx '+(guardadoOK?'guardado OK':'error'));
   }catch(e){
     console.warn('[OD] Error guardando Actividadesdeldia:',e);
   }
@@ -33275,7 +33421,7 @@ function homeSaveTasks(){
   // Guardar en Excel Actividades del dia (sin debounce, es rápido)
   if(OD.carpetaHandle){
     clearTimeout(window._actSaveTimer);
-    window._actSaveTimer=setTimeout(function(){ odGuardarActividades(); },1500);
+    window._actSaveTimer=setTimeout(function(){ odGuardarActividades(); },5000);
   }
 }
 
@@ -33817,7 +33963,7 @@ function rbAprobar(consecutivo){
     'Ruta de Borrador');
   toast('Solicitud #'+consecutivo+' marcada como En proceso de firma','ok');
   rbRender();
-  if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},2000);}
+  if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);}
 }
 
 function rbToggleAcc(id){var el=document.getElementById(id);if(el)el.classList.toggle('rb-open');}
@@ -33856,7 +34002,7 @@ function rbEliminarSolicitud(consecutivo){
   if(OD.fileHandle&&window.currentUser){
     OD.syncActivo=true;
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
   }
   toast('✅ Solicitud eliminada — guardando en SharePoint...','ok');
   rbRender();
@@ -33979,7 +34125,7 @@ function rbOficializarConfirmar(){
   if(OD.fileHandle&&window.currentUser){
     OD.syncActivo=true;
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},7000) // esperar sync OneDrive;
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
   rbRender();
@@ -34013,7 +34159,7 @@ function rbActualizarOficializacion(codigo){
   // Guardar en Excel si hay conexión
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},2000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
   }
 }
 
@@ -34166,7 +34312,7 @@ function rbFechaDocConfirmar(){
   // Guardar en Excel
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},2000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
   }
   if(typeof rbRender==='function') rbRender();
 }
@@ -35271,7 +35417,7 @@ function ecc_registrarHallazgos(area, subsInspeccionar, tipoInsp, inspector){
     saveArr('insp',inspecciones);
     if(OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
     }
     renderDashInsp&&renderDashInsp();
     renderTablaProg&&renderTablaProg();
@@ -37076,7 +37222,7 @@ function nfRenovarSolicitud(info){
       '','Novedad de Documento');
     if(OD.syncActivo||OD.carpetaHandle){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
     }
     toast('✅ Solicitud N°'+info.consecutivo+' marcada como Renovada','ok');
   }
