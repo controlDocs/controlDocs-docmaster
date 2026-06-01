@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- v2026-06-01 13:38:26 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -5735,7 +5735,7 @@ function generarActaCopias() {
     });
   });
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>'+codConsec+' — F-SOP-0001-4</title>'
     +'<style>'
     +'*{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",Arial,sans-serif}'
@@ -6413,7 +6413,7 @@ function svAbrirCorreo(i){
   var imgDataUrl=generarImagenCorreo(area,{vencidos:info.docs,proximos:[]},org);
   var win=window.open('','_blank','width=760,height=920,scrollbars=yes');
   if(!win){toast('Permite ventanas emergentes','er');return;}
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'
+  win.document.write('<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8">'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#e5e7eb;font-family:Segoe UI,Arial,sans-serif}'
     +'.tb{position:fixed;top:0;left:0;right:0;z-index:999;background:#1e293b;padding:10px 20px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.4)}'
     +'.tit{color:#fff;font-size:13px;font-weight:700;flex:1}.sub{color:#94a3b8;font-size:10px;word-break:break-all}'
@@ -7247,7 +7247,7 @@ function abrirCorreoArea(idx){
   var win=window.open('','_blank','width=760,height=920,scrollbars=yes');
   if(!win){toast('Permite ventanas emergentes','er');return;}
 
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'
+  win.document.write('<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8">'
     +'<style>'
     +'*{box-sizing:border-box;margin:0;padding:0}'
     +'body{background:#e5e7eb;font-family:Segoe UI,Arial,sans-serif}'
@@ -10163,7 +10163,7 @@ function generarPDF(area, mes){
     +'.firma-n{font-size:10px;font-weight:700;color:#004D40;margin-bottom:2px}'
     +'@media print{body{padding:14px 18px}}';
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>'+area+' — '+MESES_FULL[mes]+'</title>'
     +'<style>'+css+'</style></head><body>';
 
@@ -10681,7 +10681,7 @@ function ecc_imprimirZebra(){
   // Enviar a impresora Zebra vía ventana de impresión
   var win=window.open('','_blank','width=600,height=400');
   if(!win){toast('Permite ventanas emergentes','er');return;}
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta '+cod+'</title>'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8"><title>Etiqueta '+cod+'</title>'
     +'<style>body{font-family:monospace;padding:20px;background:#f5f5f5}'
     +'.zpl-box{background:#fff;border:1px solid #ccc;border-radius:8px;padding:16px;margin-bottom:16px}'
     +'h3{color:#006860;margin-bottom:10px}pre{font-size:11px;white-space:pre-wrap;word-break:break-all;background:#f0f0f0;padding:10px;border-radius:4px}'
@@ -11101,7 +11101,7 @@ function ecc_generarInformeVerif(){
     +noEscaneados.map(function(c){return'<span style="background:#fff;border:1.5px solid #d63b3b;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;color:#8a1515">'+c.codigo+'</span>';}).join('')
     +'</div></div>':'';
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>'+codInforme+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:\'Segoe UI\',Arial,sans-serif}body{padding:20px 28px;font-size:11px}table{width:100%;border-collapse:collapse}@media print{body{padding:10px 16px}}</style>'
     +'</head><body>'
@@ -11753,7 +11753,7 @@ function exportRelPDF(codigo){
       +'</tr>';
   }).join('');
 
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8">'
     +'<title>Docs relacionados - '+q+'</title>'
     +'<style>body{font-family:Arial,sans-serif;padding:30px;color:#222}'
     +'h2{font-size:16px;margin-bottom:4px}p{font-size:12px;color:#666;margin-bottom:16px}'
@@ -12004,7 +12004,7 @@ function generarInformeValidacion(){
       +'</tr></thead><tbody>'+filas+'</tbody></table></div>';
   }
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>Informe Validación IQ/OQ/PQ — '+org+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI,Arial,sans-serif}body{padding:24px;font-size:11px}@media print{body{padding:12px}}</style>'
     +'</head><body>'
@@ -12884,7 +12884,7 @@ console.log('=== EN INFORME codigosEncontrados ===', r.codigosEncontrados);
       +'<td style="border:1px solid #e5e7eb;padding:8px 12px;font-size:11px;color:#374151">'+f.detalle+'</td></tr>';
   }).join('');
   var okFilas=r.ok.map(function(o){return '<li style="font-size:11px;color:#006860;padding:3px 0">'+o+'</li>';}).join('');
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe Revisión</title>'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8"><title>Informe Revisión</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI,Arial,sans-serif}body{padding:24px}table{width:100%;border-collapse:collapse}@media print{body{padding:12px}}</style>'
     +'</head><body>'
     +'<table style="margin-bottom:12px"><tr>'
@@ -20663,7 +20663,7 @@ function generarActaCopias() {
     });
   });
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>'+codConsec+' — F-SOP-0001-4</title>'
     +'<style>'
     +'*{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",Arial,sans-serif}'
@@ -21341,7 +21341,7 @@ function svAbrirCorreo(i){
   var imgDataUrl=generarImagenCorreo(area,{vencidos:info.docs,proximos:[]},org);
   var win=window.open('','_blank','width=760,height=920,scrollbars=yes');
   if(!win){toast('Permite ventanas emergentes','er');return;}
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'
+  win.document.write('<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8">'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#e5e7eb;font-family:Segoe UI,Arial,sans-serif}'
     +'.tb{position:fixed;top:0;left:0;right:0;z-index:999;background:#1e293b;padding:10px 20px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.4)}'
     +'.tit{color:#fff;font-size:13px;font-weight:700;flex:1}.sub{color:#94a3b8;font-size:10px;word-break:break-all}'
@@ -22175,7 +22175,7 @@ function abrirCorreoArea(idx){
   var win=window.open('','_blank','width=760,height=920,scrollbars=yes');
   if(!win){toast('Permite ventanas emergentes','er');return;}
 
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'
+  win.document.write('<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8">'
     +'<style>'
     +'*{box-sizing:border-box;margin:0;padding:0}'
     +'body{background:#e5e7eb;font-family:Segoe UI,Arial,sans-serif}'
@@ -25091,7 +25091,7 @@ function generarPDF(area, mes){
     +'.firma-n{font-size:10px;font-weight:700;color:#004D40;margin-bottom:2px}'
     +'@media print{body{padding:14px 18px}}';
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>'+area+' — '+MESES_FULL[mes]+'</title>'
     +'<style>'+css+'</style></head><body>';
 
@@ -25609,7 +25609,7 @@ function ecc_imprimirZebra(){
   // Enviar a impresora Zebra vía ventana de impresión
   var win=window.open('','_blank','width=600,height=400');
   if(!win){toast('Permite ventanas emergentes','er');return;}
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta '+cod+'</title>'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8"><title>Etiqueta '+cod+'</title>'
     +'<style>body{font-family:monospace;padding:20px;background:#f5f5f5}'
     +'.zpl-box{background:#fff;border:1px solid #ccc;border-radius:8px;padding:16px;margin-bottom:16px}'
     +'h3{color:#006860;margin-bottom:10px}pre{font-size:11px;white-space:pre-wrap;word-break:break-all;background:#f0f0f0;padding:10px;border-radius:4px}'
@@ -26029,7 +26029,7 @@ function ecc_generarInformeVerif(){
     +noEscaneados.map(function(c){return'<span style="background:#fff;border:1.5px solid #d63b3b;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;color:#8a1515">'+c.codigo+'</span>';}).join('')
     +'</div></div>':'';
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>'+codInforme+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:\'Segoe UI\',Arial,sans-serif}body{padding:20px 28px;font-size:11px}table{width:100%;border-collapse:collapse}@media print{body{padding:10px 16px}}</style>'
     +'</head><body>'
@@ -26681,7 +26681,7 @@ function exportRelPDF(codigo){
       +'</tr>';
   }).join('');
 
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8">'
     +'<title>Docs relacionados - '+q+'</title>'
     +'<style>body{font-family:Arial,sans-serif;padding:30px;color:#222}'
     +'h2{font-size:16px;margin-bottom:4px}p{font-size:12px;color:#666;margin-bottom:16px}'
@@ -26932,7 +26932,7 @@ function generarInformeValidacion(){
       +'</tr></thead><tbody>'+filas+'</tbody></table></div>';
   }
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>Informe Validación IQ/OQ/PQ — '+org+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI,Arial,sans-serif}body{padding:24px;font-size:11px}@media print{body{padding:12px}}</style>'
     +'</head><body>'
@@ -27812,7 +27812,7 @@ console.log('=== EN INFORME codigosEncontrados ===', r.codigosEncontrados);
       +'<td style="border:1px solid #e5e7eb;padding:8px 12px;font-size:11px;color:#374151">'+f.detalle+'</td></tr>';
   }).join('');
   var okFilas=r.ok.map(function(o){return '<li style="font-size:11px;color:#006860;padding:3px 0">'+o+'</li>';}).join('');
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe Revisión</title>'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html><head><meta charset="UTF-8"><title>Informe Revisión</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI,Arial,sans-serif}body{padding:24px}table{width:100%;border-collapse:collapse}@media print{body{padding:12px}}</style>'
     +'</head><body>'
     +'<table style="margin-bottom:12px"><tr>'
@@ -31229,7 +31229,7 @@ function odMostrarReconectar(dirHandle){
 
 //  PANTALLA DE CARGA 
 function odMostrarCargando(nombre){
-  var _lov2=document.getElementById('login-overlay');if(_lov2)_lov2.style.display='none';
+  // login-overlay se muestra explícitamente después de cargar — no ocultarlo aquí
   var d=document.createElement('div');
   d.id='od-loading-screen';
   d.style.cssText='position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#003e37,#006860);display:flex;align-items:center;justify-content:center';
@@ -31278,14 +31278,17 @@ async function odSeleccionarDesdeSeleccion(){
   try{
     var dirHandle=await window.showDirectoryPicker({mode:'readwrite'});
     // Verificar que los archivos requeridos existen en la carpeta
-    var archivosReq=Object.values(OD_ARCHIVOS);
+    // Archivos obligatorios (sin estos no puede funcionar la app)
+    var archivosObligatorios=[OD_ARCHIVOS.lm,OD_ARCHIVOS.solicitudes,OD_ARCHIVOS.copias,OD_ARCHIVOS.inspecciones];
+    // Archivos opcionales (se crean automáticamente si no existen)
+    // var archivosOpcionales=[OD_ARCHIVOS.actividades,OD_ARCHIVOS.colaboradores];
     var faltantes=[];
-    for(var i=0;i<archivosReq.length;i++){
-      try{ await dirHandle.getFileHandle(archivosReq[i],{create:false}); }
-      catch(e){ faltantes.push(archivosReq[i]); }
+    for(var i=0;i<archivosObligatorios.length;i++){
+      try{ await dirHandle.getFileHandle(archivosObligatorios[i],{create:false}); }
+      catch(e){ faltantes.push(archivosObligatorios[i]); }
     }
     if(faltantes.length){
-      var msg='Faltan archivos en la carpeta: '+faltantes.join(', ')+'. Selecciona la carpeta DocControl_Sofgen.';
+      var msg='Faltan archivos en la carpeta:\n'+faltantes.join('\n')+'\n\nVerifica que seleccionaste la carpeta DocControl_Sofgen correcta.';
       alert(msg);
       if(btn){btn.textContent='📁 Seleccionar carpeta DocControl_Sofgen';btn.disabled=false;}
       return;
@@ -31831,7 +31834,7 @@ function fev_generarPDF(){
       +t+'</td>';
   }).join('');
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>F-SOP-0001-3 — '+codigo+'</title>'
     +'<style>'
     +'*{box-sizing:border-box;margin:0;padding:0;font-family:\'Segoe UI\',Arial,sans-serif}'
@@ -32006,7 +32009,7 @@ function fev_descargarPDF(){
 
   var hoy=fDL();
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>F-SOP-0001-3 '+codigo+'</title>'
     +'<style>'
     +'@page{size:A4 portrait;margin:14mm 16mm 14mm 16mm}'
@@ -35509,7 +35512,7 @@ function ecc_generarInformeSubarea(area, sub, tipoInsp, inspector, escaneadosSub
   var colorPct=pct>=90?'#006860':pct>=70?'#7a4e00':'#8a1515';
   var bgPct=pct>=90?'#e6f9f3':pct>=70?'#fff3cd':'#fde8e8';
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>Informe Subárea — '+sub+'</title>'
     +'<style>body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;color:#1a1a1a;font-size:12px}'
     +'@media print{.no-print{display:none}}</style></head><body>'
@@ -35722,7 +35725,7 @@ function ecc_generarInformeGlobal(){
       +'</div></div>'
     :'<div style="padding:12px 16px;background:#e6f9f3;border:2px solid #9fdfc8;border-radius:10px;margin-bottom:20px;font-size:12px;color:#006860;font-weight:700">✅ Se inspeccionaron todas las subáreas del área</div>';
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>Informe Global — '+area+'</title>'
     +'<style>body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;color:#1a1a1a;font-size:12px}'
     +'@media print{body{padding:10px}.no-print{display:none}}'
@@ -37052,7 +37055,7 @@ function nfGenerarPDF(){
     }
   });
 
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
     +'<title>'+nombrePDF+'</title>'
     +'<style>'
     +'@page{size:A4 portrait;margin:8mm 10mm}'
