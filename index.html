@@ -2047,7 +2047,7 @@ tbody tr:last-child td{border-bottom:none}
         <select id="rb-filtro-estado" class="fi" style="font-size:11px;width:150px" onchange="rbFiltrar()">
           <option value="">Todos los estados</option>
           <option>En revisión</option><option>En proceso de firma</option><option>Oficializado</option>
-          <option>Rechazada</option><option>Pendiente</option>
+          <option>Rechazada</option><option>Anulada</option><option>Pendiente</option>
         </select>
       </div>
     </div>
@@ -18893,14 +18893,15 @@ var _rbActiveSol = null; // consecutivo activo en split view
 function rbEstadoInfo(s){
   var est=(s.estadoOficializacion||s.estatus||'').trim();
   var esOfic=est.toLowerCase().indexOf('oficial')>=0;
+  var esAnulado=est.toLowerCase().indexOf('anulad')>=0||est.toLowerCase()==='solicitud anulada'||est.toLowerCase()==='eliminación cerrada';
   var esRechazo=est.toLowerCase().indexOf('rechaz')>=0;
   var esRevision=est.toLowerCase()==='en revisión'||est.toLowerCase()==='en revision'||est.toLowerCase()==='aceptada';
   var esFirma=est.toLowerCase().indexOf('proceso de firma')>=0||est.toLowerCase()==='en proceso';
-  var color=esOfic?'var(--G)':esRechazo?'var(--R)':esFirma?'var(--T)':esRevision?'var(--A)':'#aaa';
-  var bg=esOfic?'#e6f9f3':esRechazo?'#fde8e8':esFirma?'#e0f5f3':esRevision?'#fff8e1':'#f0f0f0';
-  var tc=esOfic?'#0f7a50':esRechazo?'#a02020':esFirma?'var(--T3)':esRevision?'#a06000':'#666';
-  var label=esOfic?'Oficializado':esRechazo?'Rechazada':esFirma?'En proceso de firma':esRevision?'En revisión':est||'Pendiente';
-  return{color:color,bg:bg,tc:tc,label:label,esOfic:esOfic,esRechazo:esRechazo,esRevision:esRevision,esFirma:esFirma};
+  var color=esAnulado?'#6d28d9':esOfic?'var(--G)':esRechazo?'var(--R)':esFirma?'var(--T)':esRevision?'var(--A)':'#aaa';
+  var bg=esAnulado?'#f3e8ff':esOfic?'#e6f9f3':esRechazo?'#fde8e8':esFirma?'#e0f5f3':esRevision?'#fff8e1':'#f0f0f0';
+  var tc=esAnulado?'#5b21b6':esOfic?'#0f7a50':esRechazo?'#a02020':esFirma?'var(--T3)':esRevision?'#a06000':'#666';
+  var label=esAnulado?'Anulada':esOfic?'Oficializado':esRechazo?'Rechazada':esFirma?'En proceso de firma':esRevision?'En revisión':est||'Pendiente';
+  return{color:color,bg:bg,tc:tc,label:label,esOfic:esOfic,esAnulado:esAnulado,esRechazo:esRechazo,esRevision:esRevision,esFirma:esFirma};
 }
 
 function rbSplitStageBar(s){
@@ -18961,6 +18962,7 @@ function rbGetFiltered(){
       if(est==='En proceso de firma'&&!info.esFirma)   return false;
       if(est==='Oficializado'     && !info.esOfic)     return false;
       if(est==='Rechazada'        && !info.esRechazo)  return false;
+      if(est==='Anulada'          && !info.esAnulado) return false;
       if(est==='Pendiente'&&(info.esOfic||info.esRevision||info.esFirma||info.esRechazo)) return false;
     }
     // Búsqueda libre (caja del split) — parcial por palabras en múltiples campos
@@ -19022,10 +19024,10 @@ function rbRenderList(filtrados){
     list.forEach(function(s){
       var info=rbEstadoInfo(s);
       var isAct=String(s.consecutivo)===String(_rbActiveSol);
-      html+='<div class="rb-split-item'+(isAct?' act':'')+(info.esOfic?' done':'')+'" onclick="rbSelectSol(\''+s.consecutivo+'\')">'
+      html+='<div class="rb-split-item'+(isAct?' act':'')+(info.esOfic||info.esAnulado?' done':'')+'" onclick="rbSelectSol(\''+s.consecutivo+'\')">'
         +'<span class="rb-split-dot" style="background:'+info.color+'"></span>'
         +'<div class="rb-split-info">'
-          +'<div class="rb-split-code" style="color:'+(info.esOfic?'var(--G)':info.esFirma?'var(--T3)':'var(--A2)')+'">'+
+          +'<div class="rb-split-code" style="color:'+(info.esOfic?'var(--G)':info.esAnulado?'#6d28d9':info.esFirma?'var(--T3)':'var(--A2)')+'">'+
             '#'+s.consecutivo+' — '+(s.codigo||'?')+
           '</div>'
           +'<div class="rb-split-name">'+(s.nombreDoc||'Sin nombre')+'</div>'
@@ -19128,8 +19130,38 @@ function rbRenderDetail(s){
       +(!info.esOfic
         ?'<button class="btn sm" style="background:var(--T);color:#fff" onclick="rbAbrirOficializar('+s.consecutivo+')">✅ Oficializar</button>'
         :'')
+      +(!info.esAnulado&&!info.esOfic
+        ?'<button class="btn sm" style="background:#7c3aed;color:#fff" onclick="rbAnularDirecto(\''+s.consecutivo+'\')" title="Anular esta solicitud">🚫 Anular solicitud</button>'
+        :'')
       +'<button class="btn dn sm" style="margin-left:auto" onclick="rbEliminarSolicitud(\''+s.consecutivo+'\')">🗑</button>'
     +'</div>';
+}
+
+function rbAnularDirecto(consecutivo){
+  var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s){toast('Solicitud no encontrada','er');return;}
+  var desc='#'+consecutivo+' — '+(s.codigo||'?')+' ('+( s.nombreDoc||'')+')';
+  if(!confirm('¿Anular la solicitud '+desc+'?\n\nEsta acción marcará la solicitud como Anulada y no se puede deshacer.')) return;
+  var justif='';
+  while(!justif||!justif.trim()){
+    justif=window.prompt('MOTIVO DE ANULACIÓN (obligatorio):\n\n'+desc,'');
+    if(justif===null) return;
+    if(!justif.trim()) alert('⚠️ Debe ingresar un motivo para continuar.');
+  }
+  s.estadoOficializacion='Solicitud Anulada';
+  s.estatus='Solicitud Anulada';
+  s.fechaOficializacion=s.fechaOficializacion||new Date().toISOString().split('T')[0];
+  s.motivoAnulacion=justif.trim();
+  saveArr('sol',solicitudes);
+  if(typeof rbRecalcCache==='function') rbRecalcCache();
+  logA(currentUser?currentUser.nombre:'Admin','Anulación de Solicitud',
+    'Solicitud '+desc+' marcada como Anulada | Motivo: '+justif.trim(),'','Ruta de Borrador');
+  if(window.OD&&OD.fileHandle&&OD.syncActivo){
+    if(OD.saveTimer) clearTimeout(OD.saveTimer);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+  }
+  toast('🚫 Solicitud '+desc+' anulada','ok');
+  rbRender();
 }
 
 function rbAprobar(consecutivo){
@@ -22140,6 +22172,30 @@ function nfGuardarEjecutar(){
       descripcion:sol.descripcionModif,consecutivo:sol.consecutivo,fecha:sol.fechaSolicitud};
     localStorage.setItem('nf_ultimo_guardado',JSON.stringify(_nfUltimoGuardado));
   }catch(e){}
+  // Si es Eliminación, cerrar automáticamente la solicitud activa en Ruta de Borrador
+  if(sol.tipoSolicitud==='Eliminación'&&sol.codigo){
+    var codUp=sol.codigo.toUpperCase();
+    var abiertas=(solicitudes||[]).filter(function(x){
+      var est=(x.estadoOficializacion||x.estatus||'').toLowerCase();
+      return x.codigo&&x.codigo.toUpperCase()===codUp
+        &&est!=='solicitud anulada'&&est!=='oficializado'&&est!=='eliminación cerrada';
+    });
+    if(abiertas.length){
+      // Cerrar la más reciente
+      var reciente=abiertas.reduce(function(best,x){
+        return parseInt(x.consecutivo||0)>parseInt(best.consecutivo||0)?x:best;
+      },abiertas[0]);
+      reciente.estadoOficializacion='Eliminación Cerrada';
+      reciente.estatus='Eliminación Cerrada';
+      reciente.fechaOficializacion=reciente.fechaOficializacion||sol.fechaSolicitud;
+      saveArr('sol',solicitudes);
+      if(typeof rbRecalcCache==='function') rbRecalcCache();
+      logA(currentUser?currentUser.nombre:'Usuario','Eliminación ruta',
+        'Solicitud RB #'+reciente.consecutivo+' cerrada automáticamente por solicitud de Eliminación: '+sol.codigo+' — Consec. '+sol.consecutivo,
+        '','Ruta de Borrador');
+      toast('🔒 Solicitud RB #'+reciente.consecutivo+' de "'+sol.codigo+'" cerrada automáticamente','if');
+    }
+  }
   // Si es Creación, también registrar en codigosNuevos (se guardará en Codigo_Doc_Nuevos)
   if(sol.tipoSolicitud==='Creación'&&sol.codigo){
     var entradaCN={fecha:sol.fechaSolicitud,codigo:sol.codigo.toUpperCase(),nombre:sol.nombreDoc};
