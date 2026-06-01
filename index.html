@@ -2536,6 +2536,30 @@ tbody tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- MODAL: Justificación de Anulación — Ruta de Borrador -->
+<div id="rb-mo-anular" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:10000;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--bg);border-radius:12px;padding:24px;width:460px;max-width:96vw;box-shadow:0 8px 40px rgba(0,0,0,.28)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:22px">🚫</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--tx)">Anular solicitud</div>
+        <div id="rb-anular-desc" style="font-size:11px;color:var(--tx3);margin-top:1px"></div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--brd);margin:12px 0"></div>
+    <div class="fp" style="margin-bottom:14px">
+      <label class="fl rq">Motivo de anulación</label>
+      <textarea class="fta" id="rb-anular-motivo" rows="3" placeholder="Describe el motivo por el cual se anula esta solicitud..."></textarea>
+      <div class="fh">Este campo es obligatorio para continuar.</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn gh sm" onclick="rbAnularCancelar()">Cancelar</button>
+      <button class="btn sm" style="background:#7c3aed;color:#fff" onclick="rbAnularConfirmar()">🚫 Confirmar anulación</button>
+    </div>
+  </div>
+</div>
+
+
 <div class="mo" id="mo-ver"><div class="md lg"><button class="md-x" onclick="closeMo('mo-ver')">X</button><div id="mo-ver-c"></div></div></div>
 <div class="mo" id="mo-copia"><div class="md lg">
   <button class="md-x" onclick="closeMo('mo-copia')">X</button>
@@ -5188,6 +5212,10 @@ function ccEstadoReal(x){
   if(o==='X'||o==='SI'||o==='SÍ'||o==='YES'||o==='1'||o==='S'||e==='OBSOLETO') return 'Obsoleto';
   if(parseInt(dRef.version,10)!==parseInt(x.version,10)) return 'Ver. desactualizada';
   return 'Vigente';
+}
+
+function ccLimpiarCacheEstados(){
+  (copias||[]).forEach(function(cop){delete cop._estCache;});
 }
 
 function ccLimpiarFiltros(){
@@ -19137,25 +19165,47 @@ function rbRenderDetail(s){
     +'</div>';
 }
 
+var _rbAnularConsecutivo = null;
+
 function rbAnularDirecto(consecutivo){
   var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
   if(!s){toast('Solicitud no encontrada','er');return;}
-  var desc='#'+consecutivo+' — '+(s.codigo||'?')+' ('+( s.nombreDoc||'')+')';
-  if(!confirm('¿Anular la solicitud '+desc+'?\n\nEsta acción marcará la solicitud como Anulada y no se puede deshacer.')) return;
-  var justif='';
-  while(!justif||!justif.trim()){
-    justif=window.prompt('MOTIVO DE ANULACIÓN (obligatorio):\n\n'+desc,'');
-    if(justif===null) return;
-    if(!justif.trim()) alert('⚠️ Debe ingresar un motivo para continuar.');
+  _rbAnularConsecutivo=consecutivo;
+  var desc='#'+consecutivo+' — '+(s.codigo||'?')+' — '+(s.nombreDoc||'');
+  document.getElementById('rb-anular-desc').textContent=desc;
+  document.getElementById('rb-anular-motivo').value='';
+  document.getElementById('rb-mo-anular').style.display='flex';
+  setTimeout(function(){var el=document.getElementById('rb-anular-motivo');if(el)el.focus();},100);
+}
+
+function rbAnularCancelar(){
+  document.getElementById('rb-mo-anular').style.display='none';
+  _rbAnularConsecutivo=null;
+}
+
+function rbAnularConfirmar(){
+  var motivo=(document.getElementById('rb-anular-motivo').value||'').trim();
+  if(!motivo){
+    document.getElementById('rb-anular-motivo').style.borderColor='var(--R)';
+    document.getElementById('rb-anular-motivo').focus();
+    toast('Debes ingresar el motivo de anulación','er');
+    return;
   }
+  document.getElementById('rb-anular-motivo').style.borderColor='';
+  var consecutivo=_rbAnularConsecutivo;
+  document.getElementById('rb-mo-anular').style.display='none';
+  _rbAnularConsecutivo=null;
+  var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s){toast('Solicitud no encontrada','er');return;}
+  var desc='#'+consecutivo+' — '+(s.codigo||'?')+' — '+(s.nombreDoc||'');
   s.estadoOficializacion='Solicitud Anulada';
   s.estatus='Solicitud Anulada';
   s.fechaOficializacion=s.fechaOficializacion||new Date().toISOString().split('T')[0];
-  s.motivoAnulacion=justif.trim();
+  s.motivoAnulacion=motivo;
   saveArr('sol',solicitudes);
   if(typeof rbRecalcCache==='function') rbRecalcCache();
   logA(currentUser?currentUser.nombre:'Admin','Anulación de Solicitud',
-    'Solicitud '+desc+' marcada como Anulada | Motivo: '+justif.trim(),'','Ruta de Borrador');
+    'Solicitud '+desc+' anulada | Motivo: '+motivo,'','Ruta de Borrador');
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
     OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
