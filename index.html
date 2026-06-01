@@ -12,9 +12,9 @@
 
 
 <style>
-:root{--T:#00A99E;--T2:#008880;--T3:#006860;--tl:rgba(0,169,158,.10);--tlx:rgba(0,169,158,.04);--tb:rgba(0,169,158,.28);--bg:#f0f5f5;--bg3:#f5f9f9;--bg4:#e8f0f0;--brd:#c8dede;--brd2:#b0cecd;--tx:#0a2828;--tx2:#336666;--tx3:#5e9090;--G:#1ab87a;--A:#e08a00;--R:#d63b3b;--r:8px;--rl:14px;--fn:'Inter',sans-serif;--sh:0 1px 4px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.04)}
+:root{--T:#11A882;--T2:#0F9B70;--T3:#0D7A5F;--tl:rgba(13,122,95,.10);--tlx:rgba(13,122,95,.05);--tb:rgba(13,122,95,.30);--bg:#ffffff;--bg3:#f4fdf9;--bg4:#e8f8f1;--brd:#A7F3D0;--brd2:#6EE7B7;--tx:#064E3B;--tx2:#065F46;--tx3:#059669;--G:#13D492;--A:#F59E0B;--R:#EF4444;--r:8px;--rl:14px;--fn:'Inter',sans-serif;--sh:0 1px 4px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.04)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:14px;min-height:100vh}
+body{background:#f0f9f6;color:var(--tx);font-family:var(--fn);font-size:14px;min-height:100vh}
 .sb{display:none!important}
 .sb-logo{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
 .sb-lw{display:flex;align-items:center;gap:10px}
@@ -26,19 +26,20 @@ body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:14px;m
 .nl{font-size:9px;text-transform:uppercase;letter-spacing:1.4px;color:rgba(255,255,255,.35);padding:0 7px;margin-bottom:3px;font-weight:600}
 .ni{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r);cursor:pointer;color:rgba(255,255,255,.65);font-size:12px;transition:background .12s;user-select:none}
 .ni:hover{background:rgba(255,255,255,.1);color:#fff}
-.ni.act{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.ni.act{background:rgba(255,255,255,.18);color:#fff}
 .nic{width:15px;text-align:center;font-size:13px;flex-shrink:0}
 .nb{margin-left:auto;font-size:9px;font-weight:700;border-radius:99px;padding:1px 6px}
 .nb.r{background:#d63b3b;color:#fff}.nb.a{background:#e08a00;color:#fff}.nb.t{background:rgba(255,255,255,.22);color:#fff}
 .mn{margin-left:0;min-height:100vh;display:block;}
-.topb{background:#fff;border-bottom:1px solid var(--brd);padding:11px 22px;display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:50;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.topb-t{font-size:15px;font-weight:600;color:var(--tx);flex:1}
-.srch{background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);padding:6px 11px;color:var(--tx);font-family:var(--fn);font-size:12px;width:200px;outline:none;transition:border .12s}
-.srch:focus{border-color:var(--T)}
+.topb{background:linear-gradient(135deg,#0D7A5F 0%,#11A882 55%,#0D7A5F 100%);border-bottom:none;padding:11px 22px;display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(13,122,95,.25)}
+.topb-t{font-size:15px;font-weight:600;color:#fff;flex:1}
+.srch{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:var(--r);padding:6px 11px;color:#fff;font-family:var(--fn);font-size:12px;width:200px;outline:none;transition:border .12s}
+.srch:focus{border-color:rgba(255,255,255,.7);background:rgba(255,255,255,.25)}
+.srch::placeholder{color:rgba(255,255,255,.6)}
 .btn{background:var(--T);color:#fff;border:none;border-radius:var(--r);padding:6px 13px;font-family:var(--fn);font-size:12px;font-weight:600;cursor:pointer;transition:background .12s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
 .btn:hover{background:var(--T2)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn.gh{background:#fff;color:var(--tx2);border:1px solid var(--brd2);font-weight:500}
+.btn.gh{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);font-weight:500}
 .btn.gh:hover{background:var(--bg3);border-color:var(--T);color:var(--T)}
 .btn.dn{background:var(--R);color:#fff}.btn.dn:hover{background:#b82f2f}
 .btn.ok{background:var(--G);color:#fff}
@@ -70,7 +71,7 @@ tbody td{padding:8px 11px;border-bottom:1px solid var(--brd);color:var(--tx);ver
 tbody tr:hover td{background:var(--tlx)}
 tbody tr:last-child td{border-bottom:none}
 .b{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap}
-.b.ap{background:#e6f9f3;color:#0f7a50}.b.bo{background:#f0f0f0;color:#666}
+.b.ap{background:#ECFDF5;color:#065F46}.b.bo{background:#f0f0f0;color:#666}
 .b.rv{background:#fff5e0;color:#a06000}.b.ob{background:#fde8e8;color:#a02020}
 .b.vc{background:#fde8e8;color:#a02020}.b.vp{background:#fff3cd;color:#856404}.b.vg{background:#e6f9f3;color:#0f7a50}
 .b.tl{background:#e0f5f3;color:var(--T3)}.b.bl{background:#e8f0fb;color:#1a5fa0}
@@ -99,7 +100,7 @@ tbody tr:last-child td{border-bottom:none}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
 .st{font-size:13px;font-weight:600;color:var(--tx)}
 .al{display:flex;align-items:flex-start;gap:8px;border-radius:var(--r);padding:10px 12px;margin-bottom:8px;border:1px solid;cursor:pointer}
-.al.gr{background:#e6f9f3;border-color:#9fdfc8;color:#006860}
+.al.gr{background:#ECFDF5;border-color:#6EE7B7;color:#0D7A5F}
 .al.am{background:#fff9e8;border-color:#ffd97a;color:#7a4e00}
 .al.rd{background:#fde8e8;border-color:#f5a5a5;color:#8a1515}
 .flt{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}
@@ -183,12 +184,12 @@ tbody tr:last-child td{border-bottom:none}
 .mod-header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--T3);margin-bottom:14px;border-radius:var(--rl);box-shadow:var(--sh)}
 .mod-header-logo{height:36px;width:auto;object-fit:contain;flex-shrink:0}
 .mod-header-title{font-size:14px;font-weight:700;color:#fff;flex:1}
-.mod-header-back{font-size:11px;padding:5px 12px;border-radius:var(--r);border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;cursor:pointer;white-space:nowrap;transition:background .12s}
+.mod-header-back{font-size:11px;padding:5px 12px;border-radius:var(--r);border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.18);color:#fff;cursor:pointer;white-space:nowrap;transition:background .12s;font-weight:600}
 .mod-header-back:hover{background:rgba(255,255,255,.22)}
 /* ── HOME MODULE GRID ──────────────────────────────────────────────── */
 .home-modules-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .home-mod-card{background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:16px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;box-shadow:var(--sh);transition:border-color .15s,box-shadow .15s;text-align:center}
-.home-mod-card:hover{border-color:var(--T);box-shadow:0 4px 16px rgba(0,169,158,.14)}
+.home-mod-card:hover{border-color:var(--T);box-shadow:0 4px 16px rgba(13,122,95,.18);transform:translateY(-1px)}
 .home-mod-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .home-mod-name{font-size:11px;font-weight:700;color:var(--tx);line-height:1.3}
 .home-mod-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:#e1f5ee;color:var(--T3)}
@@ -426,7 +427,7 @@ tbody tr:last-child td{border-bottom:none}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
         <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35);font-size:11px">🔍 Consultar documento</button>
-        <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:#fff;color:var(--T3);border-color:#fff;font-size:11px;font-weight:700">➕ Nuevo documento</button>
+        <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:#fff;color:#0D7A5F;border-color:#fff;font-size:11px;font-weight:700">➕ Nuevo documento</button>
       </div>
     </div>
 
@@ -16311,9 +16312,9 @@ function odMostrarReconectar(dirHandle){
 
 
 <style>
-:root{--T:#00A99E;--T2:#008880;--T3:#006860;--tl:rgba(0,169,158,.10);--tlx:rgba(0,169,158,.04);--tb:rgba(0,169,158,.28);--bg:#f0f5f5;--bg3:#f5f9f9;--bg4:#e8f0f0;--brd:#c8dede;--brd2:#b0cecd;--tx:#0a2828;--tx2:#336666;--tx3:#5e9090;--G:#1ab87a;--A:#e08a00;--R:#d63b3b;--r:8px;--rl:14px;--fn:'Inter',sans-serif;--sh:0 1px 4px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.04)}
+:root{--T:#11A882;--T2:#0F9B70;--T3:#0D7A5F;--tl:rgba(13,122,95,.10);--tlx:rgba(13,122,95,.05);--tb:rgba(13,122,95,.30);--bg:#ffffff;--bg3:#f4fdf9;--bg4:#e8f8f1;--brd:#A7F3D0;--brd2:#6EE7B7;--tx:#064E3B;--tx2:#065F46;--tx3:#059669;--G:#13D492;--A:#F59E0B;--R:#EF4444;--r:8px;--rl:14px;--fn:'Inter',sans-serif;--sh:0 1px 4px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.04)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:14px;min-height:100vh}
+body{background:#f0f9f6;color:var(--tx);font-family:var(--fn);font-size:14px;min-height:100vh}
 .sb{display:none!important}
 .sb-logo{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
 .sb-lw{display:flex;align-items:center;gap:10px}
@@ -16325,19 +16326,20 @@ body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:14px;m
 .nl{font-size:9px;text-transform:uppercase;letter-spacing:1.4px;color:rgba(255,255,255,.35);padding:0 7px;margin-bottom:3px;font-weight:600}
 .ni{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r);cursor:pointer;color:rgba(255,255,255,.65);font-size:12px;transition:background .12s;user-select:none}
 .ni:hover{background:rgba(255,255,255,.1);color:#fff}
-.ni.act{background:rgba(255,255,255,.18);color:#fff;font-weight:500}
+.ni.act{background:rgba(255,255,255,.18);color:#fff}
 .nic{width:15px;text-align:center;font-size:13px;flex-shrink:0}
 .nb{margin-left:auto;font-size:9px;font-weight:700;border-radius:99px;padding:1px 6px}
 .nb.r{background:#d63b3b;color:#fff}.nb.a{background:#e08a00;color:#fff}.nb.t{background:rgba(255,255,255,.22);color:#fff}
 .mn{margin-left:0;min-height:100vh;display:block;}
-.topb{background:#fff;border-bottom:1px solid var(--brd);padding:11px 22px;display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:50;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.topb-t{font-size:15px;font-weight:600;color:var(--tx);flex:1}
-.srch{background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r);padding:6px 11px;color:var(--tx);font-family:var(--fn);font-size:12px;width:200px;outline:none;transition:border .12s}
-.srch:focus{border-color:var(--T)}
+.topb{background:linear-gradient(135deg,#0D7A5F 0%,#11A882 55%,#0D7A5F 100%);border-bottom:none;padding:11px 22px;display:flex;align-items:center;gap:11px;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(13,122,95,.25)}
+.topb-t{font-size:15px;font-weight:600;color:#fff;flex:1}
+.srch{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:var(--r);padding:6px 11px;color:#fff;font-family:var(--fn);font-size:12px;width:200px;outline:none;transition:border .12s}
+.srch:focus{border-color:rgba(255,255,255,.7);background:rgba(255,255,255,.25)}
+.srch::placeholder{color:rgba(255,255,255,.6)}
 .btn{background:var(--T);color:#fff;border:none;border-radius:var(--r);padding:6px 13px;font-family:var(--fn);font-size:12px;font-weight:600;cursor:pointer;transition:background .12s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
 .btn:hover{background:var(--T2)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn.gh{background:#fff;color:var(--tx2);border:1px solid var(--brd2);font-weight:500}
+.btn.gh{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);font-weight:500}
 .btn.gh:hover{background:var(--bg3);border-color:var(--T);color:var(--T)}
 .btn.dn{background:var(--R);color:#fff}.btn.dn:hover{background:#b82f2f}
 .btn.ok{background:var(--G);color:#fff}
@@ -16369,7 +16371,7 @@ tbody td{padding:8px 11px;border-bottom:1px solid var(--brd);color:var(--tx);ver
 tbody tr:hover td{background:var(--tlx)}
 tbody tr:last-child td{border-bottom:none}
 .b{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap}
-.b.ap{background:#e6f9f3;color:#0f7a50}.b.bo{background:#f0f0f0;color:#666}
+.b.ap{background:#ECFDF5;color:#065F46}.b.bo{background:#f0f0f0;color:#666}
 .b.rv{background:#fff5e0;color:#a06000}.b.ob{background:#fde8e8;color:#a02020}
 .b.vc{background:#fde8e8;color:#a02020}.b.vp{background:#fff3cd;color:#856404}.b.vg{background:#e6f9f3;color:#0f7a50}
 .b.tl{background:#e0f5f3;color:var(--T3)}.b.bl{background:#e8f0fb;color:#1a5fa0}
@@ -16398,7 +16400,7 @@ tbody tr:last-child td{border-bottom:none}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
 .st{font-size:13px;font-weight:600;color:var(--tx)}
 .al{display:flex;align-items:flex-start;gap:8px;border-radius:var(--r);padding:10px 12px;margin-bottom:8px;border:1px solid;cursor:pointer}
-.al.gr{background:#e6f9f3;border-color:#9fdfc8;color:#006860}
+.al.gr{background:#ECFDF5;border-color:#6EE7B7;color:#0D7A5F}
 .al.am{background:#fff9e8;border-color:#ffd97a;color:#7a4e00}
 .al.rd{background:#fde8e8;border-color:#f5a5a5;color:#8a1515}
 .flt{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}
@@ -16552,7 +16554,7 @@ tbody tr:last-child td{border-bottom:none}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
         <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35);font-size:11px">🔍 Consultar documento</button>
-        <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:#fff;color:var(--T3);border-color:#fff;font-size:11px;font-weight:700">➕ Nuevo documento</button>
+        <button class="btn sm" onclick="nav('docs',document.querySelector('[data-p=docs]'))" style="background:#fff;color:#0D7A5F;border-color:#fff;font-size:11px;font-weight:700">➕ Nuevo documento</button>
       </div>
     </div>
 
@@ -33588,22 +33590,40 @@ function rbSplitStageBar(s){
   }).join('');
 }
 
+
+/* ── Búsqueda parcial inteligente por palabras ─────────────────────────
+   Divide la query en palabras y verifica que TODAS aparezcan en el texto.
+   "Magaly Principe" → busca "magaly" Y "principe" en el nombre completo.
+   Funciona para nombres con orden diferente o palabras intermedias omitidas. */
+function _matchParcial(texto, query){
+  if(!query) return true;
+  var t = (texto||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var q = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  // Si la query es una cadena continua, buscar directamente
+  if(t.indexOf(q) >= 0) return true;
+  // Si tiene espacios: cada palabra debe aparecer en el texto
+  var palabras = q.split(/\s+/).filter(Boolean);
+  if(palabras.length <= 1) return t.indexOf(q) >= 0;
+  return palabras.every(function(p){ return t.indexOf(p) >= 0; });
+}
 function rbGetFiltered(){
-  var fCod    = ((document.getElementById('rb-f-cod')||{}).value||'').trim().toLowerCase();
-  var fConsec = ((document.getElementById('rb-f-consec')||{}).value||'').trim().toLowerCase();
-  var fSolit  = ((document.getElementById('rb-f-solit')||{}).value||'').trim().toLowerCase();
-  var fNombre = ((document.getElementById('rb-f-nombre')||{}).value||'').trim().toLowerCase();
+  var fCod    = ((document.getElementById('rb-f-cod')||{}).value||'').trim();
+  var fConsec = ((document.getElementById('rb-f-consec')||{}).value||'').trim();
+  var fSolit  = ((document.getElementById('rb-f-solit')||{}).value||'').trim();
+  var fNombre = ((document.getElementById('rb-f-nombre')||{}).value||'').trim();
   var fTipoSol= ((document.getElementById('rb-f-tsol')||{}).value||'').trim().toLowerCase();
   var est     = ((document.getElementById('rb-filtro-estado')||{}).value||'').trim();
-  var fSearch = (window._rbSplitQ||'').toLowerCase().trim(); // caja búsqueda del split
+  var fSearch = (window._rbSplitQ||'').trim(); // caja búsqueda del split
 
   return (solicitudes||[]).filter(function(s){
-    // Filtros del panel superior
-    if(fCod    && (s.codigo||'').toLowerCase().indexOf(fCod)<0)         return false;
-    if(fConsec && String(s.consecutivo||'').toLowerCase().indexOf(fConsec)<0) return false;
-    if(fSolit  && (s.solicitante||'').toLowerCase().indexOf(fSolit)<0
-               && (s.correoUsuario||'').toLowerCase().indexOf(fSolit)<0)  return false;
-    if(fNombre && (s.nombreDoc||'').toLowerCase().indexOf(fNombre)<0)   return false;
+    // Filtros exactos / parciales por campo
+    if(fCod    && !_matchParcial(s.codigo, fCod))              return false;
+    if(fConsec && String(s.consecutivo||'').toLowerCase().indexOf(fConsec.toLowerCase())<0) return false;
+    // Solicitante: búsqueda parcial por palabras (ej: "Magaly Principe")
+    if(fSolit  && !_matchParcial(s.solicitante, fSolit)
+               && !_matchParcial(s.correoUsuario, fSolit))     return false;
+    // Nombre del documento: búsqueda parcial por palabras
+    if(fNombre && !_matchParcial(s.nombreDoc, fNombre))        return false;
     if(fTipoSol&& (s.tipoSolicitud||'').toLowerCase().indexOf(fTipoSol)<0) return false;
     // Estado
     if(est){
@@ -33614,14 +33634,15 @@ function rbGetFiltered(){
       if(est==='Rechazada'        && !info.esRechazo)  return false;
       if(est==='Pendiente'&&(info.esOfic||info.esRevision||info.esFirma||info.esRechazo)) return false;
     }
-    // Búsqueda libre (caja del split) — busca en código, nombre, solicitante, consecutivo
+    // Búsqueda libre (caja del split) — parcial por palabras en múltiples campos
     if(fSearch){
-      var inCod  = (s.codigo||'').toLowerCase().indexOf(fSearch)>=0;
-      var inNom  = (s.nombreDoc||'').toLowerCase().indexOf(fSearch)>=0;
-      var inSol  = (s.solicitante||'').toLowerCase().indexOf(fSearch)>=0;
-      var inCons = String(s.consecutivo||'').toLowerCase().indexOf(fSearch)>=0;
-      var inArea = (s.areaGeneradora||'').toLowerCase().indexOf(fSearch)>=0;
-      if(!inCod&&!inNom&&!inSol&&!inCons&&!inArea) return false;
+      var inCod  = _matchParcial(s.codigo, fSearch);
+      var inNom  = _matchParcial(s.nombreDoc, fSearch);
+      var inSol  = _matchParcial(s.solicitante, fSearch);
+      var inCons = String(s.consecutivo||'').indexOf(fSearch)>=0;
+      var inArea = _matchParcial(s.areaGeneradora, fSearch);
+      var inTipo = _matchParcial(s.tipoSolicitud, fSearch);
+      if(!inCod&&!inNom&&!inSol&&!inCons&&!inArea&&!inTipo) return false;
     }
     return true;
   });
