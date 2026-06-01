@@ -376,8 +376,8 @@ tbody tr:last-child td{border-bottom:none}
 </nav>
 <main class="mn">
   <div class="topb">
-    <div class="topb-t" id="ptitle">Dashboard</div>
-    <input class="srch" type="text" id="gs" placeholder="Buscar documentos..." oninput="onSearch()">
+    <div class="topb-t" id="ptitle">Inicio</div>
+    <input class="srch" type="text" id="gs" placeholder="Buscar documentos..." oninput="onSearch()" style="display:none">
     <!-- Botón guardar OneDrive siempre visible -->
     <div id="od-save-wrap" style="display:none;align-items:center;gap:8px">
       <div id="od-save-status" style="font-size:10px;display:flex;align-items:center;gap:5px;color:var(--tx3)">
@@ -476,7 +476,7 @@ tbody tr:last-child td{border-bottom:none}
         <div style="padding:8px 12px;background:var(--bg3);border-top:1px solid var(--brd)">
           <div onclick="homeAddTask()" style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--tx3)">
             <span style="font-size:14px;color:var(--tx3)">➕</span>
-            <span style="font-size:11px">Escribe una nueva tarea...</span>
+            <span style="font-size:11px">Ingrese una nueva actividad...</span>
           </div>
         </div>
       </div>
@@ -493,8 +493,8 @@ tbody tr:last-child td{border-bottom:none}
     <!-- Header row -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px">
       <div>
-        <div style="font-size:17px;font-weight:700;color:var(--tx)">Dashboard de Documentos</div>
-        <div style="font-size:11px;color:var(--tx3)" id="dd-subtitle">Cargando...</div>
+        <div style="font-size:17px;font-weight:700;color:var(--tx)">KPIs</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7)" id="dd-subtitle">Cargando...</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <button class="btn gh sm" onclick="dashActualizar()" id="dash-btn-actualizar">🔄 Actualizar</button>
@@ -15579,6 +15579,45 @@ async function odCargarListado(){
     if(typeof renderTablaProg==='function') renderTablaProg();
     if(typeof checkInspAlerts==='function') checkInspAlerts();
     if(typeof renderDashInsp==='function') renderDashInsp();
+
+    // ── Leer Actividadesdeldia.xlsx y cargar tareas del día ──────────────
+    try{
+      var actData=await odLeerArchivo(OD_ARCHIVOS.actividades);
+      if(actData){
+        var wbAct=XLSX.read(actData.buf,{type:'array'});
+        var wsActEl=null;
+        ['Actividades del dia','Actividadesdeldia','actividades del dia','ACTIVIDADES DEL DIA'].forEach(function(n){
+          if(!wsActEl&&wbAct.Sheets[n]) wsActEl=wbAct.Sheets[n];
+        });
+        if(wsActEl){
+          var a1v=(wsActEl['A1']&&wsActEl['A1'].v)?String(wsActEl['A1'].v).toUpperCase():'';
+          var tieneHdrAct=a1v.indexOf('ID')>=0||a1v.indexOf('TITULO')>=0||a1v.indexOf('TÍTULO')>=0;
+          var startRowAct=tieneHdrAct?2:1;
+          var tareasXL=[];
+          for(var rAct=startRowAct;rAct<=5000;rAct++){
+            if(!wsActEl['A'+rAct]&&!wsActEl['B'+rAct]) break;
+            var tit=wsActEl['B'+rAct]?String(wsActEl['B'+rAct].v||'').trim():'';
+            if(!tit) continue;
+            tareasXL.push({
+              id:wsActEl['A'+rAct]?parseInt(wsActEl['A'+rAct].v)||Date.now()+rAct:Date.now()+rAct,
+              title:tit,
+              desc:wsActEl['C'+rAct]?String(wsActEl['C'+rAct].v||''):'',
+              prio:wsActEl['D'+rAct]?String(wsActEl['D'+rAct].v||'').toLowerCase():'',
+              done:(wsActEl['E'+rAct]?String(wsActEl['E'+rAct].v||''):'').toUpperCase()==='COMPLETADA',
+              doneAt:wsActEl['F'+rAct]?String(wsActEl['F'+rAct].v||''):''
+            });
+          }
+          if(tareasXL.length){
+            _homeTasks=tareasXL;
+            try{localStorage.setItem('home_tasks',JSON.stringify(_homeTasks));}catch(e){}
+            if(typeof homeRenderTasks==='function') homeRenderTasks();
+            if(typeof homeRenderGreeting==='function') homeRenderGreeting();
+            console.log('[OD] Actividadesdeldia: '+tareasXL.length+' tareas cargadas');
+          }
+        }
+      }
+    }catch(eAct){console.warn('[OD] Actividadesdeldia no encontrado o error:',eAct.message);}
+
     OD.syncActivo=true;
     odHookSaveArr();
     odHookSaveInsp();
@@ -16553,8 +16592,8 @@ tbody tr:last-child td{border-bottom:none}
 </nav>
 <main class="mn">
   <div class="topb">
-    <div class="topb-t" id="ptitle">Dashboard</div>
-    <input class="srch" type="text" id="gs" placeholder="Buscar documentos..." oninput="onSearch()">
+    <div class="topb-t" id="ptitle">Inicio</div>
+    <input class="srch" type="text" id="gs" placeholder="Buscar documentos..." oninput="onSearch()" style="display:none">
     <!-- Botón guardar OneDrive siempre visible -->
     <div id="od-save-wrap" style="display:none;align-items:center;gap:8px">
       <div id="od-save-status" style="font-size:10px;display:flex;align-items:center;gap:5px;color:var(--tx3)">
@@ -16648,7 +16687,7 @@ tbody tr:last-child td{border-bottom:none}
         <div style="padding:8px 12px;background:var(--bg3);border-top:1px solid var(--brd)">
           <div onclick="homeAddTask()" style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--tx3)">
             <span style="font-size:14px;color:var(--tx3)">➕</span>
-            <span style="font-size:11px">Escribe una nueva tarea...</span>
+            <span style="font-size:11px">Ingrese una nueva actividad...</span>
           </div>
         </div>
       </div>
@@ -16665,8 +16704,8 @@ tbody tr:last-child td{border-bottom:none}
     <!-- Header row -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:10px">
       <div>
-        <div style="font-size:17px;font-weight:700;color:var(--tx)">Dashboard de Documentos</div>
-        <div style="font-size:11px;color:var(--tx3)" id="dd-subtitle">Cargando...</div>
+        <div style="font-size:17px;font-weight:700;color:var(--tx)">KPIs</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7)" id="dd-subtitle">Cargando...</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <button class="btn gh sm" onclick="dashActualizar()" id="dash-btn-actualizar">🔄 Actualizar</button>
@@ -33520,10 +33559,12 @@ function homeDeleteTask(idx){
 }
 
 function homeAddTask(){
-  var title = prompt('Título de la tarea:');
+  // Usar inline form en lugar de prompt() para mejor UX
+  var title = prompt('📋 Ingrese una nueva actividad:','');
   if(!title || !title.trim()) return;
-  var desc  = prompt('Descripción (opcional, Enter para omitir):') || '';
-  var prioR = prompt('Prioridad: 1=Alta, 2=Media, 3=Baja (Enter para ninguna):') || '';
+  var desc  = prompt('Descripción (opcional — presione Enter para omitir):', '') || '';
+  var prioR = prompt('Prioridad: 1 = Alta  |  2 = Media  |  3 = Baja
+(Enter para sin prioridad):', '') || '';
   var prioMap = {'1':'alta','2':'media','3':'baja'};
   var prio = prioMap[prioR.trim()] || '';
   _homeTasks.unshift({id:Date.now(), title:title.trim(), desc:desc.trim(), prio:prio, done:false, doneAt:''});
@@ -35107,7 +35148,12 @@ function xlsSelIdioma(lang){
 function xlsRenderEstados(){
   var grid=document.getElementById('xls-estados-grid');
   if(!grid) return;
-  grid.innerHTML=XLS_ESTADOS_DEF.map(function(e,i){
+  var hdr='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--brd)">'
+    +'<span style="font-size:11px;font-weight:600;color:var(--tx);flex:1">Estados a incluir</span>'
+    +'<button onclick="xlsSelEstados(true)" style="font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid var(--T);background:var(--tl);color:var(--T3);cursor:pointer;font-weight:600">✓ Todos</button>'
+    +'<button onclick="xlsSelEstados(false)" style="font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid var(--brd);background:var(--bg3);color:var(--tx3);cursor:pointer">✕ Ninguno</button>'
+    +'</div>';
+  grid.innerHTML=hdr+XLS_ESTADOS_DEF.map(function(e,i){
     return '<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;'
       +'background:'+e.bg+';border:1.5px solid '+e.color+'33;border-radius:6px;padding:5px 9px;user-select:none">'
       +'<input type="checkbox" id="xls-e-'+i+'" '+(e.defOn?'checked':'')+' style="accent-color:'+e.color+'" onchange="xlsCheckReady()">'
@@ -35116,16 +35162,38 @@ function xlsRenderEstados(){
   }).join('');
 }
 
+function xlsSelEstados(sel){
+  XLS_ESTADOS_DEF.forEach(function(e,i){
+    var el=document.getElementById('xls-e-'+i);
+    if(el) el.checked=sel;
+  });
+  xlsCheckReady();
+}
+
 function xlsRenderCols(){
   var grid=document.getElementById('xls-cols-grid');
   if(!grid) return;
-  grid.innerHTML=XLS_COLS_DEF.map(function(c,i){
+  // Encabezado con botones Seleccionar todo / Ninguno
+  var hdr='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--brd)">'
+    +'<span style="font-size:11px;font-weight:600;color:var(--tx);flex:1">Columnas a exportar</span>'
+    +'<button onclick="xlsSelTodos(true)" style="font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid var(--T);background:var(--tl);color:var(--T3);cursor:pointer;font-weight:600">✓ Seleccionar todo</button>'
+    +'<button onclick="xlsSelTodos(false)" style="font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid var(--brd);background:var(--bg3);color:var(--tx3);cursor:pointer">✕ Ninguno</button>'
+    +'</div>';
+  grid.innerHTML=hdr+XLS_COLS_DEF.map(function(c,i){
     return '<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;'
       +'background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:5px 8px;user-select:none">'
       +'<input type="checkbox" id="xls-c-'+i+'" '+(c.defOn?'checked':'')+' style="accent-color:var(--T)" onchange="xlsCheckReady()">'
       +'<span style="font-weight:500">'+c.es+'</span>'
       +'</label>';
   }).join('');
+  xlsCheckReady();
+}
+
+function xlsSelTodos(sel){
+  XLS_COLS_DEF.forEach(function(c,i){
+    var el=document.getElementById('xls-c-'+i);
+    if(el) el.checked=sel;
+  });
   xlsCheckReady();
 }
 
