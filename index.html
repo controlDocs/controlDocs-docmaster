@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 
 
@@ -22614,62 +22615,65 @@ function nfCargarPDF(){
 
 async function nfLeerPDF(input){
   var file=input.files&&input.files[0];
-  if(!file) return;
-  try{
-    // Leer el PDF como texto plano usando FileReader + parseo manual
-    var reader=new FileReader();
-    reader.onload=async function(e){
-      try{
-        var arr=new Uint8Array(e.target.result);
-        // Extraer texto del PDF parseando streams de texto
-        var txt=nfPDFExtraerTexto(arr);
-        if(!txt||txt.length<20){
-          toast('No se pudo leer el texto del PDF','er');
-          return;
-        }
-        nfPDFRellenarFormulario(txt);
-      }catch(err){
-        console.error('nfLeerPDF error:',err);
-        toast('Error al leer PDF: '+err.message,'er');
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }catch(err){
-    toast('Error: '+err.message,'er');
-  }
-}
+  if(!file){ return; }
 
-function nfPDFExtraerTexto(arr){
-  // Decodificar PDF como string y extraer bloques de texto BT...ET
-  var raw='';
-  for(var i=0;i<Math.min(arr.length,2000000);i++) raw+=String.fromCharCode(arr[i]);
-  var textos=[];
-  var re=/BT[\s\S]*?ET/g;
-  var m;
-  while((m=re.exec(raw))!==null){
-    // Extraer strings entre () y <>
-    var bloque=m[0];
-    var rs=/\(([^)]*)\)/g, rm;
-    while((rm=rs.exec(bloque))!==null){
-      var t=rm[1].replace(/\\n/g,'\n').replace(/\\r/g,'').replace(/\\\(/g,'(').replace(/\\\)/g,')').replace(/\\\\/g,'\\');
-      if(t.trim()) textos.push(t.trim());
-    }
+  // Configurar worker de PDF.js
+  if(typeof pdfjsLib==='undefined'){
+    toast('PDF.js no disponible — recarga la página','er');
+    return;
   }
-  return textos.join('\n');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  try{
+    var arrayBuf = await file.arrayBuffer();
+    var typedArr = new Uint8Array(arrayBuf);
+    var loadTask = pdfjsLib.getDocument({data: typedArr});
+    var pdf = await loadTask.promise;
+
+    // Extraer todo el texto página por página
+    var fullText = '';
+    for(var p=1; p<=pdf.numPages; p++){
+      var page = await pdf.getPage(p);
+      var tc   = await page.getTextContent();
+      // Reconstruir líneas agrupando por posición Y (top)
+      var items = tc.items;
+      // Ordenar por Y descendente luego X
+      items.sort(function(a,b){
+        var dy = Math.round(b.transform[5]) - Math.round(a.transform[5]);
+        return dy!==0 ? dy : a.transform[4]-b.transform[4];
+      });
+      var lastY = null;
+      items.forEach(function(it){
+        var y = Math.round(it.transform[5]);
+        if(lastY!==null && Math.abs(y-lastY)>3) fullText+='\n';
+        fullText += it.str + ' ';
+        lastY=y;
+      });
+      fullText+='\n';
+    }
+    console.log('[nfLeerPDF] texto extraído:\n'+fullText);
+    nfPDFRellenarFormulario(fullText);
+  }catch(err){
+    console.error('nfLeerPDF error:',err);
+    toast('Error al leer PDF: '+err.message,'er');
+  }
 }
 
 function nfPDFRellenarFormulario(txt){
-  // Función auxiliar: extraer valor que sigue a una etiqueta
-  function extraer(etiquetas, texto){
-    var lineas=texto.split('\n');
+  var lineas = txt.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+
+  // ── Extractor: busca el valor que viene en la línea siguiente a la etiqueta ──
+  function sig(etiquetas){
     for(var i=0;i<lineas.length;i++){
-      var li=lineas[i].trim();
+      var li=lineas[i].toUpperCase();
       for(var j=0;j<etiquetas.length;j++){
-        if(li.toUpperCase()===etiquetas[j].toUpperCase()||li.toUpperCase().indexOf(etiquetas[j].toUpperCase())>=0){
-          // Buscar siguiente línea no vacía que no sea otra etiqueta
-          for(var k=i+1;k<Math.min(i+4,lineas.length);k++){
-            var val=lineas[k].trim();
-            if(val&&val.length>0&&val.toUpperCase()!==etiquetas[j].toUpperCase()) return val;
+        if(li.indexOf(etiquetas[j].toUpperCase())>=0){
+          for(var k=i+1;k<Math.min(i+5,lineas.length);k++){
+            var v=lineas[k].trim();
+            // Ignorar si es otra etiqueta conocida o está vacío
+            if(v && !/^[\d]+\.\s+(DATOS|INFORMACIÓN|DESCRIPCIÓN|MATRIZ|NOMBRE DEL CARGO|ANÁLISIS|REVISIÓN)/i.test(v)){
+              return v;
+            }
           }
         }
       }
@@ -22677,84 +22681,180 @@ function nfPDFRellenarFormulario(txt){
     return '';
   }
 
-  function setV(id,v){ var el=document.getElementById(id); if(el&&v) el.value=v; }
+  // ── Extractor en misma línea: "ETIQUETA valor" ────────────────────────
+  function mismo(etiqueta){
+    for(var i=0;i<lineas.length;i++){
+      var li=lineas[i];
+      var idx=li.toUpperCase().indexOf(etiqueta.toUpperCase());
+      if(idx>=0){
+        var resto=li.slice(idx+etiqueta.length).trim();
+        // Quitar dos puntos iniciales si los hay
+        if(resto.startsWith(':')) resto=resto.slice(1).trim();
+        if(resto) return resto;
+      }
+    }
+    return '';
+  }
+
+  function setV(id,v){ var el=document.getElementById(id); if(el&&v!==undefined&&v!=='') el.value=v; }
   function setOpt(id,v){
     var el=document.getElementById(id);
     if(!el||!v) return;
     var opts=Array.from(el.options);
-    var match=opts.find(function(o){ return o.value===v||o.text===v||o.text.toLowerCase()===v.toLowerCase(); });
+    var norm=function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); };
+    var vn=norm(v);
+    var match=opts.find(function(o){ return norm(o.value)===vn||norm(o.text)===vn; });
     if(match) el.value=match.value;
   }
 
-  // ── Consecutivo ──────────────────────────────────────────
-  var consec=extraer(['N° SOLICITUD','N\u00b0 SOLICITUD','NUMERO SOLICITUD','N. SOLICITUD'],txt);
-  // También buscar número grande standalone (el badge del PDF)
-  if(!consec){
-    var mc=txt.match(/\b(\d{4,6})\b/);
-    if(mc) consec=mc[1];
+  // ── Parseo del texto conocido del PDF ────────────────────
+  // El texto tiene este patrón (confirmado con pdfplumber):
+  // "NOMBRES Y APELLIDOS CARGO ÁREA"
+  // "SENELIA ROSA ESPITIA PORTILLO DIGITADOR Producción"
+  // "FECHA DE SOLICITUD TIPO DE NOVEDAD N° SOLICITUD"
+  // "2026-06-01 Modificación"
+  // "5945"
+  // etc.
+
+  // Encontrar la línea de datos del solicitante (la que sigue a "NOMBRES Y APELLIDOS CARGO ÁREA")
+  var nombre='', cargo='', area='';
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].toUpperCase().indexOf('NOMBRES Y APELLIDOS')>=0 && lineas[i].toUpperCase().indexOf('CARGO')>=0){
+      // La línea siguiente tiene: NOMBRE    CARGO    AREA separados por espacios grandes
+      // Detectamos por posición: cargo empieza ~col 25, area ~col 50 del texto
+      var dataLine = lineas[i+1]||'';
+      // Dividir la línea en columnas usando la proporción del PDF:
+      // Nombre ocupa ~55% izquierda, cargo ~30% medio, area ~15% derecha
+      // En texto plano los separamos por doble espacio
+      var partes = dataLine.split(/\s{2,}/);
+      if(partes.length>=3){
+        nombre = partes[0].trim();
+        cargo  = partes[1].trim();
+        area   = partes[2].trim();
+      } else if(partes.length===2){
+        nombre = partes[0].trim();
+        cargo  = partes[1].trim();
+      } else {
+        // Fallback: todo el texto como nombre
+        nombre = dataLine.trim();
+      }
+      break;
+    }
   }
 
-  // ── Sección 1 — Solicitante ───────────────────────────────
-  var nombre=extraer(['NOMBRES Y APELLIDOS','NOMBRE Y APELLIDO','NOMBRES'],txt);
-  var cargo=extraer(['CARGO'],txt);
-  var area=extraer(['ÁREA','AREA'],txt);
-  var fechaSol=extraer(['FECHA DE SOLICITUD','FECHA SOLICITUD'],txt);
-  var tipoNov=extraer(['TIPO DE NOVEDAD','TIPO NOVEDAD'],txt);
+  // Fecha, tipo de novedad y consecutivo
+  var fechaSol='', tipoNov='', consec='';
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].toUpperCase().indexOf('FECHA DE SOLICITUD')>=0 && lineas[i].toUpperCase().indexOf('TIPO DE NOVEDAD')>=0){
+      var dl2=lineas[i+1]||'';
+      var p2=dl2.split(/\s{2,}/);
+      if(p2.length>=2){ fechaSol=p2[0].trim(); tipoNov=p2[1].trim(); }
+      else if(p2.length===1){ fechaSol=p2[0].trim(); }
+      // Consecutivo puede estar en la misma línea al final o en la siguiente
+      if(p2.length>=3) consec=p2[2].trim();
+      if(!consec){
+        var dl3=(lineas[i+2]||'').trim();
+        if(/^\d{3,6}$/.test(dl3)) consec=dl3;
+      }
+      break;
+    }
+  }
 
-  // ── Sección 2 — Información ───────────────────────────────
-  var cod=extraer(['CÓDIGO DEL DOCUMENTO','CODIGO DEL DOCUMENTO','CÓDIGO','CODIGO'],txt);
-  var tipodoc=extraer(['TIPO DE DOCUMENTO','TIPO DOCUMENTO'],txt);
-  var version=extraer(['VERSIÓN A TRABAJAR','VERSION A TRABAJAR','VERSIÓN','VERSION'],txt);
-  var nomDoc=extraer(['NOMBRE DEL DOCUMENTO','NOMBRE DOCUMENTO'],txt);
-  var origen=extraer(['ORIGEN DE LA NOVEDAD','ORIGEN NOVEDAD','ORIGEN'],txt);
+  // Código, tipo doc, versión
+  var cod='', tipodoc='', version='';
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].toUpperCase().indexOf('CÓDIGO DEL DOCUMENTO')>=0 && lineas[i].toUpperCase().indexOf('TIPO DE DOCUMENTO')>=0){
+      var dl=lineas[i+1]||'';
+      var p=dl.split(/\s{2,}/);
+      if(p.length>=3){ cod=p[0].trim(); tipodoc=p[1].trim(); version=p[2].trim(); }
+      else if(p.length===2){ cod=p[0].trim(); tipodoc=p[1].trim(); }
+      else { cod=dl.trim(); }
+      break;
+    }
+  }
 
-  // ── Sección 3 — Descripción ───────────────────────────────
-  var desc=extraer(['DESCRIPCIÓN DE LA NOVEDAD','DESCRIPCION DE LA NOVEDAD','DESCRIPCIÓN','DESCRIPCION'],txt);
+  // Nombre del documento y origen
+  var nomDoc='', origen='';
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].toUpperCase().indexOf('NOMBRE DEL DOCUMENTO')>=0 && lineas[i].toUpperCase().indexOf('ORIGEN DE LA NOVEDAD')>=0){
+      var dl=lineas[i+1]||'';
+      var p=dl.split(/\s{2,}/);
+      if(p.length>=2){ nomDoc=p[0].trim(); origen=p[1].trim(); }
+      else { nomDoc=dl.trim(); }
+      break;
+    }
+  }
 
-  // ── Sección 7 — Revisión ──────────────────────────────────
-  var estatus=extraer(['SOLICITUD'],txt);
-  var obs=extraer(['OBSERVACIONES'],txt);
+  // Descripción (todo el texto entre sección 3 y sección 4)
+  var desc='';
+  var inDesc=false;
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].match(/^3\.\s*DESCRIPCI/i)){ inDesc=true; continue; }
+    if(inDesc){
+      if(lineas[i].match(/^4\.\s*(MATRIZ|NOMBRE)/i)) break;
+      if(desc) desc+=' ';
+      desc+=lineas[i];
+    }
+  }
+
+  // Estatus y observaciones (sección 7)
+  var estatus='', obs='';
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].toUpperCase().indexOf('SOLICITUD')>=0 && lineas[i].toUpperCase().indexOf('OBSERVACIONES')>=0){
+      var dl=lineas[i+1]||'';
+      var p=dl.split(/\s{2,}/);
+      if(p.length>=2){ estatus=p[0].trim(); obs=p[1].trim(); }
+      else { estatus=dl.trim(); }
+      break;
+    }
+  }
+
+  console.log('[nfPDF] Datos extraídos:',{consec,nombre,cargo,area,fechaSol,tipoNov,cod,tipodoc,version,nomDoc,origen,desc,estatus,obs});
 
   // ── Poblar formulario ─────────────────────────────────────
-  if(nombre) setV('nf-nombre',nombre);
-  if(cargo)  setV('nf-cargo',cargo);
-  if(area)   setV('nf-area',area);
-  if(tipoNov) setOpt('nf-tipo',tipoNov);
-  if(cod){   setV('nf-cod',cod.toUpperCase()); nfBuscarDoc&&nfBuscarDoc(cod.toUpperCase()); }
-  if(tipodoc) setV('nf-tipodoc',tipodoc);
-  if(version) setV('nf-version',version);
-  if(nomDoc)  setV('nf-nombredoc',nomDoc);
-  if(origen)  setOpt('nf-origen',origen);
-  if(desc)    setV('nf-descripcion',desc);
-  if(obs)     setV('nf-obs',obs);
-  if(estatus) setOpt('nf-estatus',estatus);
+  if(nombre) setV('nf-nombre', nombre);
+  if(cargo)  setV('nf-cargo',  cargo);
+  if(area)   setV('nf-area',   area);
+  if(tipoNov) setOpt('nf-tipo', tipoNov);
+  if(cod){
+    setV('nf-cod', cod.toUpperCase());
+    if(typeof nfBuscarDoc==='function') setTimeout(function(){ nfBuscarDoc(cod.toUpperCase()); },200);
+  }
+  if(tipodoc) setV('nf-tipodoc', tipodoc);
+  if(version) setV('nf-version', version);
+  if(nomDoc)  setV('nf-nombredoc', nomDoc);
+  if(origen)  setOpt('nf-origen', origen);
+  if(desc)    setV('nf-descripcion', desc.trim());
+  if(obs)     setV('nf-obs', obs);
+  if(estatus) setOpt('nf-estatus', estatus);
 
-  // ── Consecutivo: fijar el badge y modo edición ────────────
-  if(consec){
-    var consecNum=parseInt(consec);
-    _nfConsecActual=consecNum;
-    _nfModoEdicion=consecNum; // guardar el consecutivo que se está editando
-    var badge=document.getElementById('nf-consec-badge');
+  // ── Consecutivo y modo edición ────────────────────────────
+  var consecNum = consec ? parseInt(consec) : null;
+  if(consecNum && consecNum > 0){
+    _nfConsecActual  = consecNum;
+    _nfModoEdicion   = consecNum;
+    var badge = document.getElementById('nf-consec-badge');
     if(badge){
-      badge.textContent=consecNum;
-      badge.style.background='var(--A)';
-      badge.title='Editando solicitud existente #'+consecNum;
+      badge.textContent = consecNum;
+      badge.style.background = 'var(--A)';
+      badge.title = 'Editando solicitud existente #'+consecNum;
     }
-    // Mostrar aviso de edición
-    var avisoId='nf-edicion-aviso';
+    // Aviso de modo edición
+    var avisoId = 'nf-edicion-aviso';
     if(!document.getElementById(avisoId)){
-      var av=document.createElement('div');
-      av.id=avisoId;
-      av.style.cssText='background:#fff9e8;border:1px solid #ffd97a;border-radius:6px;padding:8px 12px;font-size:11px;color:#7a4e00;margin-bottom:10px;display:flex;align-items:center;gap:8px';
-      av.innerHTML='<span style="font-size:16px">✏️</span><span>Modo edición — Solicitud <strong>#'+consecNum+'</strong> cargada desde PDF. Al guardar se actualizará esta línea sin crear una nueva.</span>'
-        +'<button onclick="nfSalirModoEdicion()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#a06000;font-size:13px" title="Cancelar edición">✕</button>';
-      var pg=document.getElementById('pg-novedad');
+      var av = document.createElement('div');
+      av.id  = avisoId;
+      av.style.cssText = 'background:#fff9e8;border:1px solid #ffd97a;border-radius:6px;padding:8px 12px;font-size:11px;color:#7a4e00;margin-bottom:10px;display:flex;align-items:center;gap:8px';
+      av.innerHTML = '<span style="font-size:16px">✏️</span>'
+        +'<span>Modo edición — Solicitud <strong>#'+consecNum+'</strong> cargada desde PDF. Al guardar se actualizará esta línea sin crear una nueva.</span>'
+        +'<button onclick="nfSalirModoEdicion()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#a06000;font-size:15px" title="Cancelar edición">✕</button>';
+      var pg = document.getElementById('pg-novedad');
       if(pg) pg.insertBefore(av, pg.children[1]);
     }
   }
 
-  toast('✅ PDF cargado — revisa y corrige los datos, luego guarda','ok');
-  _nfPDFGenerado=true; // permitir guardar sin necesidad de regenerar PDF
+  _nfPDFGenerado = true;
+  toast('✅ PDF cargado — revisa los datos y guarda cuando estés listo','ok');
 }
 
 var _nfModoEdicion=null; // consecutivo de la solicitud que se está editando
