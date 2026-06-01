@@ -3454,27 +3454,36 @@ function renderKPI(){
 
 function renderDash(){
   if(typeof homeInit==='function') homeInit();
-  //  KPIs — excluir Obsoletos de todos los cálculos 
-  // Un doc es obsoleto si: estado==='Obsoleto' O campo obsoleto es X/Si
+  // Asegurar estados actualizados antes de calcular KPIs
+  try{ recalcEstados(); }catch(e){}
+
+  // Un doc es obsoleto si: estado==='Obsoleto' O campo obsoleto es X/Si/Sí
   function esObsoleto(d){
     return d.estado==='Obsoleto'||d.obsoleto==='X'||d.obsoleto==='Si'||d.obsoleto==='Sí';
+  }
+  // Criterio de vencido: usa dH() como fuente de verdad (igual que Listado Maestro y updBadges)
+  function esVencido(d){
+    return dH(d.fechaVencimiento)<0 && !esObsoleto(d);
   }
 
   // Total sin formatos, sin obsoletos
   var sinFormatosObs=dashDocsBase().filter(function(d){
     return d.tipoDocumento!=='Formato' && !esObsoleto(d);
   });
-  // Vencidos (sin formatos, sin obsoletos)
+  // Vencidos (usando dH() — misma lógica que Listado Maestro y badge)
   var vencidos=dashDocsBase().filter(function(d){
-    return d.estado==='Vencido' && !esObsoleto(d);
+    return esVencido(d);
   });
   // No vencidos sin formatos ni obsoletos (cumplen)
-  var noVencSinFmt=sinFormatosObs.filter(function(d){return d.estado!=='Vencido';});
+  var noVencSinFmt=sinFormatosObs.filter(function(d){return !esVencido(d);});
 
-  // Vigentes puros y próximos
-  var vigentes=dashDocsBase().filter(function(d){return d.estado==='Vigente'&&!esObsoleto(d);});
+  // Vigentes puros y próximos (también usando dH() para consistencia)
+  var vigentes=dashDocsBase().filter(function(d){
+    var di=dH(d.fechaVencimiento); return di>0 && !esObsoleto(d);
+  });
   var proximos=dashDocsBase().filter(function(d){
-    return (d.estado==='Menos de 15 días'||d.estado==='Menos de 1 Mes')&&!esObsoleto(d);
+    var di=dH(d.fechaVencimiento);
+    return di>=0&&di<=30&&!esObsoleto(d);
   });
 
   // Cumplimiento = no vencidos (sin fmt, sin obs) / total (sin fmt, sin obs)
@@ -3497,7 +3506,7 @@ function renderDash(){
   // TOP 10 Tipos
   var byTipo={};
   dashDocsBase().filter(function(d){return !esObsoleto(d);}).forEach(function(d){var t=d.tipoDocumento||'Sin tipo';if(!byTipo[t])byTipo[t]={total:0,venc:0};byTipo[t].total++;});
-  dashDocsBase().filter(function(d){return d.estado==='Vencido'&&!esObsoleto(d);}).forEach(function(d){var t=d.tipoDocumento||'Sin tipo';if(!byTipo[t])byTipo[t]={total:0,venc:0};byTipo[t].venc++;});
+  dashDocsBase().filter(function(d){return esVencido(d);}).forEach(function(d){var t=d.tipoDocumento||'Sin tipo';if(!byTipo[t])byTipo[t]={total:0,venc:0};byTipo[t].venc++;});
   var topTipos=Object.entries(byTipo).filter(function(x){return x[1].venc>0;}).sort(function(a,b){return b[1].venc-a[1].venc;}).slice(0,10);
   var maxTV=topTipos.length?topTipos[0][1].venc:1;
   var cols=['#E04B3A','#E0843A','#E0C43A','#3AA0E0','#3AE07A','#9B3AE0','#E03A9B','#3AE0D4','#6B7280','#C084FC'];
@@ -3513,7 +3522,7 @@ function renderDash(){
   // TOP 10 Areas
   var byArea={};
   dashDocsBase().filter(function(d){return !esObsoleto(d);}).forEach(function(d){var a=d.areaGeneradora||'Sin area';if(!byArea[a])byArea[a]={total:0,venc:0};byArea[a].total++;});
-  dashDocsBase().filter(function(d){return d.estado==='Vencido'&&!esObsoleto(d);}).forEach(function(d){var a=d.areaGeneradora||'Sin area';if(!byArea[a])byArea[a]={total:0,venc:0};byArea[a].venc++;});
+  dashDocsBase().filter(function(d){return esVencido(d);}).forEach(function(d){var a=d.areaGeneradora||'Sin area';if(!byArea[a])byArea[a]={total:0,venc:0};byArea[a].venc++;});
   var topAreas=Object.entries(byArea).filter(function(x){return x[1].venc>0;}).sort(function(a,b){return b[1].venc-a[1].venc;}).slice(0,10);
   var maxAV=topAreas.length?topAreas[0][1].venc:1;
   var ddAreas=document.getElementById('dd-areas');
@@ -3535,7 +3544,7 @@ function renderDash(){
   if(ddLey)ddLey.innerHTML='<div style="font-size:11px;line-height:2">'+
     '<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--G);margin-right:5px"></span>'+vigentes.length+' Vigentes ('+Math.round(vigentes.length/Math.max(total,1)*100)+'%)</div>'+
     '<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--R);margin-right:5px"></span>'+vencidos.length+' Vencidos ('+Math.round(vencidos.length/Math.max(total,1)*100)+'%)</div>'+
-    '<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--A);margin-right:5px"></span>'+proximos.length+' Proximos ('+Math.round(proximos.length/Math.max(total,1)*100)+'%)</div>'+
+    '<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--A);margin-right:5px"></span>'+proximos.length+' Próximos (venc ≤30d) ('+Math.round(proximos.length/Math.max(total,1)*100)+'%)</div>'+
     '<div style="margin-top:4px;color:var(--tx3)"><strong>'+total+'</strong> total activos</div></div>';
   // Líderes tabla
   var lD={};
