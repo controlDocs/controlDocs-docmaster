@@ -15653,6 +15653,11 @@ async function odCargarListado(){
     if(typeof renderTablaProg==='function') renderTablaProg();
     if(typeof checkInspAlerts==='function') checkInspAlerts();
     if(typeof renderDashInsp==='function') renderDashInsp();
+    // Refrescar módulo KPI si está activo
+    var _pgKpi=document.getElementById('pg-kpi');
+    if(_pgKpi&&_pgKpi.classList.contains('act')){
+      if(typeof dashActualizarUI==='function') try{dashActualizarUI();}catch(e){}
+    }
 
     // ── Leer Actividadesdeldia.xlsx y cargar tareas del día ──────────────
     try{
@@ -15711,6 +15716,7 @@ async function odCargarListado(){
     _odCargandoRelease();
 
   }catch(err){
+    _odCargandoRelease(); // SIEMPRE liberar el flag al fallar
     odSetProgreso(-1);
     odSetInfo('❌ Error al cargar: '+err.message,'var(--R)');
     toast('❌ Error cargando Excel: '+err.message,'er');
@@ -18822,14 +18828,15 @@ function homeAddTask(){
 
 async function dashActualizar(){
   var btn=document.getElementById('dash-btn-actualizar');
-  if(!OD.fileHandle){
-    // Sin archivo: refrescar desde memoria
+  if(!OD.fileHandle&&!OD.carpetaHandle){
+    // Sin archivo: refrescar desde memoria y recalcular estados
+    try{ recalcEstados(); }catch(e){}
     dashActualizarUI();
     toast('Datos actualizados desde memoria local','ok');
     return;
   }
   // Si hay fileHandle pero sin permiso, solicitarlo (hay gesto activo del usuario)
-  if(!OD.permisoEscritura){
+  if(OD.fileHandle&&!OD.permisoEscritura){
     try{
       var perm=await OD.fileHandle.requestPermission({mode:'readwrite'});
       OD.permisoEscritura=(perm==='granted');
@@ -18837,14 +18844,22 @@ async function dashActualizar(){
     }catch(e){}
   }
   if(btn){ btn.disabled=true; btn.textContent='⏳ Cargando...'; }
+  // Liberar el flag _odCargando si quedó bloqueado
+  if(window._odCargando){ window._odCargando=false; }
   try{
-    // Leer TODAS las hojas del Excel desde OneDrive
+    // Leer TODAS las hojas del Excel desde OneDrive/SharePoint
     await odCargarListado();
-    // Refrescar TODOS los módulos con los datos nuevos
+    // recalcEstados y renderDash ya se llaman dentro de odCargarListado
+    // Refrescar explícitamente el módulo KPI con los datos frescos
+    try{ recalcEstados(); }catch(e){}
     dashActualizarUI();
     toast('✅ Datos recargados desde SharePoint','ok');
   }catch(e){
-    toast('Error al recargar: '+e.message,'er');
+    console.error('dashActualizar error:',e);
+    // Si falla la carga del Excel, al menos refrescar con datos en memoria
+    try{ recalcEstados(); }catch(e2){}
+    dashActualizarUI();
+    toast('Error al recargar desde SharePoint: '+e.message+' — mostrando datos en memoria','er');
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='🔄 Actualizar'; }
   }
@@ -18881,26 +18896,36 @@ function dashDocsBase(){
   return base;
 }
 
+var _dashActualizarUIen=false; // guard para evitar loop
 function dashActualizarUI(){
-  try{ recalcEstados(); }catch(e){}
-  // Actualizar estados de copias desde Listado Maestro
+  if(_dashActualizarUIen) return;
+  _dashActualizarUIen=true;
   try{
-    copias.forEach(function(cop){ cop.estadoReal=ccEstadoReal(cop); });
-  }catch(e){}
-  try{ renderDash(); }catch(e){}
-  try{ updBadges(); }catch(e){}
-  try{ renderTablaProg(); }catch(e){}
-  try{ renderDashInsp(); }catch(e){}
-  // Refrescar módulo activo si es distinto al dashboard
-  var pgActiva=document.querySelector('.pg:not([style*="display:none"])');
-  if(pgActiva){
-    var pid=pgActiva.id?pgActiva.id.replace('pg-',''):'';
-    if(typeof PR!=='undefined'&&PR[pid]) try{ PR[pid](); }catch(e){}
+    try{ recalcEstados(); }catch(e){}
+    // Actualizar estados de copias desde Listado Maestro
+    try{ copias.forEach(function(cop){ cop.estadoReal=ccEstadoReal(cop); }); }catch(e){}
+    try{ renderDash(); }catch(e){}
+    try{ updBadges(); }catch(e){}
+    try{ renderTablaProg(); }catch(e){}
+    try{ renderDashInsp(); }catch(e){}
+    // Refrescar módulo activo si es distinto al dashboard y al KPI (evitar loop)
+    var pgActiva=document.querySelector('.pg.act');
+    if(pgActiva){
+      var pid=pgActiva.id?pgActiva.id.replace('pg-',''):'';
+      // KPI lo renderiza renderDash; no llamar PR['kpi'] para evitar loop
+      if(pid&&pid!=='kpi'&&pid!=='dash'&&typeof PR!=='undefined'&&PR[pid]){
+        try{ PR[pid](); }catch(e){}
+      }
+      // Para KPI: renderDash ya actualizó los números — forzar renderizado adicional
+      if(pid==='kpi'){ try{ renderDDPorTipo(); renderDDCor(); }catch(e){} }
+    }
+    // Invalidar cache de borrador para que se recalcule
+    _rbCacheLen=-1;
+    // Forzar re-render de docs si están en pantalla
+    try{ if(typeof dFiltered!=='undefined'&&dFiltered.length) renderDocsPage(); }catch(e){}
+  }finally{
+    _dashActualizarUIen=false;
   }
-  // Invalidar cache de borrador para que se recalcule
-  _rbCacheLen=-1;
-  // Forzar re-render de docs si están en pantalla (badge de borrador actualizado)
-  try{ if(typeof dFiltered!=='undefined'&&dFiltered.length) renderDocsPage(); }catch(e){}
 }
 
 
