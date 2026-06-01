@@ -13474,20 +13474,19 @@ var MODULOS_TODOS=['dash','docs','venc','flujos','copias','entregacc','docsrel',
 
 
 function showLogin(){
-  // Asegurarse que no hay pantallas de carga encima
-  var selScreen=document.getElementById('od-seleccion-screen');
-  if(selScreen) selScreen.remove();
-  var loadScreen=document.getElementById('od-cargando-screen');
-  if(loadScreen) loadScreen.remove();
+  // Eliminar TODAS las pantallas de carga/selección que puedan estar encima
+  ['od-seleccion-screen','od-cargando-screen','od-loading-screen'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.remove();
+  });
+  // Forzar display del login overlay con máxima prioridad
   var overlay=document.getElementById('login-overlay');
   if(overlay){
-    overlay.style.display='flex';
-    overlay.style.zIndex='99999'; // encima de todo
+    overlay.style.cssText='display:flex!important;position:fixed;inset:0;z-index:2147483647;background:rgba(0,62,55,0.92);align-items:center;justify-content:center;padding:16px';
   }
   var u=document.getElementById('login-user');
   var p=document.getElementById('login-pass');
   var e=document.getElementById('login-err');
-  if(u){ u.value=''; setTimeout(function(){u.focus();},100); }
+  if(u){ u.value=''; setTimeout(function(){try{u.focus();}catch(x){}},150); }
   if(p) p.value='';
   if(e) e.textContent='';
   currentUser=null;
@@ -15176,6 +15175,7 @@ function odLeerHojaUsuarios(ws){
 
 //  LEER EXCEL COMPLETO 
 async function odCargarListado(){
+  console.log('[OD] odCargarListado iniciado. carpetaHandle:',!!OD.carpetaHandle,'fileHandle:',!!OD.fileHandle);
   if(window._odCargando){ console.warn('OD: Carga ya en progreso, ignorando llamada duplicada'); return; }
   window._odCargando=true;
   var _odCargandoRelease=function(){ window._odCargando=false; };
@@ -16358,7 +16358,15 @@ function odMostrarReconectar(dirHandle){
         odSetBadge('📁 '+dirHandle.name+' ✏️','ap');
         odHabilitarBotones(true);
         odMostrarCargando(dirHandle.name);
-        await odCargarListado();
+        try{
+          await odCargarListado();
+        }catch(eLoad){
+          console.error('[OD] Error en odCargarListado (reconectar):',eLoad);
+          odOcultarCargando();
+          alert('Error al cargar datos: '+eLoad.message);
+          btn.textContent='🔓 Abrir '+dirHandle.name; btn.disabled=false;
+          return;
+        }
         odOcultarCargando();
         showLogin();
       } else {
@@ -28402,20 +28410,19 @@ var MODULOS_TODOS=['dash','docs','venc','flujos','copias','entregacc','docsrel',
 
 
 function showLogin(){
-  // Asegurarse que no hay pantallas de carga encima
-  var selScreen=document.getElementById('od-seleccion-screen');
-  if(selScreen) selScreen.remove();
-  var loadScreen=document.getElementById('od-cargando-screen');
-  if(loadScreen) loadScreen.remove();
+  // Eliminar TODAS las pantallas de carga/selección que puedan estar encima
+  ['od-seleccion-screen','od-cargando-screen','od-loading-screen'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.remove();
+  });
+  // Forzar display del login overlay con máxima prioridad
   var overlay=document.getElementById('login-overlay');
   if(overlay){
-    overlay.style.display='flex';
-    overlay.style.zIndex='99999'; // encima de todo
+    overlay.style.cssText='display:flex!important;position:fixed;inset:0;z-index:2147483647;background:rgba(0,62,55,0.92);align-items:center;justify-content:center;padding:16px';
   }
   var u=document.getElementById('login-user');
   var p=document.getElementById('login-pass');
   var e=document.getElementById('login-err');
-  if(u){ u.value=''; setTimeout(function(){u.focus();},100); }
+  if(u){ u.value=''; setTimeout(function(){try{u.focus();}catch(x){}},150); }
   if(p) p.value='';
   if(e) e.textContent='';
   currentUser=null;
@@ -31213,7 +31220,15 @@ function odMostrarReconectar(dirHandle){
         odSetBadge('📁 '+dirHandle.name+' ✏️','ap');
         odHabilitarBotones(true);
         odMostrarCargando(dirHandle.name);
-        await odCargarListado();
+        try{
+          await odCargarListado();
+        }catch(eLoad){
+          console.error('[OD] Error en odCargarListado (reconectar):',eLoad);
+          odOcultarCargando();
+          alert('Error al cargar datos: '+eLoad.message);
+          btn.textContent='🔓 Abrir '+dirHandle.name; btn.disabled=false;
+          return;
+        }
         odOcultarCargando();
         showLogin();
       } else {
@@ -31300,7 +31315,15 @@ async function odSeleccionarDesdeSeleccion(){
     if(d) d.remove();
     window._odIniciado=true;
     odMostrarCargando(dirHandle.name);
-    await odCargarListado();
+    try{
+      await odCargarListado();
+    }catch(eLoad){
+      console.error('[OD] Error en odCargarListado:',eLoad);
+      odOcultarCargando();
+      alert('Error al cargar datos: '+eLoad.message);
+      if(btn){btn.textContent='📁 Seleccionar carpeta DocControl_Sofgen';btn.disabled=false;}
+      return;
+    }
     odOcultarCargando();
     odSetBadge('📁 '+dirHandle.name+' ✏️','ap');
     odHabilitarBotones(true);
@@ -31310,6 +31333,7 @@ async function odSeleccionarDesdeSeleccion(){
       if(btn){btn.textContent='📁 Seleccionar carpeta DocControl_Sofgen';btn.disabled=false;}
       return;
     }
+    odOcultarCargando();
     alert('Error al seleccionar carpeta: '+err.message);
     if(btn){btn.textContent='📁 Seleccionar carpeta DocControl_Sofgen';btn.disabled=false;}
   }
