@@ -2124,6 +2124,8 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn gh sm" onclick="nfLimpiar()">🔄 Nuevo formulario</button>
         <button class="btn gh sm" onclick="nfRecuperarUltimo()" title="Recupera el último formato de novedad generado en esta sesión">📋 Recuperar último</button>
         <button class="btn gh sm" onclick="nfCargarPlantilla()" title="Llenar formulario desde Excel plantilla">📂 Cargar plantilla</button>
+        <button class="btn gh sm" onclick="nfCargarPDF()" title="Cargar un PDF de novedad generado previamente para editarlo">📄 Cargar PDF</button>
+        <input type="file" id="nf-pdf-input" accept=".pdf" style="display:none" onchange="nfLeerPDF(this)">
         <button class="btn sm" style="background:var(--T)" onclick="nfGuardar()">💾 Guardar solicitud</button>
         <button class="btn gh sm" onclick="nfDescargarPDF()" title="Descargar formulario como PDF">📄 PDF</button>
         <span style="font-size:11px;color:var(--tx3);margin-left:8px">N° Solicitud:</span>
@@ -2537,8 +2539,9 @@ tbody tr:last-child td{border-bottom:none}
 </div>
 
 <!-- MODAL: Justificación de Anulación — Ruta de Borrador -->
-<div id="rb-mo-anular" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:10000;align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--bg);border-radius:12px;padding:24px;width:460px;max-width:96vw;box-shadow:0 8px 40px rgba(0,0,0,.28)">
+<div id="rb-mo-anular" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:10000;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)rbAnularCancelar()">
+  <div style="background:var(--bg);border-radius:12px;padding:24px;width:460px;max-width:96vw;box-shadow:0 8px 40px rgba(0,0,0,.28);position:relative">
+    <button onclick="rbAnularCancelar()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3);line-height:1" title="Cerrar">✕</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <span style="font-size:22px">🚫</span>
       <div>
@@ -2553,7 +2556,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="fh">Este campo es obligatorio para continuar.</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn gh sm" onclick="rbAnularCancelar()">Cancelar</button>
+      <button class="btn gh sm" onclick="rbAnularCancelar()">✕ Cancelar</button>
       <button class="btn sm" style="background:#7c3aed;color:#fff" onclick="rbAnularConfirmar()">🚫 Confirmar anulación</button>
     </div>
   </div>
@@ -22206,6 +22209,49 @@ function nfRecuperarUltimo(){
 
 function nfGuardarEjecutar(){
   var hoy = nfFechaHoy();
+  // ── Modo edición: actualizar solicitud existente (cargada desde PDF) ──
+  if(_nfModoEdicion){
+    var idxEd=(solicitudes||[]).findIndex(function(x){return String(x.consecutivo)===String(_nfModoEdicion);});
+    var solEd=idxEd>=0?solicitudes[idxEd]:null;
+    var solData={
+      codigo:             document.getElementById('nf-cod').value.trim(),
+      nombreDoc:          document.getElementById('nf-nombredoc').value.trim(),
+      tipoSolicitud:      document.getElementById('nf-tipo').value,
+      consecutivo:        String(_nfModoEdicion),
+      solicitante:        document.getElementById('nf-nombre').value.trim(),
+      areaGeneradora:     document.getElementById('nf-area').value.trim(),
+      fechaSolicitud:     solEd?solEd.fechaSolicitud:hoy,
+      fechaRutaBorrador:  solEd?solEd.fechaRutaBorrador:hoy,
+      version:            document.getElementById('nf-version').value.trim(),
+      descripcionModif:   document.getElementById('nf-descripcion').value.trim(),
+      criticidadResultado:String(nfCalcResultado()),
+      criticidadConclusion:nfGetConclusion(),
+      estatus:            solEd?solEd.estatus:'En revisión',
+      estadoOficializacion:solEd?solEd.estadoOficializacion:'En revisión',
+      fechaRevIni:        solEd?solEd.fechaRevIni:'',
+      fechaRevFin:        solEd?solEd.fechaRevFin:'',
+      fechaEntregaFirma:  solEd?solEd.fechaEntregaFirma:'',
+      fechaOficializacion:solEd?solEd.fechaOficializacion:'',
+      fechaActListado:    solEd?solEd.fechaActListado:'',
+      fechaIntranet:      solEd?solEd.fechaIntranet:'',
+      correoUsuario:      (document.getElementById('nf-correo')||{}).value||'',
+      retiroRuta:         solEd?solEd.retiroRuta:''
+    };
+    if(idxEd>=0){
+      solicitudes[idxEd]=solData;
+    } else {
+      solicitudes.unshift(solData);
+    }
+    saveArr('sol',solicitudes);
+    if(typeof rbRecalcCache==='function') rbRecalcCache();
+    logA(currentUser?currentUser.nombre:'Usuario','Novedad de Documento',
+      'Solicitud editada (cargada desde PDF): '+solData.codigo+' — Consec. '+solData.consecutivo+' — Tipo: '+solData.tipoSolicitud,'',' Novedad de Documento');
+    if(OD.fileHandle){ OD.syncActivo=true; if(OD.saveTimer)clearTimeout(OD.saveTimer); OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500); }
+    toast('✅ Solicitud N° '+solData.consecutivo+' actualizada en SharePoint','ok');
+    nfSalirModoEdicion();
+    return;
+  }
+  // ── Modo normal: crear nueva solicitud ────────────────────
   nfActualizarConsec(); // asegurar consecutivo correcto antes de guardar
   var sol = {
     codigo:             document.getElementById('nf-cod').value.trim(),
@@ -22559,9 +22605,174 @@ function nfRenovarSolicitud(info){
   }
 }
 
+
+// ── Cargar PDF de Novedad de Documento ──────────────────────
+function nfCargarPDF(){
+  var inp=document.getElementById('nf-pdf-input');
+  if(inp){ inp.value=''; inp.click(); }
+}
+
+async function nfLeerPDF(input){
+  var file=input.files&&input.files[0];
+  if(!file) return;
+  try{
+    // Leer el PDF como texto plano usando FileReader + parseo manual
+    var reader=new FileReader();
+    reader.onload=async function(e){
+      try{
+        var arr=new Uint8Array(e.target.result);
+        // Extraer texto del PDF parseando streams de texto
+        var txt=nfPDFExtraerTexto(arr);
+        if(!txt||txt.length<20){
+          toast('No se pudo leer el texto del PDF','er');
+          return;
+        }
+        nfPDFRellenarFormulario(txt);
+      }catch(err){
+        console.error('nfLeerPDF error:',err);
+        toast('Error al leer PDF: '+err.message,'er');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }catch(err){
+    toast('Error: '+err.message,'er');
+  }
+}
+
+function nfPDFExtraerTexto(arr){
+  // Decodificar PDF como string y extraer bloques de texto BT...ET
+  var raw='';
+  for(var i=0;i<Math.min(arr.length,2000000);i++) raw+=String.fromCharCode(arr[i]);
+  var textos=[];
+  var re=/BT[\s\S]*?ET/g;
+  var m;
+  while((m=re.exec(raw))!==null){
+    // Extraer strings entre () y <>
+    var bloque=m[0];
+    var rs=/\(([^)]*)\)/g, rm;
+    while((rm=rs.exec(bloque))!==null){
+      var t=rm[1].replace(/\\n/g,'\n').replace(/\\r/g,'').replace(/\\\(/g,'(').replace(/\\\)/g,')').replace(/\\\\/g,'\\');
+      if(t.trim()) textos.push(t.trim());
+    }
+  }
+  return textos.join('\n');
+}
+
+function nfPDFRellenarFormulario(txt){
+  // Función auxiliar: extraer valor que sigue a una etiqueta
+  function extraer(etiquetas, texto){
+    var lineas=texto.split('\n');
+    for(var i=0;i<lineas.length;i++){
+      var li=lineas[i].trim();
+      for(var j=0;j<etiquetas.length;j++){
+        if(li.toUpperCase()===etiquetas[j].toUpperCase()||li.toUpperCase().indexOf(etiquetas[j].toUpperCase())>=0){
+          // Buscar siguiente línea no vacía que no sea otra etiqueta
+          for(var k=i+1;k<Math.min(i+4,lineas.length);k++){
+            var val=lineas[k].trim();
+            if(val&&val.length>0&&val.toUpperCase()!==etiquetas[j].toUpperCase()) return val;
+          }
+        }
+      }
+    }
+    return '';
+  }
+
+  function setV(id,v){ var el=document.getElementById(id); if(el&&v) el.value=v; }
+  function setOpt(id,v){
+    var el=document.getElementById(id);
+    if(!el||!v) return;
+    var opts=Array.from(el.options);
+    var match=opts.find(function(o){ return o.value===v||o.text===v||o.text.toLowerCase()===v.toLowerCase(); });
+    if(match) el.value=match.value;
+  }
+
+  // ── Consecutivo ──────────────────────────────────────────
+  var consec=extraer(['N° SOLICITUD','N\u00b0 SOLICITUD','NUMERO SOLICITUD','N. SOLICITUD'],txt);
+  // También buscar número grande standalone (el badge del PDF)
+  if(!consec){
+    var mc=txt.match(/\b(\d{4,6})\b/);
+    if(mc) consec=mc[1];
+  }
+
+  // ── Sección 1 — Solicitante ───────────────────────────────
+  var nombre=extraer(['NOMBRES Y APELLIDOS','NOMBRE Y APELLIDO','NOMBRES'],txt);
+  var cargo=extraer(['CARGO'],txt);
+  var area=extraer(['ÁREA','AREA'],txt);
+  var fechaSol=extraer(['FECHA DE SOLICITUD','FECHA SOLICITUD'],txt);
+  var tipoNov=extraer(['TIPO DE NOVEDAD','TIPO NOVEDAD'],txt);
+
+  // ── Sección 2 — Información ───────────────────────────────
+  var cod=extraer(['CÓDIGO DEL DOCUMENTO','CODIGO DEL DOCUMENTO','CÓDIGO','CODIGO'],txt);
+  var tipodoc=extraer(['TIPO DE DOCUMENTO','TIPO DOCUMENTO'],txt);
+  var version=extraer(['VERSIÓN A TRABAJAR','VERSION A TRABAJAR','VERSIÓN','VERSION'],txt);
+  var nomDoc=extraer(['NOMBRE DEL DOCUMENTO','NOMBRE DOCUMENTO'],txt);
+  var origen=extraer(['ORIGEN DE LA NOVEDAD','ORIGEN NOVEDAD','ORIGEN'],txt);
+
+  // ── Sección 3 — Descripción ───────────────────────────────
+  var desc=extraer(['DESCRIPCIÓN DE LA NOVEDAD','DESCRIPCION DE LA NOVEDAD','DESCRIPCIÓN','DESCRIPCION'],txt);
+
+  // ── Sección 7 — Revisión ──────────────────────────────────
+  var estatus=extraer(['SOLICITUD'],txt);
+  var obs=extraer(['OBSERVACIONES'],txt);
+
+  // ── Poblar formulario ─────────────────────────────────────
+  if(nombre) setV('nf-nombre',nombre);
+  if(cargo)  setV('nf-cargo',cargo);
+  if(area)   setV('nf-area',area);
+  if(tipoNov) setOpt('nf-tipo',tipoNov);
+  if(cod){   setV('nf-cod',cod.toUpperCase()); nfBuscarDoc&&nfBuscarDoc(cod.toUpperCase()); }
+  if(tipodoc) setV('nf-tipodoc',tipodoc);
+  if(version) setV('nf-version',version);
+  if(nomDoc)  setV('nf-nombredoc',nomDoc);
+  if(origen)  setOpt('nf-origen',origen);
+  if(desc)    setV('nf-descripcion',desc);
+  if(obs)     setV('nf-obs',obs);
+  if(estatus) setOpt('nf-estatus',estatus);
+
+  // ── Consecutivo: fijar el badge y modo edición ────────────
+  if(consec){
+    var consecNum=parseInt(consec);
+    _nfConsecActual=consecNum;
+    _nfModoEdicion=consecNum; // guardar el consecutivo que se está editando
+    var badge=document.getElementById('nf-consec-badge');
+    if(badge){
+      badge.textContent=consecNum;
+      badge.style.background='var(--A)';
+      badge.title='Editando solicitud existente #'+consecNum;
+    }
+    // Mostrar aviso de edición
+    var avisoId='nf-edicion-aviso';
+    if(!document.getElementById(avisoId)){
+      var av=document.createElement('div');
+      av.id=avisoId;
+      av.style.cssText='background:#fff9e8;border:1px solid #ffd97a;border-radius:6px;padding:8px 12px;font-size:11px;color:#7a4e00;margin-bottom:10px;display:flex;align-items:center;gap:8px';
+      av.innerHTML='<span style="font-size:16px">✏️</span><span>Modo edición — Solicitud <strong>#'+consecNum+'</strong> cargada desde PDF. Al guardar se actualizará esta línea sin crear una nueva.</span>'
+        +'<button onclick="nfSalirModoEdicion()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#a06000;font-size:13px" title="Cancelar edición">✕</button>';
+      var pg=document.getElementById('pg-novedad');
+      if(pg) pg.insertBefore(av, pg.children[1]);
+    }
+  }
+
+  toast('✅ PDF cargado — revisa y corrige los datos, luego guarda','ok');
+  _nfPDFGenerado=true; // permitir guardar sin necesidad de regenerar PDF
+}
+
+var _nfModoEdicion=null; // consecutivo de la solicitud que se está editando
+
+function nfSalirModoEdicion(){
+  _nfModoEdicion=null;
+  var av=document.getElementById('nf-edicion-aviso');
+  if(av) av.remove();
+  var badge=document.getElementById('nf-consec-badge');
+  if(badge){ badge.style.background='var(--T)'; badge.title=''; }
+  nfActualizarConsec();
+}
+
 function nfLimpiar(){
   if(!confirm('¿Limpiar todos los campos del formulario?')) return;
   _nfPDFGenerado=false;
+  // Salir del modo edición si estaba activo
+  if(_nfModoEdicion) nfSalirModoEdicion();
   var extra=document.getElementById('nf-creacion-extra');if(extra)extra.style.display='none';
   ['nf-tipo-doc-nuevo','nf-corporativo'].forEach(function(id){var el=document.getElementById(id);if(el)el.selectedIndex=0;});
   ['nf-cod-asignado'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
