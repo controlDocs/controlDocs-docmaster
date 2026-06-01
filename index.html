@@ -40,8 +40,10 @@ body{background:#f0f9f6;color:var(--tx);font-family:var(--fn);font-size:14px;min
 .btn{background:var(--T);color:#fff;border:none;border-radius:var(--r);padding:6px 13px;font-family:var(--fn);font-size:12px;font-weight:600;cursor:pointer;transition:background .12s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
 .btn:hover{background:var(--T2)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn.gh{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);font-weight:500}
+.btn.gh{background:#fff;color:var(--tx2);border:1.5px solid var(--brd2);font-weight:500}
 .btn.gh:hover{background:var(--bg3);border-color:var(--T);color:var(--T)}
+.topb .btn.gh{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.topb .btn.gh:hover{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.7);color:#fff}
 .btn.dn{background:var(--R);color:#fff}.btn.dn:hover{background:#b82f2f}
 .btn.ok{background:var(--G);color:#fff}
 .btn.ol{background:#fff;color:var(--T);border:1.5px solid var(--T)}.btn.ol:hover{background:var(--tl)}
@@ -1350,15 +1352,26 @@ tbody tr:last-child td{border-bottom:none}
         <!-- MARCAR OBSOLETO -->
 
         <div id="mo-confirmar-section">
-          <div id="obs-afectados-warn" style="display:none;background:#fff3cd;border:2px solid #f5a5a5;border-radius:var(--r);padding:10px 13px;margin-bottom:10px;font-size:11px;color:#8a1515"></div>
+          <!-- Panel de documentos asociados (F-, DA-, etc.) -->
+          <div id="mo-asociados-panel" style="display:none;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+              <span>📎 Documentos asociados — selecciona los que deseas marcar como Obsoleto</span>
+              <span style="display:flex;gap:6px">
+                <button class="btn gh sm" style="font-size:10px" onclick="moSelTodos(true)">✅ Todos</button>
+                <button class="btn gh sm" style="font-size:10px" onclick="moSelTodos(false)">☐ Ninguno</button>
+              </span>
+            </div>
+            <div id="mo-asociados-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:7px;max-height:320px;overflow-y:auto;padding:2px"></div>
+          </div>
           <div style="background:#fde8e8;border:1px solid #f5a5a5;border-radius:var(--r);padding:10px 13px;margin-bottom:10px;font-size:11px;color:#8a1515">
-            Al marcar como Obsoleto se alertaran las copias controladas activas.
+            Al marcar como Obsoleto se alertarán las copias controladas activas.
           </div>
           <div class="fp" style="margin-bottom:10px">
             <label class="fl rq">Motivo de obsolescencia</label>
             <textarea class="fta" id="mo-motivo" placeholder="Describa el motivo..." style="min-height:70px"></textarea>
           </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end">
+          <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center">
+            <span id="mo-sel-count" style="font-size:11px;color:var(--tx3)"></span>
             <button class="btn gh sm" onclick="moNotificar()">✉ Notificar</button>
             <button class="btn gh sm" onclick="renderMarObs()">Cancelar</button>
             <button class="btn dn" id="mo-confirmar-btn" onclick="moConfirmar()">🚫 Confirmar Obsoleto</button>
@@ -2535,6 +2548,66 @@ tbody tr:last-child td{border-bottom:none}
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn gh sm" onclick="document.getElementById('rb-mo-fecha-doc').style.display='none'">Cancelar</button>
       <button class="btn sm" id="rb-fd-btn-confirm" style="background:var(--T);color:#fff" onclick="rbFechaDocConfirmar()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Solicitud — Ruta de Borrador -->
+<div id="rb-mo-editar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:10000;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)rbEditarCancelar()">
+  <div style="background:var(--bg);border-radius:12px;padding:24px;width:560px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.28);position:relative">
+    <button onclick="rbEditarCancelar()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3);line-height:1" title="Cerrar">✕</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:22px">✏️</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--tx)">Editar solicitud</div>
+        <div id="rb-edit-desc" style="font-size:11px;color:var(--tx3);margin-top:1px"></div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--brd);margin-bottom:14px"></div>
+    <div class="fg" style="margin-bottom:10px">
+      <div class="fp">
+        <label class="fl">Código del documento</label>
+        <input class="fi" id="rb-edit-codigo" type="text" style="text-transform:uppercase;font-weight:600">
+      </div>
+      <div class="fp">
+        <label class="fl">Nombre del documento</label>
+        <input class="fi" id="rb-edit-nombre" type="text">
+      </div>
+      <div class="fp">
+        <label class="fl">Solicitante</label>
+        <input class="fi" id="rb-edit-solicitante" type="text">
+      </div>
+      <div class="fp">
+        <label class="fl">Área generadora</label>
+        <input class="fi" id="rb-edit-area" type="text">
+      </div>
+      <div class="fp">
+        <label class="fl">Versión</label>
+        <input class="fi" id="rb-edit-version" type="text">
+      </div>
+      <div class="fp">
+        <label class="fl">Tipo de solicitud</label>
+        <select class="fi" id="rb-edit-tipo">
+          <option value="">—</option>
+          <option>Creación</option>
+          <option>Modificación</option>
+          <option>Eliminación</option>
+        </select>
+      </div>
+    </div>
+    <div class="fp" style="margin-bottom:10px">
+      <label class="fl">Descripción de la modificación</label>
+      <textarea class="fta" id="rb-edit-descripcion" rows="2"></textarea>
+    </div>
+    <div style="height:1px;background:var(--brd);margin-bottom:10px"></div>
+    <div class="fp" style="margin-bottom:14px">
+      <label class="fl rq">Justificación del cambio</label>
+      <textarea class="fta" id="rb-edit-justif" rows="3" placeholder="Describe el motivo por el cual se está editando esta solicitud..."></textarea>
+      <div class="fh">Este campo es obligatorio para guardar los cambios.</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn gh sm" onclick="rbEditarCancelar()">✕ Cancelar</button>
+      <button class="btn sm" style="background:var(--T);color:#fff" onclick="rbEditarGuardar()">💾 Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -8918,189 +8991,174 @@ function renderMarObs(){
 }
 
 function moBuscar(){
-
   var q=(document.getElementById('mo-q').value||'').trim();
-  var qUp=q.toUpperCase();
-  var qLow=q.toLowerCase();
-  var listEl=document.getElementById('mo-lista');if(!listEl)return;
-  if(!q){listEl.innerHTML='';return;}
+  if(!q){ document.getElementById('mo-lista').innerHTML=''; return; }
+  var qUp=q.toUpperCase(); var qLow=q.toLowerCase();
+  var listEl=document.getElementById('mo-lista');
 
-  // Primero: coincidencia EXACTA de código (prioritaria)
-  var exacto=docsEmpresa().filter(function(d){
-    return d.codigoActual.toUpperCase()===qUp;
-  });
-
-  // Si hay coincidencia exacta, mostrar solo ese resultado
-  if(exacto.length>0){
-    listEl.innerHTML=exacto.map(function(d){
-      var isObs=d.estado==='Obsoleto';
-      var obsTag=isObs?' <span style="background:#fde8e8;color:#a02020;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">OBSOLETO - clic para revertir</span>':'';
-      return '<div onclick="moSelDoc('+d.id+')" style="border:2px solid var(--T);border-radius:var(--r);padding:10px 13px;cursor:pointer;margin-bottom:6px;background:var(--tlx)" onmouseover="this.style.background=\'var(--tl)\'" onmouseout="this.style.background=\'var(--tlx)\'">'
-        +'<div style="font-weight:700;font-size:13px;color:var(--T3)">'+d.codigoActual+obsTag+'</div>'
-        +'<div style="font-size:12px;color:var(--tx2)">'+d.descripcion+'</div>'
-        +'<div style="font-size:11px;color:var(--tx3);margin-top:3px">Estado: '+eB(d.estado)+' | Vencimiento: '+fDD(d.fechaVencimiento)+'</div>'
-        +'</div>';
-    }).join('');
+  var exacto=docsEmpresa().filter(function(d){ return d.codigoActual.toUpperCase()===qUp; });
+  if(exacto.length){
+    listEl.innerHTML=exacto.map(function(d){ return moItemHTML(d,true); }).join('');
     return;
   }
-
-  // Si no hay exacto, buscar por coincidencia parcial en código y descripción
   var parcial=docsEmpresa().filter(function(d){
-    return d.codigoActual.toLowerCase().indexOf(qLow)>=0
-        || d.descripcion.toLowerCase().indexOf(qLow)>=0;
+    return d.codigoActual.toLowerCase().indexOf(qLow)>=0||d.descripcion.toLowerCase().indexOf(qLow)>=0;
   });
-
-  if(!parcial.length){
-    listEl.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:10px">Sin resultados para "'+q+'"</div>';
-    return;
-  }
-  listEl.innerHTML=parcial.slice(0,15).map(function(d){
-    var isObs=d.estado==='Obsoleto';
-    var obsTag=isObs?' <span style="background:#fde8e8;color:#a02020;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">OBSOLETO - clic para revertir</span>':'';
-    return '<div onclick="moSelDoc('+d.id+')" style="border:1px solid var(--brd);border-radius:var(--r);padding:10px 13px;cursor:pointer;margin-bottom:6px" onmouseover="this.style.background=\'var(--tlx)\'" onmouseout="this.style.background=\'\'">'+
-      '<div style="font-weight:600;font-size:13px">'+d.codigoActual+obsTag+'</div>'+
-      '<div style="font-size:12px;color:var(--tx2)">'+d.descripcion+'</div>'+
-      '<div style="font-size:11px;color:var(--tx3);margin-top:3px">Estado: '+eB(d.estado)+' | Vencimiento: '+fDD(d.fechaVencimiento)+'</div>'+
-    '</div>';
-  }).join('')+(parcial.length>15?'<div style="font-size:11px;color:var(--tx3);padding:6px">...y '+(parcial.length-15)+' más. Escribe el código exacto para filtrar.</div>':'');
+  if(!parcial.length){ listEl.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:10px">Sin resultados para "'+q+'"</div>'; return; }
+  listEl.innerHTML=parcial.slice(0,15).map(function(d){ return moItemHTML(d,false); }).join('')
+    +(parcial.length>15?'<div style="font-size:11px;color:var(--tx3);padding:6px">...y '+(parcial.length-15)+' más. Escribe el código exacto.</div>':'');
 }
 
+function moItemHTML(d,destacado){
+  var isObs=d.estado==='Obsoleto';
+  var obsTag=isObs?' <span style="background:#fde8e8;color:#a02020;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">OBSOLETO</span>':'';
+  var border=destacado?'border:2px solid var(--T);background:var(--tlx)':'border:1px solid var(--brd)';
+  return '<div onclick="moSelDoc('+d.id+')" style="'+border+';border-radius:var(--r);padding:10px 13px;cursor:pointer;margin-bottom:6px;transition:background .1s" onmouseover="this.style.background=\'var(--tlx)\'" onmouseout="this.style.background=\''+(destacado?'var(--tlx)':'')+'\'">'+
+    '<div style="font-weight:700;font-size:13px;color:var(--T3)">'+d.codigoActual+obsTag+'</div>'+
+    '<div style="font-size:12px;color:var(--tx2)">'+d.descripcion+'</div>'+
+    '<div style="font-size:11px;color:var(--tx3);margin-top:3px">'+eB(d.estado)+' | Venc: '+fDD(d.fechaVencimiento)+'</div>'+
+    '</div>';
+}
 
 function moSelDoc(id){
-
-  var d=docs.find(function(x){return x.id===id;});if(!d)return;
+  var d=docs.find(function(x){return x.id===id;}); if(!d)return;
   window._moDocId=id;
   document.getElementById('mo-lista').innerHTML='';
   document.getElementById('mo-q').value=d.codigoActual;
   var resEl=document.getElementById('mo-result');
-  if(resEl){
-    resEl.style.display='block';
-    document.getElementById('mo-sel-cod').textContent=d.codigoActual;
-    document.getElementById('mo-sel-desc').textContent=d.descripcion;
-    document.getElementById('mo-sel-info').innerHTML='Version: <strong>'+d.version+'</strong> | Area: <strong>'+(d.areaGeneradora||'-')+'</strong> | Estado: '+eB(d.estado);
-    //  Copias controladas 
-    var ca=copiasEmpresa().filter(function(x){return x.codigo===d.codigoActual;});
-    var cWarn=document.getElementById('mo-copias-warn');
-    if(cWarn){
-      var htmlWarn='';
-      if(ca.length>0){
-        htmlWarn='<div style="background:#fff3cd;border:1px solid #ffd97a;border-radius:var(--r);padding:8px 11px;font-size:11px;color:#7a4e00;margin-top:8px">'
-          +'<strong>⚠️ Atención:</strong> este documento tiene <strong>'+ca.length+' cop'+(ca.length!==1?'ias':'ia')+' controlada'+(ca.length!==1?'s':'')+'</strong> que deben ser recogidas.'
-          +'<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">'
-          +ca.map(function(c){
-            return '<span style="background:#fff;border:1px solid #ffd97a;border-radius:4px;padding:2px 8px;font-size:10px;color:#7a4e00">'
-              +(c.area||'-')+(c.subarea?' / '+c.subarea:'')
-              +(c.responsable?' · '+c.responsable:'')
-              +'</span>';
-          }).join('')
-          +'</div></div>';
-      }
+  if(resEl){ resEl.style.display='block'; }
+  document.getElementById('mo-sel-cod').textContent=d.codigoActual;
+  document.getElementById('mo-sel-desc').textContent=d.descripcion;
+  document.getElementById('mo-sel-info').innerHTML='Version: <strong>'+d.version+'</strong> | Area: <strong>'+(d.areaGeneradora||'-')+'</strong> | Estado: '+eB(d.estado);
 
-      //  Documentos que mencionan este código 
-      var codigoUp=d.codigoActual.toUpperCase();
+  // Copias controladas
+  var ca=copiasEmpresa().filter(function(x){return x.codigo===d.codigoActual;});
+  var cWarn=document.getElementById('mo-copias-warn'); var htmlWarn='';
+  if(ca.length){
+    htmlWarn='<div style="background:#fff3cd;border:1px solid #ffd97a;border-radius:var(--r);padding:8px 11px;font-size:11px;color:#7a4e00;margin-top:8px">'+
+      '<strong>⚠️</strong> '+ca.length+' cop'+(ca.length!==1?'ias':'ia')+' controlada'+(ca.length!==1?'s':'')+' activa'+(ca.length!==1?'s':'')+' — deben ser recogidas.</div>';
+  }
+  if(cWarn) cWarn.innerHTML=htmlWarn;
 
-      function parsearRelTokens(campo){
-        return String(campo||'').toUpperCase().split(/[,;| \t]+/).map(function(t){return t.trim();}).filter(Boolean);
-      }
-      var regMenc=new RegExp('\\b'+codigoUp.replace(/[-]/g,'[-]?')+'\\b','i');
-      var CAMPOS_MENC=['descripcion','descriptionEn','proceso','alcanceEmpresas','areasAplicables','mbr','administrador','liderProceso','codigoAntiguo'];
-      var CLABEL={descripcion:'Descripción',descriptionEn:'Desc. EN',proceso:'Proceso',alcanceEmpresas:'Alcance',areasAplicables:'Áreas Aplic.',mbr:'MBR',administrador:'Administrador',liderProceso:'Líder',codigoAntiguo:'Cód. Antiguo'};
-
-      // Grupo A: en docsRelacionados de otros docs
-      var enRelDoc=docsEmpresa().filter(function(x){
-        if(x.id===d.id) return false;
-        return parsearRelTokens(x.docsRelacionados).indexOf(codigoUp)>=0;
-      });
-      // Grupo B: mención en otros campos (no ya en grupo A)
-      var idsA=enRelDoc.map(function(x){return x.id;});
-      var enMencDoc=docsEmpresa().filter(function(x){
-        if(x.id===d.id||idsA.indexOf(x.id)>=0) return false;
-        return CAMPOS_MENC.some(function(c){return regMenc.test(String(x[c]||''));});
-      });
-
-      var totalDocs=enRelDoc.length+enMencDoc.length;
-      if(totalDocs>0){
-        htmlWarn+='<div style="background:#f0f5ff;border:1px solid #b0c4f0;border-radius:var(--r);padding:8px 11px;font-size:11px;color:#1a3a7a;margin-top:8px">';
-
-        if(enRelDoc.length>0){
-          htmlWarn+='<strong>📋 '+enRelDoc.length+' documento(s)</strong> tienen <strong>'+d.codigoActual+'</strong> en sus Docs. Relacionados:'
-            +'<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">'
-            +enRelDoc.map(function(x){
-              return '<span style="background:#fff;border:1px solid #b0c4f0;border-radius:4px;padding:2px 8px;font-size:10px;color:#1a3a7a;font-weight:700" title="'+x.descripcion+'">'+x.codigoActual+'</span>';
-            }).join('')+'</div>';
-        }
-
-        if(enMencDoc.length>0){
-          htmlWarn+=(enRelDoc.length>0?'<div style="margin-top:6px">':'')
-            +'<strong>🔍 '+enMencDoc.length+' documento(s)</strong> mencionan <strong>'+d.codigoActual+'</strong> en sus campos:'
-            +'<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">'
-            +enMencDoc.map(function(x){
-              var cs=CAMPOS_MENC.filter(function(c){return regMenc.test(String(x[c]||''));}).map(function(c){return CLABEL[c];}).join(', ');
-              return '<span style="background:#fff;border:1px solid #e08a00;border-radius:4px;padding:2px 8px;font-size:10px;color:#7a4e00;font-weight:700" title="'+x.descripcion+' · En: '+cs+'" >'+x.codigoActual+'</span>';
-            }).join('')+'</div>'
-            +(enRelDoc.length>0?'</div>':'');
-        }
-
-        htmlWarn+='<div style="font-size:10px;color:#1a3a7a;margin-top:5px">Estos documentos deberán revisarse al marcar el código como obsoleto.</div>'
-          +'</div>';
-      }
-
-      cWarn.innerHTML=htmlWarn;
-    }
-    var revSec=document.getElementById('mo-revert-section');
-    var confSec=document.getElementById('mo-confirmar-section');
-    if(d.estado==='Obsoleto'){
-      if(revSec)revSec.style.display='block';
-      if(confSec)confSec.style.display='none';
-      // Pre-fill fecha vigencia with today
-      var fvEl=document.getElementById('mo-revert-fvig');
-      if(fvEl)fvEl.value=fD(new Date());
-      var prev=document.getElementById('mo-revert-venc-preview');
-      if(prev)prev.style.display='none';
-    }else{
-      if(revSec)revSec.style.display='none';
-      if(confSec)confSec.style.display='block';
-    }
+  // Mostrar sección según estado
+  var revSec=document.getElementById('mo-revert-section');
+  var confSec=document.getElementById('mo-confirmar-section');
+  if(d.estado==='Obsoleto'){
+    if(revSec)revSec.style.display='block';
+    if(confSec)confSec.style.display='none';
+    var fvEl=document.getElementById('mo-revert-fvig'); if(fvEl)fvEl.value=fD(new Date());
+    var prev=document.getElementById('mo-revert-venc-preview'); if(prev)prev.style.display='none';
+  } else {
+    if(revSec)revSec.style.display='none';
+    if(confSec)confSec.style.display='block';
+    // Buscar documentos asociados
+    moBuscarAsociados(d);
   }
   document.getElementById('mo-motivo').value='';
-  var rmt=document.getElementById('mo-revert-mot');if(rmt)rmt.value='';
+  var rmt=document.getElementById('mo-revert-mot'); if(rmt)rmt.value='';
 }
 
+// ── Buscar documentos asociados al código principal ──────────────────────────
+function moBuscarAsociados(docPrincipal){
+  var cod=docPrincipal.codigoActual.toUpperCase();
+  var panel=document.getElementById('mo-asociados-panel');
+  var lista=document.getElementById('mo-asociados-lista');
+  var contador=document.getElementById('mo-sel-count');
+  if(!panel||!lista) return;
+
+  // Patrón: F-SOP-0001-X  →  parte central = SOP-0001
+  // Detectar el "núcleo" del código quitando prefijos de tipo (F-, DA-, INST-, SOP-, etc.)
+  // Estrategia: buscar todos los documentos cuyo código CONTIENE el código buscado como subcadena
+  // O cuyo código sin prefijo de 1-3 letras coincide
+  var nucleo = cod.replace(/^[A-Z]{1,3}-/,''); // quita primer prefijo: F-, DA-, SOP-
+
+  var asociados=docsEmpresa().filter(function(d){
+    if(d.id===docPrincipal.id) return false;
+    var c=d.codigoActual.toUpperCase();
+    // Coincide si: contiene el código base (ej: SOP-0001) o el núcleo (ej: 0001)
+    return c.indexOf(nucleo)>=0 || c.indexOf(cod)>=0;
+  }).sort(function(a,b){ return a.codigoActual.localeCompare(b.codigoActual); });
+
+  if(!asociados.length){
+    panel.style.display='none';
+    if(contador) contador.textContent='';
+    return;
+  }
+
+  panel.style.display='block';
+
+  lista.innerHTML=asociados.map(function(d){
+    var isObs=d.estado==='Obsoleto';
+    var checked=!isObs; // por defecto: seleccionados los no-obsoletos
+    return '<label style="display:flex;align-items:flex-start;gap:8px;border:1px solid '+(isObs?'#e0e0e0':'var(--brd)')+';border-radius:var(--r);padding:8px 10px;cursor:'+(isObs?'default':'pointer')+';background:'+(isObs?'#f8f8f8':'#fff')+';opacity:'+(isObs?'.6':'1')+'" '+(!isObs?'onmouseover="this.style.background=\'var(--tlx)\'" onmouseout="this.style.background=\'#fff\'"':'')+'>'
+      +'<input type="checkbox" data-obsid="'+d.id+'" '+(checked&&!isObs?'checked':'')+(isObs?'disabled title="Ya es Obsoleto"':'')+' onchange="moActualizarContador()" style="margin-top:2px;flex-shrink:0">'
+      +'<div style="min-width:0">'
+      +'<div style="font-weight:700;font-size:12px;color:'+(isObs?'#999':'var(--T3)')+'">'+d.codigoActual+(isObs?' <span style="font-size:9px;color:#999">(ya obsoleto)</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+d.descripcion+'">'+d.descripcion+'</div>'
+      +'<div style="font-size:10px;color:var(--tx3);margin-top:2px">'+eB(d.estado)+' | v'+d.version+'</div>'
+      +'</div></label>';
+  }).join('');
+
+  moActualizarContador();
+}
+
+function moActualizarContador(){
+  var checks=document.querySelectorAll('[data-obsid]:checked');
+  var total=document.querySelectorAll('[data-obsid]').length;
+  var sel=checks.length;
+  var contador=document.getElementById('mo-sel-count');
+  if(contador) contador.textContent=sel>0?sel+' documento'+(sel!==1?'s':'')+' asociado'+(sel!==1?'s':'')+' seleccionado'+(sel!==1?'s':'')+' + el principal':'total: '+(total+1)+' documentos';
+}
+
+function moSelTodos(seleccionar){
+  document.querySelectorAll('[data-obsid]:not(:disabled)').forEach(function(cb){ cb.checked=seleccionar; });
+  moActualizarContador();
+}
 
 function moConfirmar(){
-
-  var id=window._moDocId;if(!id){toast('Busca y selecciona un documento primero','er');return;}
-  var mot=document.getElementById('mo-motivo').value.trim();
+  var id=window._moDocId; if(!id){toast('Busca y selecciona un documento primero','er');return;}
+  var mot=(document.getElementById('mo-motivo').value||'').trim();
   if(!mot){toast('Ingresa el motivo de obsolescencia','er');return;}
-  var d=docs.find(function(x){return x.id===id;});if(!d)return;
-  d.estado='Obsoleto';d.obsoleto='X';d.extensionVigencia='';d.fechaVencimiento='';
-  if(!d.historial)d.historial=[];
-  d.historial.push({f:fTS(new Date()),c:'Marcado OBSOLETO: '+mot,u:(currentUser?currentUser.nombre||currentUser.login:'Sistema')});
-  saveDocs(docs);logA(currentUser?currentUser.nombre:'Usuario','Obsoleto',d.codigoActual+': '+mot);
-  toast('Documento marcado como Obsoleto','if');
+  var d=docs.find(function(x){return x.id===id;}); if(!d)return;
+
+  // Recopilar IDs seleccionados (asociados)
+  var idsAsoc=Array.from(document.querySelectorAll('[data-obsid]:checked')).map(function(cb){return parseInt(cb.getAttribute('data-obsid'));});
+  var todosIds=[id].concat(idsAsoc);
+
+  var marcados=0;
+  todosIds.forEach(function(did){
+    var doc=docs.find(function(x){return x.id===did;}); if(!doc)return;
+    doc.estado='Obsoleto'; doc.obsoleto='X'; doc.extensionVigencia=''; doc.fechaVencimiento='';
+    if(!doc.historial)doc.historial=[];
+    doc.historial.push({f:fTS(new Date()),c:'Marcado OBSOLETO: '+mot,u:(currentUser?currentUser.nombre||currentUser.login:'Sistema')});
+    rbCerrarPorCodigo(doc.codigoActual,'Obsoleto — documento marcado como obsoleto');
+    logA(currentUser?currentUser.nombre:'Usuario','Obsoleto',doc.codigoActual+': '+mot);
+    marcados++;
+  });
+
+  saveDocs(docs);
+  toast(marcados+' documento'+(marcados!==1?'s':'')+' marcado'+(marcados!==1?'s':'')+' como Obsoleto','if');
+
   var resEl=document.getElementById('mo-result');
-  if(resEl)document.getElementById('mo-sel-info').innerHTML='<span class="b ob">OBSOLETO</span> — Registrado correctamente';
-  updBadges();renderDash();
-  // Enviar correo automáticamente
-  setTimeout(function(){ moNotificar(); }, 400);
-  // Alertar copias
+  if(resEl) document.getElementById('mo-sel-info').innerHTML='<span class="b ob">OBSOLETO</span> — '+marcados+' documento'+(marcados!==1?'s':'')+' marcado'+(marcados!==1?'s')+' correctamente';
+
+  // Ocultar panel de asociados
+  var panel=document.getElementById('mo-asociados-panel'); if(panel)panel.style.display='none';
+  updBadges(); renderDash();
+  // Notificar y alertar copias del documento principal
+  setTimeout(function(){ moNotificar(); },400);
   var ca=copiasEmpresa().filter(function(x){return x.codigo===d.codigoActual;});
-  if(ca.length)setTimeout(function(){alertarCopiasDoc(d.codigoActual, ca.length, true, false);},900);
+  if(ca.length) setTimeout(function(){alertarCopiasDoc(d.codigoActual,ca.length,true,false);},900);
 }
 
 function moPreviewVenc(){
-
-  var id=window._moDocId;
-  var fvig=document.getElementById('mo-revert-fvig').value;
+  var id=window._moDocId; var fvig=(document.getElementById('mo-revert-fvig')||{}).value;
   if(!fvig||!id)return;
-  var d=docs.find(function(x){return x.id===id;});if(!d)return;
+  var d=docs.find(function(x){return x.id===id;}); if(!d)return;
   var fvenc=calcVencByPrefix(d.codigoActual,fvig);
   if(!fvenc){var dt=new Date(fvig+'T12:00:00');dt.setFullYear(dt.getFullYear()+3);fvenc=fD(dt);}
   var prev=document.getElementById('mo-revert-venc-preview');
-  if(prev){
-    prev.style.display='block';
-    prev.textContent='Nueva fecha de vencimiento calculada: '+fDD(fvenc)+' | Estado: '+calcEst(fvenc,'No','');
-  }
+  if(prev){ prev.style.display='block'; prev.textContent='Nueva fecha de vencimiento calculada: '+fDD(fvenc)+' | Estado: '+calcEst(fvenc,'No',''); }
 }
 
 function moRevertir(){
@@ -19180,8 +19238,92 @@ function rbRenderDetail(s){
       +(!info.esAnulado&&!info.esOfic
         ?'<button class="btn sm" style="background:#7c3aed;color:#fff" onclick="rbAnularDirecto(\''+s.consecutivo+'\')" title="Anular esta solicitud">🚫 Anular solicitud</button>'
         :'')
+      +(!info.esAnulado&&!info.esOfic
+        ?'<button class="btn gh sm" style="border-color:var(--T);color:var(--T)" onclick="rbEditarSolicitud(\''+s.consecutivo+'\')" title="Editar datos de esta solicitud">✏️ Editar</button>'
+        :'')
       +'<button class="btn dn sm" style="margin-left:auto" onclick="rbEliminarSolicitud(\''+s.consecutivo+'\')">🗑</button>'
     +'</div>';
+}
+
+var _rbEditConsecutivo = null;
+
+function rbEditarSolicitud(consecutivo){
+  var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s){toast('Solicitud no encontrada','er');return;}
+  _rbEditConsecutivo=consecutivo;
+  var desc='#'+consecutivo+' — '+(s.codigo||'?')+' — '+(s.nombreDoc||'');
+  document.getElementById('rb-edit-desc').textContent=desc;
+  // Rellenar campos con datos actuales
+  function setV(id,v){var el=document.getElementById(id);if(el)el.value=v||'';}
+  function setOpt(id,v){
+    var el=document.getElementById(id);if(!el||!v)return;
+    var opts=Array.from(el.options);
+    var m=opts.find(function(o){return o.value===v||o.text===v;});
+    if(m)el.value=m.value;
+  }
+  setV('rb-edit-codigo',      s.codigo);
+  setV('rb-edit-nombre',      s.nombreDoc);
+  setV('rb-edit-solicitante', s.solicitante);
+  setV('rb-edit-area',        s.areaGeneradora);
+  setV('rb-edit-version',     s.version);
+  setOpt('rb-edit-tipo',      s.tipoSolicitud);
+  setV('rb-edit-descripcion', s.descripcionModif);
+  document.getElementById('rb-edit-justif').value='';
+  document.getElementById('rb-edit-justif').style.borderColor='';
+  document.getElementById('rb-mo-editar').style.display='flex';
+  setTimeout(function(){var el=document.getElementById('rb-edit-codigo');if(el)el.focus();},100);
+}
+
+function rbEditarCancelar(){
+  document.getElementById('rb-mo-editar').style.display='none';
+  _rbEditConsecutivo=null;
+}
+
+function rbEditarGuardar(){
+  var justif=(document.getElementById('rb-edit-justif').value||'').trim();
+  if(!justif){
+    document.getElementById('rb-edit-justif').style.borderColor='var(--R)';
+    document.getElementById('rb-edit-justif').focus();
+    toast('Debes ingresar la justificación del cambio','er');
+    return;
+  }
+  document.getElementById('rb-edit-justif').style.borderColor='';
+  var consecutivo=_rbEditConsecutivo;
+  var idx=(solicitudes||[]).findIndex(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(idx<0){toast('Solicitud no encontrada','er');return;}
+  var s=solicitudes[idx];
+  // Capturar cambios
+  function gV(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+  var cambios=[];
+  var campos={
+    codigo:         {label:'Código',          nuevo:gV('rb-edit-codigo').toUpperCase()},
+    nombreDoc:      {label:'Nombre doc',      nuevo:gV('rb-edit-nombre')},
+    solicitante:    {label:'Solicitante',     nuevo:gV('rb-edit-solicitante')},
+    areaGeneradora: {label:'Área',            nuevo:gV('rb-edit-area')},
+    version:        {label:'Versión',         nuevo:gV('rb-edit-version')},
+    tipoSolicitud:  {label:'Tipo solicitud',  nuevo:gV('rb-edit-tipo')},
+    descripcionModif:{label:'Descripción',    nuevo:gV('rb-edit-descripcion')}
+  };
+  Object.keys(campos).forEach(function(k){
+    var ant=(s[k]||'').toString().trim();
+    var nvo=campos[k].nuevo;
+    if(ant!==nvo) cambios.push(campos[k].label+': "'+ant+'" → "'+nvo+'"');
+    s[k]=nvo||s[k];
+  });
+  document.getElementById('rb-mo-editar').style.display='none';
+  _rbEditConsecutivo=null;
+  saveArr('sol',solicitudes);
+  if(typeof rbRecalcCache==='function') rbRecalcCache();
+  var logDetalle=cambios.length?cambios.join(' | '):'Sin cambios en campos';
+  logA(currentUser?currentUser.nombre:'Admin','Edición de Solicitud',
+    'Solicitud #'+consecutivo+' editada | Justificación: '+justif+' | Cambios: '+logDetalle,
+    '','Ruta de Borrador');
+  if(window.OD&&OD.fileHandle&&OD.syncActivo){
+    if(OD.saveTimer)clearTimeout(OD.saveTimer);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+  }
+  toast('✅ Solicitud #'+consecutivo+' actualizada','ok');
+  rbRender();
 }
 
 var _rbAnularConsecutivo = null;
@@ -19450,6 +19592,30 @@ function rbActualizarOficializacion(codigo){
 // Badge en módulo de documentos: mostrar solicitud más reciente para el código
 var _rbCache=null; // cache del mapa de solicitudes por código
 var _rbCacheLen=-1;
+// ── Helper compartido: cerrar solicitudes RB activas por código ───────────────
+function rbCerrarPorCodigo(codigo, motivo){
+  if(!codigo) return;
+  var codUp=codigo.toUpperCase();
+  var estadosCerrados=['solicitud anulada','oficializado','eliminación cerrada','eliminacion cerrada'];
+  var abiertas=(solicitudes||[]).filter(function(x){
+    var est=(x.estadoOficializacion||x.estatus||'').toLowerCase();
+    return x.codigo&&x.codigo.toUpperCase()===codUp&&estadosCerrados.indexOf(est)<0;
+  });
+  if(!abiertas.length) return;
+  var reciente=abiertas.reduce(function(best,x){
+    return parseInt(x.consecutivo||0)>parseInt(best.consecutivo||0)?x:best;
+  },abiertas[0]);
+  reciente.estadoOficializacion='Eliminación Cerrada';
+  reciente.estatus='Eliminación Cerrada';
+  reciente.fechaOficializacion=reciente.fechaOficializacion||new Date().toISOString().split('T')[0];
+  saveArr('sol',solicitudes);
+  if(typeof rbRecalcCache==='function') rbRecalcCache();
+  logA(currentUser?currentUser.nombre:'Sistema','Eliminación ruta',
+    'Solicitud RB #'+reciente.consecutivo+' — '+codUp+' cerrada automáticamente. Motivo: '+(motivo||''),
+    '','Ruta de Borrador');
+  toast('🔒 Solicitud RB #'+reciente.consecutivo+' ('+codUp+') cerrada automáticamente','if');
+}
+
 function rbRecalcCache(){
   _rbCache={};
   if(!solicitudes||!solicitudes.length){_rbCacheLen=0;return;}
@@ -22247,6 +22413,9 @@ function nfGuardarEjecutar(){
     if(typeof rbRecalcCache==='function') rbRecalcCache();
     logA(currentUser?currentUser.nombre:'Usuario','Novedad de Documento',
       'Solicitud editada (cargada desde PDF): '+solData.codigo+' — Consec. '+solData.consecutivo+' — Tipo: '+solData.tipoSolicitud,'',' Novedad de Documento');
+    if((solData.tipoSolicitud==='Eliminación'||solData.tipoSolicitud==='Eliminacion')&&solData.codigo){
+      rbCerrarPorCodigo(solData.codigo,'Eliminación — solicitud editada desde PDF N°'+solData.consecutivo);
+    }
     if(OD.fileHandle){ OD.syncActivo=true; if(OD.saveTimer)clearTimeout(OD.saveTimer); OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500); }
     toast('✅ Solicitud N° '+solData.consecutivo+' actualizada en SharePoint','ok');
     nfSalirModoEdicion();
@@ -22285,28 +22454,8 @@ function nfGuardarEjecutar(){
     localStorage.setItem('nf_ultimo_guardado',JSON.stringify(_nfUltimoGuardado));
   }catch(e){}
   // Si es Eliminación, cerrar automáticamente la solicitud activa en Ruta de Borrador
-  if(sol.tipoSolicitud==='Eliminación'&&sol.codigo){
-    var codUp=sol.codigo.toUpperCase();
-    var abiertas=(solicitudes||[]).filter(function(x){
-      var est=(x.estadoOficializacion||x.estatus||'').toLowerCase();
-      return x.codigo&&x.codigo.toUpperCase()===codUp
-        &&est!=='solicitud anulada'&&est!=='oficializado'&&est!=='eliminación cerrada';
-    });
-    if(abiertas.length){
-      // Cerrar la más reciente
-      var reciente=abiertas.reduce(function(best,x){
-        return parseInt(x.consecutivo||0)>parseInt(best.consecutivo||0)?x:best;
-      },abiertas[0]);
-      reciente.estadoOficializacion='Eliminación Cerrada';
-      reciente.estatus='Eliminación Cerrada';
-      reciente.fechaOficializacion=reciente.fechaOficializacion||sol.fechaSolicitud;
-      saveArr('sol',solicitudes);
-      if(typeof rbRecalcCache==='function') rbRecalcCache();
-      logA(currentUser?currentUser.nombre:'Usuario','Eliminación ruta',
-        'Solicitud RB #'+reciente.consecutivo+' cerrada automáticamente por solicitud de Eliminación: '+sol.codigo+' — Consec. '+sol.consecutivo,
-        '','Ruta de Borrador');
-      toast('🔒 Solicitud RB #'+reciente.consecutivo+' de "'+sol.codigo+'" cerrada automáticamente','if');
-    }
+  if((sol.tipoSolicitud==='Eliminación'||sol.tipoSolicitud==='Eliminacion')&&sol.codigo){
+    rbCerrarPorCodigo(sol.codigo,'Eliminación — solicitud de novedad N°'+sol.consecutivo);
   }
   // Si es Creación, también registrar en codigosNuevos (se guardará en Codigo_Doc_Nuevos)
   if(sol.tipoSolicitud==='Creación'&&sol.codigo){
@@ -22660,166 +22809,145 @@ async function nfLeerPDF(input){
 }
 
 function nfPDFRellenarFormulario(txt){
+  // txt viene de PDF.js: líneas ordenadas por posición Y (de arriba a abajo)
   var lineas = txt.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
-
-  // ── Extractor: busca el valor que viene en la línea siguiente a la etiqueta ──
-  function sig(etiquetas){
-    for(var i=0;i<lineas.length;i++){
-      var li=lineas[i].toUpperCase();
-      for(var j=0;j<etiquetas.length;j++){
-        if(li.indexOf(etiquetas[j].toUpperCase())>=0){
-          for(var k=i+1;k<Math.min(i+5,lineas.length);k++){
-            var v=lineas[k].trim();
-            // Ignorar si es otra etiqueta conocida o está vacío
-            if(v && !/^[\d]+\.\s+(DATOS|INFORMACIÓN|DESCRIPCIÓN|MATRIZ|NOMBRE DEL CARGO|ANÁLISIS|REVISIÓN)/i.test(v)){
-              return v;
-            }
-          }
-        }
-      }
-    }
-    return '';
-  }
-
-  // ── Extractor en misma línea: "ETIQUETA valor" ────────────────────────
-  function mismo(etiqueta){
-    for(var i=0;i<lineas.length;i++){
-      var li=lineas[i];
-      var idx=li.toUpperCase().indexOf(etiqueta.toUpperCase());
-      if(idx>=0){
-        var resto=li.slice(idx+etiqueta.length).trim();
-        // Quitar dos puntos iniciales si los hay
-        if(resto.startsWith(':')) resto=resto.slice(1).trim();
-        if(resto) return resto;
-      }
-    }
-    return '';
-  }
 
   function setV(id,v){ var el=document.getElementById(id); if(el&&v!==undefined&&v!=='') el.value=v; }
   function setOpt(id,v){
-    var el=document.getElementById(id);
-    if(!el||!v) return;
-    var opts=Array.from(el.options);
+    var el=document.getElementById(id); if(!el||!v) return;
     var norm=function(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); };
     var vn=norm(v);
-    var match=opts.find(function(o){ return norm(o.value)===vn||norm(o.text)===vn; });
+    var match=Array.from(el.options).find(function(o){ return norm(o.value)===vn||norm(o.text)===vn; });
     if(match) el.value=match.value;
   }
 
-  // ── Parseo del texto conocido del PDF ────────────────────
-  // El texto tiene este patrón (confirmado con pdfplumber):
-  // "NOMBRES Y APELLIDOS CARGO ÁREA"
-  // "SENELIA ROSA ESPITIA PORTILLO DIGITADOR Producción"
-  // "FECHA DE SOLICITUD TIPO DE NOVEDAD N° SOLICITUD"
-  // "2026-06-01 Modificación"
-  // "5945"
-  // etc.
-
-  // Encontrar la línea de datos del solicitante (la que sigue a "NOMBRES Y APELLIDOS CARGO ÁREA")
+  // ── SECCIÓN 1 — Datos del solicitante ─────────────────────
   var nombre='', cargo='', area='';
   for(var i=0;i<lineas.length;i++){
     if(lineas[i].toUpperCase().indexOf('NOMBRES Y APELLIDOS')>=0 && lineas[i].toUpperCase().indexOf('CARGO')>=0){
-      // La línea siguiente tiene: NOMBRE    CARGO    AREA separados por espacios grandes
-      // Detectamos por posición: cargo empieza ~col 25, area ~col 50 del texto
-      var dataLine = lineas[i+1]||'';
-      // Dividir la línea en columnas usando la proporción del PDF:
-      // Nombre ocupa ~55% izquierda, cargo ~30% medio, area ~15% derecha
-      // En texto plano los separamos por doble espacio
-      var partes = dataLine.split(/\s{2,}/);
-      if(partes.length>=3){
-        nombre = partes[0].trim();
-        cargo  = partes[1].trim();
-        area   = partes[2].trim();
-      } else if(partes.length===2){
-        nombre = partes[0].trim();
-        cargo  = partes[1].trim();
-      } else {
-        // Fallback: todo el texto como nombre
-        nombre = dataLine.trim();
-      }
+      var dl=lineas[i+1]||''; var p=dl.split(/\s{2,}/);
+      if(p.length>=3){ nombre=p[0].trim(); cargo=p[1].trim(); area=p[2].trim(); }
+      else if(p.length===2){ nombre=p[0].trim(); cargo=p[1].trim(); }
+      else nombre=dl.trim();
       break;
     }
   }
 
-  // Fecha, tipo de novedad y consecutivo
   var fechaSol='', tipoNov='', consec='';
   for(var i=0;i<lineas.length;i++){
     if(lineas[i].toUpperCase().indexOf('FECHA DE SOLICITUD')>=0 && lineas[i].toUpperCase().indexOf('TIPO DE NOVEDAD')>=0){
-      var dl2=lineas[i+1]||'';
-      var p2=dl2.split(/\s{2,}/);
+      var dl2=lineas[i+1]||''; var p2=dl2.split(/\s{2,}/);
       if(p2.length>=2){ fechaSol=p2[0].trim(); tipoNov=p2[1].trim(); }
-      else if(p2.length===1){ fechaSol=p2[0].trim(); }
-      // Consecutivo puede estar en la misma línea al final o en la siguiente
+      else fechaSol=p2[0]||'';
       if(p2.length>=3) consec=p2[2].trim();
-      if(!consec){
-        var dl3=(lineas[i+2]||'').trim();
-        if(/^\d{3,6}$/.test(dl3)) consec=dl3;
-      }
+      if(!consec){ var dl3=(lineas[i+2]||'').trim(); if(/^\d{3,6}$/.test(dl3)) consec=dl3; }
       break;
     }
   }
 
-  // Código, tipo doc, versión
+  // ── SECCIÓN 2 — Información de la novedad ─────────────────
   var cod='', tipodoc='', version='';
   for(var i=0;i<lineas.length;i++){
     if(lineas[i].toUpperCase().indexOf('CÓDIGO DEL DOCUMENTO')>=0 && lineas[i].toUpperCase().indexOf('TIPO DE DOCUMENTO')>=0){
-      var dl=lineas[i+1]||'';
-      var p=dl.split(/\s{2,}/);
+      var dl=lineas[i+1]||''; var p=dl.split(/\s{2,}/);
       if(p.length>=3){ cod=p[0].trim(); tipodoc=p[1].trim(); version=p[2].trim(); }
       else if(p.length===2){ cod=p[0].trim(); tipodoc=p[1].trim(); }
-      else { cod=dl.trim(); }
+      else cod=dl.trim();
       break;
     }
   }
-
-  // Nombre del documento y origen
   var nomDoc='', origen='';
   for(var i=0;i<lineas.length;i++){
     if(lineas[i].toUpperCase().indexOf('NOMBRE DEL DOCUMENTO')>=0 && lineas[i].toUpperCase().indexOf('ORIGEN DE LA NOVEDAD')>=0){
-      var dl=lineas[i+1]||'';
-      var p=dl.split(/\s{2,}/);
-      if(p.length>=2){ nomDoc=p[0].trim(); origen=p[1].trim(); }
-      else { nomDoc=dl.trim(); }
+      var dl=lineas[i+1]||''; var p=dl.split(/\s{2,}/);
+      if(p.length>=2){ nomDoc=p[0].trim(); origen=p[1].trim(); } else nomDoc=dl.trim();
       break;
     }
   }
 
-  // Descripción (todo el texto entre sección 3 y sección 4)
-  var desc='';
-  var inDesc=false;
+  // ── SECCIÓN 3 — Descripción ───────────────────────────────
+  var desc=''; var inDesc=false;
   for(var i=0;i<lineas.length;i++){
     if(lineas[i].match(/^3\.\s*DESCRIPCI/i)){ inDesc=true; continue; }
     if(inDesc){
       if(lineas[i].match(/^4\.\s*(MATRIZ|NOMBRE)/i)) break;
-      if(desc) desc+=' ';
-      desc+=lineas[i];
+      desc+=(desc?' ':'')+lineas[i];
     }
   }
 
-  // Estatus y observaciones (sección 7)
+  // ── SECCIÓN 4 — Matriz de autorización ───────────────────
+  // Estructura: NOMBRE (x≈125) | CARGO (x≈347) | ROL (x≈512)
+  // Datos: "No Aplica" en x≈37, otro "No Aplica" en x≈252
+  // En texto plano: "No Aplica  No Aplica" en la línea de datos
+  var mtxFilas=[];
+  var inMtx=false;
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].match(/^4\.\s*MATRIZ/i)){ inMtx=true; continue; }
+    if(inMtx){
+      if(lineas[i].match(/^5\.\s*NOMBRE DEL CARGO/i)) break;
+      // Saltar la cabecera
+      if(lineas[i].toUpperCase()==='NOMBRE'||lineas[i].toUpperCase().indexOf('NOMBRE')===0&&lineas[i].toUpperCase().indexOf('CARGO')>0&&lineas[i].toUpperCase().indexOf('ROL')>0) continue;
+      if(!lineas[i].trim()) continue;
+      var p=lineas[i].split(/\s{2,}/);
+      if(p.length>=2){
+        mtxFilas.push({ nom:p[0].trim(), car:p[1].trim(), rol:(p[2]||'').trim() });
+      } else if(lineas[i].trim()){
+        mtxFilas.push({ nom:lineas[i].trim(), car:'', rol:'' });
+      }
+    }
+  }
+
+  // ── SECCIÓN 5 — Colaboradores a entrenar ─────────────────
+  var entrenarCargos=[];
+  var inEnt=false;
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].match(/^5\.\s*NOMBRE DEL CARGO/i)){ inEnt=true; continue; }
+    if(inEnt){
+      if(lineas[i].match(/^6\.\s*ANÁLISIS/i)) break;
+      var v=lineas[i].trim();
+      if(v && v.toUpperCase()!=='SIN CARGOS REGISTRADOS' && v.length>1) entrenarCargos.push(v);
+    }
+  }
+
+  // ── SECCIÓN 6 — Criticidad ────────────────────────────────
+  // El PDF tiene los valores de calificación en columna x≈417 (CALIFIC.)
+  // Los 4 valores de consecuencia son nc1..nc4, detección es nd1
+  // Del análisis del PDF: todos son "1" en este ejemplo
+  // Los valores aparecen en este orden en el texto: calidad(1), seguridad personas(1), seguridad paciente(1), desempeño(1), detección(1)
+  var critVals=[];
+  var inCrit=false;
+  for(var i=0;i<lineas.length;i++){
+    if(lineas[i].match(/^6\.\s*ANÁLISIS/i)){ inCrit=true; continue; }
+    if(inCrit){
+      if(lineas[i].match(/^7\.\s*REVISIÓN/i)) break;
+      // Buscar líneas que sean solo un número 1-3 (calificaciones)
+      var m=lineas[i].match(/^([1-3])\s*$/);
+      if(m) critVals.push(parseInt(m[1]));
+      // También buscar número al final de línea de criterio
+      var mEnd=lineas[i].match(/\s+([1-3])\s*$/);
+      if(mEnd&&!m) critVals.push(parseInt(mEnd[1]));
+    }
+  }
+  // critVals[0]=nc1(calidad), [1]=nc2(seg.personas), [2]=nc3(seg.paciente), [3]=nc4(desempeño), [4]=nd1(detección)
+
+  // ── SECCIÓN 7 — Revisión ──────────────────────────────────
   var estatus='', obs='';
   for(var i=0;i<lineas.length;i++){
     if(lineas[i].toUpperCase().indexOf('SOLICITUD')>=0 && lineas[i].toUpperCase().indexOf('OBSERVACIONES')>=0){
-      var dl=lineas[i+1]||'';
-      var p=dl.split(/\s{2,}/);
-      if(p.length>=2){ estatus=p[0].trim(); obs=p[1].trim(); }
-      else { estatus=dl.trim(); }
+      var dl=lineas[i+1]||''; var p=dl.split(/\s{2,}/);
+      if(p.length>=2){ estatus=p[0].trim(); obs=p[1].trim(); } else estatus=dl.trim();
       break;
     }
   }
 
-  console.log('[nfPDF] Datos extraídos:',{consec,nombre,cargo,area,fechaSol,tipoNov,cod,tipodoc,version,nomDoc,origen,desc,estatus,obs});
+  console.log('[nfPDF]',{consec,nombre,cargo,area,tipoNov,cod,version,nomDoc,origen,desc,mtxFilas,entrenarCargos,critVals,estatus,obs});
 
-  // ── Poblar formulario ─────────────────────────────────────
-  if(nombre) setV('nf-nombre', nombre);
-  if(cargo)  setV('nf-cargo',  cargo);
-  if(area)   setV('nf-area',   area);
+  // ── Poblar campos básicos ──────────────────────────────────
+  if(nombre)  setV('nf-nombre', nombre);
+  if(cargo)   setV('nf-cargo',  cargo);
+  if(area)    setV('nf-area',   area);
   if(tipoNov) setOpt('nf-tipo', tipoNov);
-  if(cod){
-    setV('nf-cod', cod.toUpperCase());
-    if(typeof nfBuscarDoc==='function') setTimeout(function(){ nfBuscarDoc(cod.toUpperCase()); },200);
-  }
+  if(cod){ setV('nf-cod', cod.toUpperCase()); if(typeof nfBuscarDoc==='function') setTimeout(function(){ nfBuscarDoc(cod.toUpperCase()); },200); }
   if(tipodoc) setV('nf-tipodoc', tipodoc);
   if(version) setV('nf-version', version);
   if(nomDoc)  setV('nf-nombredoc', nomDoc);
@@ -22828,32 +22956,66 @@ function nfPDFRellenarFormulario(txt){
   if(obs)     setV('nf-obs', obs);
   if(estatus) setOpt('nf-estatus', estatus);
 
-  // ── Consecutivo y modo edición ────────────────────────────
-  var consecNum = consec ? parseInt(consec) : null;
-  if(consecNum && consecNum > 0){
-    _nfConsecActual  = consecNum;
-    _nfModoEdicion   = consecNum;
-    var badge = document.getElementById('nf-consec-badge');
-    if(badge){
-      badge.textContent = consecNum;
-      badge.style.background = 'var(--A)';
-      badge.title = 'Editando solicitud existente #'+consecNum;
-    }
-    // Aviso de modo edición
-    var avisoId = 'nf-edicion-aviso';
-    if(!document.getElementById(avisoId)){
-      var av = document.createElement('div');
-      av.id  = avisoId;
-      av.style.cssText = 'background:#fff9e8;border:1px solid #ffd97a;border-radius:6px;padding:8px 12px;font-size:11px;color:#7a4e00;margin-bottom:10px;display:flex;align-items:center;gap:8px';
-      av.innerHTML = '<span style="font-size:16px">✏️</span>'
-        +'<span>Modo edición — Solicitud <strong>#'+consecNum+'</strong> cargada desde PDF. Al guardar se actualizará esta línea sin crear una nueva.</span>'
-        +'<button onclick="nfSalirModoEdicion()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#a06000;font-size:15px" title="Cancelar edición">✕</button>';
-      var pg = document.getElementById('pg-novedad');
-      if(pg) pg.insertBefore(av, pg.children[1]);
+  // ── Poblar Sección 4 — Matriz de autorización ─────────────
+  var mtxBody=document.getElementById('nf-mtx-body');
+  if(mtxBody && mtxFilas.length){
+    mtxBody.innerHTML='';
+    mtxFilas.forEach(function(f,idx){
+      if(typeof nfMtxAgregarFila==='function') nfMtxAgregarFila();
+      var nomEl=document.getElementById('nfm-nom-'+idx);
+      var carEl=document.getElementById('nfm-car-'+idx);
+      var rolEl=document.getElementById('nfm-rol-'+idx);
+      if(nomEl) nomEl.value=f.nom;
+      if(carEl) carEl.value=f.car;
+      if(rolEl && f.rol){
+        var opts=Array.from(rolEl.options);
+        var m=opts.find(function(o){ return o.value===f.rol||o.text===f.rol; });
+        if(m) rolEl.value=m.value;
+      }
+    });
+  }
+
+  // ── Poblar Sección 5 — Colaboradores a entrenar ───────────
+  if(entrenarCargos.length){
+    var entBody=document.getElementById('nf-entrenar-body');
+    if(entBody){
+      entBody.innerHTML='';
+      entrenarCargos.forEach(function(cargo){
+        if(typeof nfEntrenarAgregarFila==='function') nfEntrenarAgregarFila();
+        var filas=entBody.querySelectorAll('input[type="text"]');
+        var ultimo=filas[filas.length-1];
+        if(ultimo) ultimo.value=cargo;
+      });
     }
   }
 
-  _nfPDFGenerado = true;
+  // ── Poblar Sección 6 — Criticidad ─────────────────────────
+  var critIds=['nc1','nc2','nc3','nc4'];
+  critIds.forEach(function(id,idx){
+    if(critVals[idx]!==undefined){ var el=document.getElementById(id); if(el){ el.value=critVals[idx]; } }
+  });
+  if(critVals[4]!==undefined){ var elD=document.getElementById('nd1'); if(elD) elD.value=critVals[4]; }
+  if(typeof nfCalcCrit==='function') setTimeout(function(){ nfCalcCrit(); },300);
+
+  // ── Consecutivo y modo edición ────────────────────────────
+  var consecNum=consec?parseInt(consec):null;
+  if(consecNum&&consecNum>0){
+    _nfConsecActual=consecNum; _nfModoEdicion=consecNum;
+    var badge=document.getElementById('nf-consec-badge');
+    if(badge){ badge.textContent=consecNum; badge.style.background='var(--A)'; badge.title='Editando solicitud existente #'+consecNum; }
+    var avisoId='nf-edicion-aviso';
+    if(!document.getElementById(avisoId)){
+      var av=document.createElement('div');
+      av.id=avisoId;
+      av.style.cssText='background:#fff9e8;border:1px solid #ffd97a;border-radius:6px;padding:8px 12px;font-size:11px;color:#7a4e00;margin-bottom:10px;display:flex;align-items:center;gap:8px';
+      av.innerHTML='<span style="font-size:16px">✏️</span>'
+        +'<span>Modo edición — Solicitud <strong>#'+consecNum+'</strong> cargada desde PDF. Al guardar se actualizará esta línea sin crear una nueva.</span>'
+        +'<button onclick="nfSalirModoEdicion()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#a06000;font-size:15px" title="Cancelar edición">✕</button>';
+      var pg=document.getElementById('pg-novedad');
+      if(pg) pg.insertBefore(av,pg.children[1]);
+    }
+  }
+  _nfPDFGenerado=true;
   toast('✅ PDF cargado — revisa los datos y guarda cuando estés listo','ok');
 }
 
