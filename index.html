@@ -1118,32 +1118,15 @@ tbody tr:last-child td{border-bottom:none}
     </div>
   </div>
   <div class="pg" id="pg-audit">
-  <div id="aud-cont">
-    <!-- KPIs, gráfico y tabla se renderizan aquí -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="sh">
-        <div class="st">Bitácora de auditoría</div>
-        <select class="fsel" id="f-aud" onchange="renderAudit()" style="min-width:160px">
-          <option value="">Todas las actividades</option>
-          <option value="Creacion">Creacion</option>
-          <option value="Edicion">Edicion</option>
-          <option value="Eliminacion">Eliminacion</option>
-          <option value="Aprobacion">Aprobacion</option>
-          <option value="Rechazo">Rechazo</option>
-          <option value="Importacion">Importacion</option>
-          <option value="Notificacion">Notificacion</option>
-          <option value="Obsoleto">Obsoleto</option>
-          <option value="Extension Vigencia">Extension Vigencia</option>
-          <option value="Copia controlada">Copia controlada</option>
-          <option value="Envio a flujo">Envio a flujo</option>
-          <option value="Consulta">Consulta</option>
-          <option value="Descarga">Descarga</option>
-          <option value="Inicializacion">Inicializacion</option>
-        </select>
+    <div id="aud-cont" style="padding:2px">
+      <!-- renderAudit() construye todo el contenido aquí -->
+      <div class="emp" style="padding:40px 20px">
+        <div style="font-size:28px;margin-bottom:8px">📋</div>
+        <div style="font-size:13px;font-weight:600;color:var(--tx)">Auditoría</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px">Navega a este módulo para cargar los registros</div>
       </div>
     </div>
   </div>
-</div>
 
   <div class="pg" id="pg-rep">
     <div class="kg" id="rep-kg"></div>
@@ -7801,20 +7784,25 @@ function dashFiltroArea(area) {
 
 
 function audLimpiarFiltros(){
-  var ids=['f-aud','f-aud-usr','f-aud-q'];
-  ids.forEach(function(id){
-    var el=document.getElementById(id);
-    if(!el) return;
-    if(el.tagName==='SELECT') el.selectedIndex=0;
-    else el.value='';
-  });
+  window._audF=''; window._audUsr=''; window._audQ='';
+  var elF=document.getElementById('f-aud'); if(elF) elF.value='';
+  var elU=document.getElementById('f-aud-usr'); if(elU) elU.value='';
+  var elQ=document.getElementById('f-aud-q'); if(elQ) elQ.value='';
   renderAudit();
 }
 
 function renderAudit(){
-  var f=(document.getElementById('f-aud')||{}).value||'';
-  var fUsr=((document.getElementById('f-aud-usr')||{}).value||'').toLowerCase().trim();
-  var fQ=((document.getElementById('f-aud-q')||{}).value||'').toLowerCase().trim();
+  // Leer valores actuales de los controles (si existen en DOM)
+  var elF=document.getElementById('f-aud');
+  var elUsr=document.getElementById('f-aud-usr');
+  var elQ=document.getElementById('f-aud-q');
+  // Persistir en variables de estado para sobrevivir al innerHTML replace
+  if(elF) window._audF=elF.value||'';
+  if(elUsr) window._audUsr=(elUsr.value||'').toLowerCase().trim();
+  if(elQ) window._audQ=(elQ.value||'').toLowerCase().trim();
+  var f=window._audF||'';
+  var fUsr=window._audUsr||'';
+  var fQ=window._audQ||'';
   var lista=auditoriaEmpresa().filter(function(x){
     if(f&&x.a!==f) return false;
     if(fUsr&&(x.u||'').toLowerCase().indexOf(fUsr)<0) return false;
@@ -7877,6 +7865,7 @@ function renderAudit(){
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
     +'<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--tx)">Registro de actividad</div>'
     +'<div style="font-size:11px;color:var(--tx3);margin-top:2px">'+lista.length+' registros · <span style="color:#00695C">📊 Sincronizado con hoja Auditrail del Excel</span></div></div>'
+    +'<button class="btn gh sm" onclick="dashActualizar()" title="Recargar desde SharePoint">🔄 Actualizar</button>'
     +'<input type="text" class="fi" id="f-aud-q" placeholder="Buscar en detalle..." oninput="renderAudit()" value="'+fQ+'" style="width:180px;font-size:11px">'
     +'<input type="text" class="fi" id="f-aud-usr" placeholder="Usuario..." oninput="renderAudit()" value="'+fUsr+'" style="width:130px;font-size:11px">'
     +'<select class="fsel" id="f-aud" onchange="renderAudit()" style="min-width:180px">'
@@ -16109,7 +16098,11 @@ async function odGuardarListado(silencioso){
         var nCop='Copias_Controladas';
         if(wbCop.Sheets[nCop])wbCop.Sheets[nCop]=wsCop2; else XLSX.utils.book_append_sheet(wbCop,wsCop2,nCop);
         odEscribirActasEnExcel(wbCop);
-        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbCop,_AUDIT_MODULOS_COPIAS);
+        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length){
+          _auditAppendToWB(wbCop,_AUDIT_MODULOS_COPIAS);
+          var _copLow=(_AUDIT_MODULOS_COPIAS||[]).map(function(m){return m.toLowerCase();});
+          _auditPendientes=_auditPendientes.filter(function(a){var mod=(a.modulo||'').toLowerCase();return !_copLow.some(function(m){return mod.indexOf(m)>=0;});});
+        }
         await _escribirArchivo(OD_ARCHIVOS.copias,wbCop);
       }catch(eCop){console.warn('Error guardando CopiaControladas:',eCop);}
 
@@ -16128,7 +16121,11 @@ async function odGuardarListado(silencioso){
         var wbSol2=solData2?XLSX.read(solData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
         if(solicitudes&&solicitudes.length) rbEscribirHoja(wbSol2);
         try{odEscribirCodigosDocNuevos(wbSol2);}catch(eCN){console.warn('CDN:',eCN);}
-        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbSol2,_AUDIT_MODULOS_SOL);
+        if(typeof _auditAppendToWB==='function'&&_auditPendientes.length){
+          _auditAppendToWB(wbSol2,_AUDIT_MODULOS_SOL);
+          var _solLow=(_AUDIT_MODULOS_SOL||[]).map(function(m){return m.toLowerCase();});
+          _auditPendientes=_auditPendientes.filter(function(a){var mod=(a.modulo||'').toLowerCase();return !_solLow.some(function(m){return mod.indexOf(m)>=0;});});
+        }
         await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2);
       }catch(eSol){console.warn('Error guardando Solicitudes:',eSol);}
 
@@ -16186,20 +16183,27 @@ async function odGuardarListado(silencioso){
       return;
     }
 
-    // ── AUDITRAIL: Escribir en ListadoMaestro y limpiar pendientes ──
+    // ── AUDITRAIL: Escribir en ListadoMaestro ANTES de serializar el buffer ──
     if(_auditPendientes.length>0){
       try{
-        // LM: módulos propios
+        // LM: módulos propios — escribir en wb ANTES de XLSX.write()
         if(typeof _auditAppendToWB==='function') _auditAppendToWB(wb, _AUDIT_MODULOS_LM);
         else odEscribirAuditrailEnExcel(wb);
-        // Limpiar pendientes (ya escritos en cada archivo)
-        _auditPendientes=[];
+        // Solo eliminar los pendientes de LM — los de otros módulos se escriben en sus archivos
+        var _lmLow=(_AUDIT_MODULOS_LM||[]).map(function(m){return m.toLowerCase();});
+        _auditPendientes=_auditPendientes.filter(function(a){
+          var mod=(a.modulo||'').toLowerCase();
+          return !_lmLow.some(function(m){return mod.indexOf(m)>=0;});
+        });
       }catch(eAud){
         console.warn('[OD] Error auditrail LM:',eAud);
         try{odEscribirAuditrailEnExcel(wb);}catch(e2){}
-        _auditPendientes=[];
       }
     }
+
+    // Regenerar buffer DESPUÉS de escribir el auditrail en wb
+    buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+
     // Actualizar timestamp de referencia
     _odTsUltimaCarga=tsArchivoActual;
     _odLastModified=tsArchivoActual;
