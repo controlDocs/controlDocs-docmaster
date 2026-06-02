@@ -1523,8 +1523,8 @@ tbody tr:last-child td{border-bottom:none}
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
           <div style="font-size:12px;font-weight:700;color:var(--tx)">Relación de actas generadas</div>
           <div style="display:flex;align-items:center;gap:8px">
-            <input id="ecc-actas-filtro" type="text" placeholder="Buscar por código..." class="fi"
-              style="width:220px;font-size:12px"
+            <input id="ecc-actas-filtro" type="text" placeholder="Buscar por N° de acta, código o tipo..." class="fi"
+              style="width:280px;font-size:12px"
               oninput="eccFiltrarActas(this.value)"
               onkeydown="if(event.key==='Escape'){this.value='';eccFiltrarActas('');}">
             <button class="btn gh sm" onclick="document.getElementById('ecc-actas-filtro').value='';eccFiltrarActas('')">✕ Limpiar</button>
@@ -3107,15 +3107,17 @@ function recalcEstados(){
     }
   });
   if(cambios>0){
-    // No guardar en localStorage en cada recalc — muy lento con miles de registros
-    // Solo marcar pendiente para guardar en SharePoint
-    // Guardar cambios en Excel de OneDrive inmediatamente
+    console.log('✅ '+cambios+' documentos actualizaron su estado automáticamente');
+    // No guardar inmediatamente después de una carga fresca (evita loop de escritura)
+    if(window._odRecienCargado){
+      // Datos recién cargados desde Excel — no reescribir inmediatamente
+      return cambios;
+    }
     if(OD&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},15000); // 15s de gracia
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
     }
-    console.log('✅ '+cambios+' documentos actualizaron su estado automáticamente');
   }
   return cambios;
 }
@@ -5913,7 +5915,8 @@ function generarActaCopias() {
   var actaReg={
     codigo:codConsec, tipo:tipo, fecha:new Date().toISOString(),
     total:lista.length,
-    items:lista.map(function(x){return {codigo:x.codigo,area:x.area,responsable:x.responsable,version:x.version};})
+    items:lista.map(function(x){return {codigo:x.codigo,area:x.area,subarea:x.subarea||'',responsable:x.responsable,version:x.version};}),
+    htmlActa:html  // guardar el HTML completo para reimpresión
   };
   window.actasCopias.push(actaReg);
   try{localStorage.setItem('actasCopias',JSON.stringify(window.actasCopias));}catch(e){}
@@ -11409,6 +11412,7 @@ function renderEccActas(){
       +'<th style="padding:6px 10px;background:#00695C;color:#fff;text-align:left;font-size:10px">Fecha</th>'
       +'<th style="padding:6px 10px;background:#00695C;color:#fff;text-align:center;font-size:10px">Total</th>'
       +'<th style="padding:6px 10px;background:#00695C;color:#fff;text-align:left;font-size:10px">Documentos</th>'
+      +'<th style="padding:6px 10px;background:#00695C;color:#fff;text-align:center;font-size:10px">Acciones</th>'
       +'</tr></thead><tbody>'
       +actasEntrega.slice().reverse().map(function(a,i){
         var bg=i%2===0?'#fff':'#F1FAF9';
@@ -11418,12 +11422,18 @@ function renderEccActas(){
         var fechaStr='';try{fechaStr=fDL(a.fecha);}catch(e){fechaStr=a.fecha||'';}
         var todosCodsE=(a.items||[]).map(function(x){return x.codigo||'';}).join(' ').toUpperCase();
         var docsStr=(a.items||[]).slice(0,3).map(function(x){return x.codigo;}).join(', ')+(a.items&&a.items.length>3?' +más...':'');
-        return '<tr class="ecc-acta-card" data-codigos="'+todosCodsE+'" style="background:'+bg+'">'
+        var realIdx2=todasActas.indexOf(a);
+        return '<tr class="ecc-acta-card" data-codigos="'+todosCodsE+'" data-acta="'+(a.codigo||'').toLowerCase()+'" style="background:'+bg+'">'
           +'<td style="padding:6px 10px;font-family:monospace;font-weight:700;color:#00695C;font-size:10px;border-bottom:1px solid #E0F2F1">'+a.codigo+'</td>'
           +'<td style="padding:6px 10px;border-bottom:1px solid #E0F2F1"><span style="background:'+tipoBg+';color:'+tipoColor+';border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">'+tipoTxt+'</span></td>'
           +'<td style="padding:6px 10px;font-size:10px;color:#5e9090;border-bottom:1px solid #E0F2F1">'+fechaStr+'</td>'
           +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:#00695C;border-bottom:1px solid #E0F2F1">'+a.total+'</td>'
           +'<td style="padding:6px 10px;font-size:10px;color:var(--tx3);border-bottom:1px solid #E0F2F1">'+docsStr+'</td>'
+          +'<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #E0F2F1">'
+          +(a.htmlActa
+            ? '<button class="btn sm" style="background:#006860;color:#fff;font-size:10px" onclick="eccReimprimirActa('+realIdx2+')" title="Reimprimir acta '+a.codigo+'">🖨️ Reimprimir</button>'
+            : '<span style="font-size:9px;color:var(--tx3)">Sin HTML</span>')
+          +'</td>'
           +'</tr>';
       }).join('')
       +'</tbody></table></div>';
@@ -11465,7 +11475,7 @@ function renderEccActas(){
   box.innerHTML=htmlVerif+htmlEntrega+htmlInsp;
 }
 
-//  FILTRO ACTAS POR CÓDIGO 
+//  FILTRO ACTAS POR N° DE ACTA, CÓDIGO O TIPO 
 function eccFiltrarActas(q){
   q=(q||'').trim().toLowerCase();
   var res=document.getElementById('ecc-actas-resultado');
@@ -11479,17 +11489,138 @@ function eccFiltrarActas(q){
   var found=0;
   box.querySelectorAll('.ecc-acta-card').forEach(function(el){
     var codigos=(el.getAttribute('data-codigos')||'').toLowerCase();
-    var ok=codigos.indexOf(q)>=0;
+    var nroActa=(el.getAttribute('data-acta')||'').toLowerCase();
+    // Buscar en: número de acta, códigos de documentos, tipo de acta
+    var ok=nroActa.indexOf(q)>=0||codigos.indexOf(q)>=0;
     el.style.display=ok?'':'none';
     if(ok) found++;
   });
   if(res){
     res.style.display='block';
     res.textContent=found>0
-      ? '🔍 '+found+' acta(s) contienen el código buscado'
-      : '❌ Ninguna acta contiene ese código';
+      ? '🔍 '+found+' acta(s) encontrada(s)'
+      : '❌ No se encontró ningún acta con ese criterio';
     res.style.color=found>0?'var(--T3)':'var(--R)';
   }
+}
+
+//  REIMPRIMIR ACTA DESDE HISTORIAL 
+function eccReimprimirActa(idx){
+  var todasActas=window.actasCopias||[];
+  var a=todasActas[idx];
+  if(!a){toast('Acta no encontrada','er');return;}
+
+  var html=a.htmlActa||eccRegenerarHtmlActa(a);
+  if(!html){toast('No se pudo recuperar el HTML de este acta','er');return;}
+
+  var win=window.open('','_blank','width=940,height=1100,scrollbars=yes');
+  if(!win){toast('Permite ventanas emergentes para reimprimir el acta','er');return;}
+  win.document.write(html);
+  win.document.close();
+  setTimeout(function(){ try{win.print();}catch(e){} },800);
+  logA(currentUser?currentUser.nombre:'Usuario','Acta Copias','Reimpresión de '+a.codigo);
+}
+
+// Regenerar HTML de un acta desde sus metadatos guardados
+function eccRegenerarHtmlActa(a){
+  var tipo=a.tipo||'obs';
+  var codConsec=a.codigo||'—';
+  var lista=a.items||[];
+  var fechaGen='';try{fechaGen=fDL(a.fecha);}catch(e){fechaGen=a.fecha||'';}
+  var fechaHora='';try{fechaHora=fTS(new Date(a.fecha));}catch(e){fechaHora=a.fecha||'';}
+
+  var tipoTxt=tipo==='obs'?'RECOLECCIÓN DE COPIAS CONTROLADAS':'ENTREGA DE COPIAS CONTROLADAS';
+  var accionTxt=tipo==='obs'?'RECOLECTAR Y REEMPLAZAR':'ENTREGAR Y REEMPLAZAR';
+  var colorBorder=tipo==='obs'?'#d63b3b':'#00A99E';
+  var colorBg=tipo==='obs'?'#fde8e8':'#e0f5f3';
+
+  // Agrupar por responsable
+  var porResp={};
+  lista.forEach(function(x){
+    var key=(x.responsable||'Sin responsable').trim();
+    if(!porResp[key])porResp[key]={responsable:key,filas:[]};
+    porResp[key].filas.push(x);
+  });
+  var grupos=Object.keys(porResp).map(function(k){return porResp[k];});
+
+  var rowNum=0;
+  var rowsHtml='';
+  grupos.forEach(function(g){
+    var n=g.filas.length;
+    g.filas.forEach(function(x,fi){
+      var dRef=docsEmpresa().find(function(d){return d.codigoActual===x.codigo;});
+      var verActual=x.version||(dRef?dRef.version:'-');
+      rowNum++;
+      var isFirst=fi===0;
+      rowsHtml+='<tr style="background:'+(rowNum%2===0?'#f9f9f9':'#fff')+'">'
+        +'<td style="border:1px solid #bbb;padding:5px 7px;text-align:center;font-size:9px;color:#666">'+rowNum+'</td>'
+        +'<td style="border:1px solid #bbb;padding:5px 8px;font-weight:700;color:#006860;font-size:10px">'+x.codigo+'</td>'
+        +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.area||'-')+'</td>'
+        +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.subarea||'-')+'</td>'
+        +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;font-size:10px">'
+        +'<input type="checkbox" style="width:15px;height:15px;cursor:pointer;accent-color:'+colorBorder+'">'
+        +'</td>'
+        +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;font-weight:700;color:'+colorBorder+';font-size:10px">'+verActual+'</td>'
+        +(isFirst
+          ?'<td rowspan="'+n+'" style="border:1px solid #bbb;padding:5px 8px;text-align:center;vertical-align:middle;min-width:90px;background:#fffef0">'
+           +'<div style="min-height:40px;border-bottom:1px solid #aaa;margin:0 8px 2px"></div>'
+           +'<div style="font-size:8px;color:#888;text-align:center">'+g.responsable+'</div></td>'
+          :'')
+        +'</tr>';
+    });
+  });
+
+  return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+    +'<title>'+codConsec+' — F-SOP-0001-4</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",Arial,sans-serif}'
+    +'body{padding:18px 24px;color:#0a2828;font-size:11px}'
+    +'table{width:100%;border-collapse:collapse}'
+    +'.hdr-cell{background:#006860;color:#fff;font-weight:700;font-size:13px;text-transform:uppercase;padding:9px 14px}'
+    +'.lbl{background:#f0f4f3;font-weight:700;font-size:9px;text-transform:uppercase;color:#336666;padding:5px 9px;border:1px solid #bbb}'
+    +'.val{padding:5px 9px;border:1px solid #bbb;font-size:10px}'
+    +'.cod-badge{background:'+colorBg+';border:2px solid '+colorBorder+';border-radius:7px;padding:8px 14px;margin:8px 0;display:flex;align-items:center;justify-content:space-between}'
+    +'input[type=checkbox]{width:15px;height:15px;cursor:pointer}'
+    +'@media print{body{padding:8px 14px}input[type=checkbox]{print-color-adjust:exact;-webkit-print-color-adjust:exact}}'
+    +'</style></head><body>'
+    +'<table style="margin-bottom:8px"><tr>'
+    +'<td class="hdr-cell" style="width:62%">'+tipoTxt+'</td>'
+    +'<td style="border:1px solid #bbb;padding:7px 11px;font-size:8px;line-height:1.9;text-align:right">'
+    +'<strong>CÓDIGO:</strong> F-SOP-0001-4<br><strong>VERSIÓN:</strong> 07<br>'
+    +'<strong>ACTA N°:</strong> '+codConsec+'<br><strong>FECHA:</strong> '+fechaGen+'</td></tr></table>'
+    +'<div class="cod-badge">'
+    +'<div>'
+    +'<div style="font-size:8px;font-weight:700;text-transform:uppercase;color:#336666;margin-bottom:2px">NÚMERO DE ACTA</div>'
+    +'<div style="font-size:20px;font-weight:900;color:'+colorBorder+';letter-spacing:1px">'+codConsec+'</div>'
+    +'<div style="font-size:8px;color:#5e9090;margin-top:2px">Conserve este número para búsqueda y seguimiento · '+fechaHora+'</div>'
+    +'</div><div style="font-size:26px">'+(tipo==='obs'?'📦':'📋')+'</div></div>'
+    +'<table style="margin-bottom:8px"><tr>'
+    +'<td class="lbl" style="width:22%">TIPO DE ACTA</td>'
+    +'<td class="val" style="width:28%;font-weight:600">'+tipoTxt+'</td>'
+    +'<td class="lbl" style="width:18%">ACCIÓN REQUERIDA</td>'
+    +'<td class="val" style="font-weight:700;color:'+colorBorder+'">'+accionTxt+'</td>'
+    +'</tr><tr>'
+    +'<td class="lbl">TOTAL COPIAS</td>'
+    +'<td class="val" style="font-weight:700;font-size:13px;color:#00A99E">'+lista.length+'</td>'
+    +'<td class="lbl">VERSIÓN DEL DOCUMENTO</td>'
+    +'<td class="val">'+(lista[0]?(function(){var d=docs.find(function(x){return x.codigoActual===lista[0].codigo;});return d?d.version:lista[0].version||'—';})():'—')+'</td>'
+    +'</tr></table>'
+    +'<div style="background:#00A99E;color:#fff;padding:4px 9px;font-size:9px;font-weight:700;text-transform:uppercase;border-radius:3px 3px 0 0">RELACIÓN DE COPIAS</div>'
+    +'<table style="margin-bottom:10px"><thead><tr>'
+    +'<th style="border:1px solid #bbb;padding:5px 7px;background:#f0f4f3;font-size:9px;text-align:center;width:4%">#</th>'
+    +'<th style="border:1px solid #bbb;padding:5px 8px;background:#f0f4f3;font-size:9px;text-align:left">CÓDIGO</th>'
+    +'<th style="border:1px solid #bbb;padding:5px 8px;background:#f0f4f3;font-size:9px;text-align:left">ÁREA</th>'
+    +'<th style="border:1px solid #bbb;padding:5px 8px;background:#f0f4f3;font-size:9px;text-align:left">SUBÁREA</th>'
+    +'<th style="border:1px solid #bbb;padding:5px 8px;background:#f0f4f3;font-size:9px;text-align:center;width:14%">DEVOLUCIÓN DE COPIAS OBSOLETAS</th>'
+    +'<th style="border:1px solid #bbb;padding:5px 8px;background:#f0f4f3;font-size:9px;text-align:center;width:10%">VER. ACTUAL</th>'
+    +'<th style="border:1px solid #bbb;padding:5px 8px;background:#f0f4f3;font-size:9px;text-align:center;width:14%">FIRMA RESPONSABLE</th>'
+    +'</tr></thead><tbody>'+rowsHtml+'</tbody></table>'
+    +'<div style="margin-top:24px;display:flex;justify-content:center">'
+    +'<div style="width:260px;text-align:center">'
+    +'<div style="min-height:46px;border-bottom:1.5px solid #0a2828;margin-bottom:5px"></div>'
+    +'<div style="font-size:10px;font-weight:700;color:#0a2828">Entregó / Responsable Sistema De Documentación</div>'
+    +'</div></div>'
+    +'<div style="margin-top:16px;font-size:8px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:5px">'
+    +'F-SOP-0001-4 V07 · '+codConsec+' · '+fechaGen+'</div></body></html>';
 }
 
 // ============================================================
@@ -14645,9 +14776,10 @@ async function odLeerHojaActasEntrega(buf, wb){
     // Cols 5+ son items (código, área, responsable, versión) separados por |
     var itemsRaw=celdas[r+'_5']||'';
     var items=itemsRaw?itemsRaw.split('||').map(function(s){
-      var p=s.split('|');return{codigo:p[0]||'',area:p[1]||'',responsable:p[2]||'',version:p[3]||''};
+      var p=s.split('|');return{codigo:p[0]||'',area:p[1]||'',responsable:p[2]||'',version:p[3]||'',subarea:p[4]||''};
     }):[];
-    actas.push({codigo:cod,tipo:tipo,fecha:fecha,total:total,items:items});
+    var htmlActa=celdas[r+'_6']||'';
+    actas.push({codigo:cod,tipo:tipo,fecha:fecha,total:total,items:items,htmlActa:htmlActa||undefined});
   }
   return actas;
 }
@@ -14670,11 +14802,16 @@ function odEscribirActasEnExcel(wb){
     var fechaStr='';try{fechaStr=fDL(a.fecha);}catch(e){fechaStr=a.fecha||'';}
     ws['C'+row]={v:fechaStr,w:fechaStr,t:'s'};
     ws['D'+row]={v:a.total,w:String(a.total),t:'n'};
-    var itemsStr=(a.items||[]).map(function(x){return (x.codigo||'')+'|'+(x.area||'')+'|'+(x.responsable||'')+'|'+(x.version||'');}).join('||');
+    var itemsStr=(a.items||[]).map(function(x){return (x.codigo||'')+'|'+(x.area||'')+'|'+(x.responsable||'')+'|'+(x.version||'')+'|'+(x.subarea||'');}).join('||');
     ws['E'+row]={v:itemsStr,w:itemsStr,t:'s'};
+    // Columna F: guardar HTML del acta (truncado a 32767 si es necesario)
+    if(a.htmlActa){
+      var htmlTrunc=a.htmlActa.length>32767?a.htmlActa.slice(0,32764)+'...':a.htmlActa;
+      ws['F'+row]={v:htmlTrunc,w:htmlTrunc,t:'s'};
+    }
   });
 
-  ws['!ref']='A1:E'+(actas.length+1);
+  ws['!ref']='A1:F'+(actas.length+1);
 
   // Agregar o reemplazar hoja
   var idx=wb.SheetNames.indexOf(OD_HOJA_ACTAS);
@@ -15681,6 +15818,9 @@ async function odCargarListado(){
     docs=nuevoDocs;
     saveDocs(docs);
     ccLimpiarCacheEstados(); // Estado de copias depende del Listado Maestro — limpiar cache
+    // Marcar datos como recién cargados para evitar re-save inmediato
+    window._odRecienCargado=true;
+    setTimeout(function(){ window._odRecienCargado=false; }, 30000);
     recalcLC(); recalcEstados(); renderDash(); updBadges(); populateFiltros();
     if(typeof renderDocs==='function') renderDocs();
     if(typeof renderCopias==='function') renderCopias();
@@ -16051,11 +16191,13 @@ async function odGuardarListado(silencioso){
         // Solo escribir si tiene valor — si no, preservar lo que hay en el Excel
         if(ci===24 && !String(val).trim()) return;
 
-        // Columnas de fecha → guardar como número serial + formato fecha
+        // Columnas de fecha → guardar como texto ISO YYYY-MM-DD
+        // Nota: escribir como texto evita problemas de locale en Excel/XLSX
+        // El parser de lectura acepta tanto serial como texto ISO
         if(COLS_FECHA[ci] && val){
-          var serial=fechaASerial(String(val));
-          if(serial){
-            wsLM[addr]={v:serial, t:'n', z:'YYYY-MM-DD'};
+          var dateStr=String(val).trim();
+          if(dateStr.match(/^\d{4}-\d{2}-\d{2}$/)){
+            wsLM[addr]={v:dateStr, t:'s'};
             return;
           }
         }
