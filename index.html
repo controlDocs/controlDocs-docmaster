@@ -5804,6 +5804,16 @@ function generarActaCopias() {
   var grupos = Object.values ? Object.values(porResp) : Object.keys(porResp).map(function(k){return porResp[k];});
 
   //  Construir filas agrupadas 
+  // Enriquecer items con subarea desde copias controladas si no está almacenada
+  lista.forEach(function(x){
+    if(!x.subarea){
+      var copia=(copias||[]).find(function(c){
+        return c.codigo===x.codigo&&c.area===x.area&&c.responsable===x.responsable;
+      });
+      if(copia) x.subarea=copia.subarea||'';
+    }
+  });
+
   var rowNum=0;
   var rowsHtml='';
   grupos.forEach(function(g){
@@ -14794,7 +14804,7 @@ function odEscribirActasEnExcel(wb){
   var actas=window.actasCopias;
   var ws={};
   // Encabezados
-  var hdrs=['ACTA N°','TIPO','FECHA','TOTAL COPIAS','DOCUMENTOS (código|área|responsable|versión)'];
+  var hdrs=['ACTA N°','TIPO','FECHA','TOTAL COPIAS','DOCUMENTOS (código|área|responsable|versión|subárea)','HTML ACTA'];
   hdrs.forEach(function(h,ci){ws[_numToCol(ci+1)+'1']={v:h,w:h,t:'s'};});
 
   // Datos
