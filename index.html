@@ -5794,54 +5794,23 @@ function generarActaCopias() {
   var colorBorder = tipo==='obs' ? '#d63b3b' : '#00A99E';
   var colorBg = tipo==='obs' ? '#fde8e8' : '#e0f5f3';
 
-  //  Agrupar por responsable para que firme UNA sola vez 
-  var porResp = {};
-  lista.forEach(function(x){
-    var key = (x.responsable||'Sin responsable').trim();
-    if(!porResp[key]) porResp[key]={responsable:key,correo:x.correo||'',filas:[]};
-    porResp[key].filas.push(x);
-  });
-  var grupos = Object.values ? Object.values(porResp) : Object.keys(porResp).map(function(k){return porResp[k];});
-
-  //  Construir filas agrupadas 
-  // Enriquecer items con subarea desde copias controladas si no está almacenada
+  // Enriquecer con subarea si falta
   lista.forEach(function(x){
     if(!x.subarea){
-      var copia=(copias||[]).find(function(c){
+      var c=(copias||[]).find(function(c){
         return c.codigo===x.codigo&&c.area===x.area&&c.responsable===x.responsable;
       });
-      if(copia) x.subarea=copia.subarea||'';
+      if(c) x.subarea=c.subarea||'';
     }
   });
 
-  var rowNum=0;
+  // Una fila por copia — sin rowspan para que la tabla sea estable al imprimir
   var rowsHtml='';
-  grupos.forEach(function(g){
-    var n=g.filas.length;
-    g.filas.forEach(function(x,fi){
-      var dRef=docsEmpresa().find(function(d){return d.codigoActual===x.codigo;});
-      var verActual=dRef?dRef.version:'-';
-      rowNum++;
-      var isFirst=fi===0;
-      rowsHtml+='<tr style="background:'+(rowNum%2===0?'#f9f9f9':'#fff')+'">'
-        +'<td style="border:1px solid #bbb;padding:5px 7px;text-align:center;font-size:9px;color:#666">'+rowNum+'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;font-weight:700;color:#006860;font-size:10px">'+x.codigo+'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.area||'-')+'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.subarea||'-')+'</td>'
-        // VER. COPIA → solo checkbox de devolución
-        +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;font-size:10px">'
-        +'<input type="checkbox" style="width:15px;height:15px;cursor:pointer;accent-color:'+(tipo==='obs'?'#d63b3b':'#00A99E')+'" title="'+(tipo==='obs'?'Marcar devuelto':'Marcar recibido')+'">'
-        +'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;font-weight:700;color:'+colorBorder+';font-size:10px">'+verActual+'</td>'
-        // Firma: solo en la primera fila del grupo, con rowspan
-        +(isFirst
-          ? '<td rowspan="'+n+'" style="border:1px solid #bbb;padding:5px 8px;text-align:center;vertical-align:middle;min-width:90px;background:#fffef0">'
-            +'<div style="min-height:40px;border-bottom:1px solid #aaa;margin:0 8px 2px"></div>'
-            +'<div style="font-size:8px;color:#888;text-align:center">'+g.responsable+'</div>'
-            +'</td>'
-          : '')
-        +'</tr>';
-    });
+  lista.forEach(function(x, i){
+    var dRef=docsEmpresa().find(function(d){return d.codigoActual===x.codigo;});
+    var verActual=dRef?dRef.version:(x.version||'-');
+    var bg=i%2===0?'#fff':'#f9f9f9';
+    rowsHtml+='<tr style="background:'+bg+'">'      +'<td style="border:1px solid #bbb;padding:5px 7px;text-align:center;font-size:9px;color:#666">'+(i+1)+'</td>'      +'<td style="border:1px solid #bbb;padding:5px 8px;font-weight:700;color:#006860;font-size:10px">'+x.codigo+'</td>'      +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.area||'-')+'</td>'      +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.subarea||'-')+'</td>'      +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center">'        +'<input type="checkbox" style="width:15px;height:15px;cursor:pointer;accent-color:'+(tipo==='obs'?'#d63b3b':'#00A99E')+'">'      +'</td>'      +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;font-weight:700;color:'+colorBorder+';font-size:10px">'+verActual+'</td>'      +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;vertical-align:middle;min-width:110px;background:#fffef0">'        +'<div style="min-height:40px;border-bottom:1px solid #aaa;margin:0 8px 6px"></div>'        +'<div style="font-size:8px;color:#555;text-align:center;line-height:1.4">'+(x.responsable||'')+'</div>'      +'</td>'      +'</tr>';
   });
 
   var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
@@ -11544,43 +11513,38 @@ function eccRegenerarHtmlActa(a){
   var colorBorder=tipo==='obs'?'#d63b3b':'#00A99E';
   var colorBg=tipo==='obs'?'#fde8e8':'#e0f5f3';
 
-  // Agrupar por responsable
-  var porResp={};
+  // Enriquecer subarea si falta
   lista.forEach(function(x){
-    var key=(x.responsable||'Sin responsable').trim();
-    if(!porResp[key])porResp[key]={responsable:key,filas:[]};
-    porResp[key].filas.push(x);
+    if(!x.subarea){
+      var c=(copias||[]).find(function(c){
+        return c.codigo===x.codigo&&c.area===x.area&&c.responsable===x.responsable;
+      });
+      if(c) x.subarea=c.subarea||'';
+    }
   });
-  var grupos=Object.keys(porResp).map(function(k){return porResp[k];});
 
-  var rowNum=0;
+  // Una fila por copia — sin rowspan
   var rowsHtml='';
-  grupos.forEach(function(g){
-    var n=g.filas.length;
-    g.filas.forEach(function(x,fi){
-      var dRef=docsEmpresa().find(function(d){return d.codigoActual===x.codigo;});
-      var verActual=x.version||(dRef?dRef.version:'-');
-      rowNum++;
-      var isFirst=fi===0;
-      rowsHtml+='<tr style="background:'+(rowNum%2===0?'#f9f9f9':'#fff')+'">'
-        +'<td style="border:1px solid #bbb;padding:5px 7px;text-align:center;font-size:9px;color:#666">'+rowNum+'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;font-weight:700;color:#006860;font-size:10px">'+x.codigo+'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.area||'-')+'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.subarea||'-')+'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;font-size:10px">'
+  lista.forEach(function(x,i){
+    var dRef=docsEmpresa().find(function(d){return d.codigoActual===x.codigo;});
+    var verActual=x.version||(dRef?dRef.version:'-');
+    var bg=i%2===0?'#fff':'#f9f9f9';
+    rowsHtml+='<tr style="background:'+bg+'">'
+      +'<td style="border:1px solid #bbb;padding:5px 7px;text-align:center;font-size:9px;color:#666">'+(i+1)+'</td>'
+      +'<td style="border:1px solid #bbb;padding:5px 8px;font-weight:700;color:#006860;font-size:10px">'+x.codigo+'</td>'
+      +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.area||'-')+'</td>'
+      +'<td style="border:1px solid #bbb;padding:5px 8px;font-size:10px">'+(x.subarea||'-')+'</td>'
+      +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center">'
         +'<input type="checkbox" style="width:15px;height:15px;cursor:pointer;accent-color:'+colorBorder+'">'
-        +'</td>'
-        +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;font-weight:700;color:'+colorBorder+';font-size:10px">'+verActual+'</td>'
-        +(isFirst
-          ?'<td rowspan="'+n+'" style="border:1px solid #bbb;padding:5px 8px;text-align:center;vertical-align:middle;min-width:90px;background:#fffef0">'
-           +'<div style="min-height:40px;border-bottom:1px solid #aaa;margin:0 8px 2px"></div>'
-           +'<div style="font-size:8px;color:#888;text-align:center">'+g.responsable+'</div></td>'
-          :'')
-        +'</tr>';
-    });
+      +'</td>'
+      +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;font-weight:700;color:'+colorBorder+';font-size:10px">'+verActual+'</td>'
+      +'<td style="border:1px solid #bbb;padding:5px 8px;text-align:center;vertical-align:middle;min-width:110px;background:#fffef0">'
+        +'<div style="min-height:40px;border-bottom:1px solid #aaa;margin:0 8px 6px"></div>'
+        +'<div style="font-size:8px;color:#555;text-align:center;line-height:1.4">'+(x.responsable||'')+'</div>'
+      +'</td>'
+      +'</tr>';
   });
 
-  return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
     +'<title>'+codConsec+' — F-SOP-0001-4</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",Arial,sans-serif}'
     +'body{padding:18px 24px;color:#0a2828;font-size:11px}'
