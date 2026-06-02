@@ -14751,12 +14751,26 @@ async function odLeerHojaActasEntrega(buf, wb){
     var total=parseInt(celdas[r+'_4']||'0')||0;
     // Cols 5+ son items (código, área, responsable, versión) separados por |
     var itemsRaw=celdas[r+'_5']||'';
-    // Separador de items: ||| (triple pipe) al escribir, || también por compatibilidad
-    var SEP=itemsRaw.indexOf('|||')>=0?'|||':'||';
+    // Separador: §§§ (nuevo), ||| (anterior), || (legacy)
+    var SEP='§§§';
+    if(itemsRaw.indexOf('§§§')<0){
+      SEP=itemsRaw.indexOf('|||')>=0?'|||':'||';
+    }
     var items=itemsRaw?itemsRaw.split(SEP).filter(function(s){return s.trim();}).map(function(s){
       var p=s.split('|');
-      return{codigo:(p[0]||'').trim(),area:(p[1]||'').trim(),responsable:(p[2]||'').trim(),version:(p[3]||'').trim(),subarea:(p[4]||'').trim()};
-    }):[];
+      // Orden: codigo|area|responsable|version|subarea
+      // Para legacy (|| separator), algunos items pueden tener campos vacíos en medio — validar
+      var cod=(p[0]||'').trim();
+      // Si cod no parece código de documento, este item es inválido (artefacto de split mal)
+      if(!cod||cod.length>60) return null;
+      return{
+        codigo:cod,
+        area:(p[1]||'').trim(),
+        responsable:(p[2]||'').trim(),
+        version:(p[3]||'').trim(),
+        subarea:(p[4]||'').trim()
+      };
+    }).filter(Boolean):[];
     var htmlActa=celdas[r+'_6']||'';
     actas.push({codigo:cod,tipo:tipo,fecha:fecha,total:total,items:items,htmlActa:htmlActa||undefined});
   }
@@ -14781,7 +14795,10 @@ function odEscribirActasEnExcel(wb){
     var fechaStr='';try{fechaStr=fDL(a.fecha);}catch(e){fechaStr=a.fecha||'';}
     ws['C'+row]={v:fechaStr,w:fechaStr,t:'s'};
     ws['D'+row]={v:a.total,w:String(a.total),t:'n'};
-    var itemsStr=(a.items||[]).map(function(x){return (x.codigo||'')+'|'+(x.area||'')+'|'+(x.responsable||'')+'|'+(x.version||'')+'|'+(x.subarea||'');}).join('|||');
+    // Formato: codigo|area|responsable|version|subarea  separados por §§§
+    var itemsStr=(a.items||[]).map(function(x){
+      return [(x.codigo||''),(x.area||''),(x.responsable||''),(x.version||''),(x.subarea||'')].join('|');
+    }).join('§§§');
     ws['E'+row]={v:itemsStr,w:itemsStr,t:'s'};
     // Columna F: guardar HTML del acta (truncado a 32767 si es necesario)
     if(a.htmlActa){
