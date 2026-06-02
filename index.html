@@ -11430,9 +11430,7 @@ function renderEccActas(){
           +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:#00695C;border-bottom:1px solid #E0F2F1">'+a.total+'</td>'
           +'<td style="padding:6px 10px;font-size:10px;color:var(--tx3);border-bottom:1px solid #E0F2F1">'+docsStr+'</td>'
           +'<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #E0F2F1">'
-          +(a.htmlActa
-            ? '<button class="btn sm" style="background:#006860;color:#fff;font-size:10px" onclick="eccReimprimirActa('+realIdx2+')" title="Reimprimir acta '+a.codigo+'">🖨️ Reimprimir</button>'
-            : '<span style="font-size:9px;color:var(--tx3)">Sin HTML</span>')
+          +'<button class="btn sm" style="background:#006860;color:#fff;font-size:10px" onclick="eccReimprimirActa('+realIdx2+')" title="Reimprimir acta '+a.codigo+'">🖨️ Reimprimir</button>'
           +'</td>'
           +'</tr>';
       }).join('')
@@ -11523,7 +11521,9 @@ function eccReimprimirActa(idx){
 
 // Regenerar HTML de un acta desde sus metadatos guardados
 function eccRegenerarHtmlActa(a){
-  var tipo=a.tipo||'obs';
+  // tipo puede ser: 'obs' (app), 'Recolección' (Excel), 'act'/'Entrega' (app/Excel)
+  var tipoRaw=(a.tipo||'').toLowerCase();
+  var tipo=(tipoRaw==='obs'||tipoRaw.indexOf('recolecci')>=0)?'obs':'act';
   var codConsec=a.codigo||'—';
   var lista=a.items||[];
   var fechaGen='';try{fechaGen=fDL(a.fecha);}catch(e){fechaGen=a.fecha||'';}
@@ -14770,13 +14770,17 @@ async function odLeerHojaActasEntrega(buf, wb){
   for(var r=2;r<=maxRow;r++){
     var cod=celdas[r+'_1']||'';
     if(!cod) continue;
-    var tipo=celdas[r+'_2']||'act';
+    var tipoExcel=(celdas[r+'_2']||'').toLowerCase();
+    var tipo=(tipoExcel==='recolección'||tipoExcel==='recoleccion'||tipoExcel==='obs')?'obs':'act';
     var fecha=celdas[r+'_3']||new Date().toISOString();
     var total=parseInt(celdas[r+'_4']||'0')||0;
     // Cols 5+ son items (código, área, responsable, versión) separados por |
     var itemsRaw=celdas[r+'_5']||'';
-    var items=itemsRaw?itemsRaw.split('||').map(function(s){
-      var p=s.split('|');return{codigo:p[0]||'',area:p[1]||'',responsable:p[2]||'',version:p[3]||'',subarea:p[4]||''};
+    // Separador de items: ||| (triple pipe) al escribir, || también por compatibilidad
+    var SEP=itemsRaw.indexOf('|||')>=0?'|||':'||';
+    var items=itemsRaw?itemsRaw.split(SEP).filter(function(s){return s.trim();}).map(function(s){
+      var p=s.split('|');
+      return{codigo:(p[0]||'').trim(),area:(p[1]||'').trim(),responsable:(p[2]||'').trim(),version:(p[3]||'').trim(),subarea:(p[4]||'').trim()};
     }):[];
     var htmlActa=celdas[r+'_6']||'';
     actas.push({codigo:cod,tipo:tipo,fecha:fecha,total:total,items:items,htmlActa:htmlActa||undefined});
@@ -14802,7 +14806,7 @@ function odEscribirActasEnExcel(wb){
     var fechaStr='';try{fechaStr=fDL(a.fecha);}catch(e){fechaStr=a.fecha||'';}
     ws['C'+row]={v:fechaStr,w:fechaStr,t:'s'};
     ws['D'+row]={v:a.total,w:String(a.total),t:'n'};
-    var itemsStr=(a.items||[]).map(function(x){return (x.codigo||'')+'|'+(x.area||'')+'|'+(x.responsable||'')+'|'+(x.version||'')+'|'+(x.subarea||'');}).join('||');
+    var itemsStr=(a.items||[]).map(function(x){return (x.codigo||'')+'|'+(x.area||'')+'|'+(x.responsable||'')+'|'+(x.version||'')+'|'+(x.subarea||'');}).join('|||');
     ws['E'+row]={v:itemsStr,w:itemsStr,t:'s'};
     // Columna F: guardar HTML del acta (truncado a 32767 si es necesario)
     if(a.htmlActa){
