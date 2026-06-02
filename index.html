@@ -866,7 +866,7 @@ tbody tr:last-child td{border-bottom:none}
 
     <!-- Barra de acciones + búsqueda -->
     <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 14px;margin-bottom:12px;box-shadow:var(--sh);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <input class="srch" type="text" id="fc-q" placeholder="🔍 Buscar código..." oninput="ccRenderTree();renderCopias()" style="width:150px;font-size:11px">
+      <input type="text" id="fc-q" placeholder="🔍 Buscar código o responsable..." oninput="ccRenderTree();renderCopias()" style="width:230px;font-size:12px;padding:7px 12px;border:2px solid var(--T);border-radius:var(--r);background:#fff;color:var(--tx);outline:none;font-family:var(--fn)">
       <select class="fsel" id="fc-estado" onchange="ccRenderTree();renderCopias()" title="Filtrar por estado" style="font-size:11px;width:130px"><option value="">Todos los estados</option></select>
       <button class="btn gh sm" onclick="ccLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
       <!-- Hidden selects for compat -->
@@ -5794,19 +5794,23 @@ function generarActaCopias() {
   var colorBorder = tipo==='obs' ? '#d63b3b' : '#00A99E';
   var colorBg = tipo==='obs' ? '#fde8e8' : '#e0f5f3';
 
-  // Enriquecer con subarea si falta
+  // Enriquecer con subarea y responsable desde copias[] en este momento exacto
   lista.forEach(function(x){
-    if(!x.subarea){
-      var c=(copias||[]).find(function(c){
-        return c.codigo===x.codigo&&c.area===x.area&&c.responsable===x.responsable;
-      });
-      if(c) x.subarea=c.subarea||'';
+    var c=(copias||[]).find(function(c){
+      return c.codigo===x.codigo&&c.area===x.area&&
+             (c.responsable===x.responsable||(!x.responsable));
+    });
+    if(c){
+      if(!x.subarea) x.subarea=c.subarea||'';
+      if(!x.responsable) x.responsable=c.responsable||'';
+      if(!x.version) x.version=c.version||'';
     }
   });
 
   // Una fila por copia — sin rowspan para que la tabla sea estable al imprimir
   var rowsHtml='';
   lista.forEach(function(x, i){
+    // Versión: usar la del documento actual (es el momento de generación del acta)
     var dRef=docsEmpresa().find(function(d){return d.codigoActual===x.codigo;});
     var verActual=dRef?dRef.version:(x.version||'-');
     var bg=i%2===0?'#fff':'#f9f9f9';
@@ -5894,8 +5898,18 @@ function generarActaCopias() {
   var actaReg={
     codigo:codConsec, tipo:tipo, fecha:new Date().toISOString(),
     total:lista.length,
-    items:lista.map(function(x){return {codigo:x.codigo,area:x.area,subarea:x.subarea||'',responsable:x.responsable,version:x.version};}),
-    htmlActa:html  // guardar el HTML completo para reimpresión
+    items:lista.map(function(x){
+      // Tomar subarea de la copia en copias[] en este momento exacto (snapshot)
+      var copRef=(copias||[]).find(function(c){
+        return c.codigo===x.codigo&&c.area===x.area&&
+               (c.responsable===x.responsable||(c.subarea&&c.subarea===x.subarea));
+      });
+      var sub=x.subarea||( copRef?copRef.subarea:'')||'';
+      var resp=x.responsable||(copRef?copRef.responsable:'')||'';
+      var ver=x.version||(copRef?copRef.version:'')||'';
+      return {codigo:x.codigo,area:x.area,subarea:sub,responsable:resp,version:ver};
+    }),
+    htmlActa:html  // guardar el HTML completo para reimpresión exacta
   };
   window.actasCopias.push(actaReg);
   try{localStorage.setItem('actasCopias',JSON.stringify(window.actasCopias));}catch(e){}
@@ -11513,21 +11527,27 @@ function eccRegenerarHtmlActa(a){
   var colorBorder=tipo==='obs'?'#d63b3b':'#00A99E';
   var colorBg=tipo==='obs'?'#fde8e8':'#e0f5f3';
 
-  // Enriquecer subarea si falta
+  // Usar datos del snapshot guardado — solo enriquecer si realmente faltan
   lista.forEach(function(x){
-    if(!x.subarea){
+    if(!x.subarea||!x.responsable){
       var c=(copias||[]).find(function(c){
-        return c.codigo===x.codigo&&c.area===x.area&&c.responsable===x.responsable;
+        return c.codigo===x.codigo&&c.area===x.area&&
+               (!x.responsable||c.responsable===x.responsable);
       });
-      if(c) x.subarea=c.subarea||'';
+      if(c){
+        if(!x.subarea) x.subarea=c.subarea||'';
+        if(!x.responsable) x.responsable=c.responsable||'';
+        if(!x.version) x.version=c.version||'';
+      }
     }
   });
 
-  // Una fila por copia — sin rowspan
+  // Una fila por copia — sin rowspan, usando datos del snapshot exacto
   var rowsHtml='';
   lista.forEach(function(x,i){
-    var dRef=docsEmpresa().find(function(d){return d.codigoActual===x.codigo;});
-    var verActual=x.version||(dRef?dRef.version:'-');
+    // Usar versión del snapshot (momento del acta), no la versión actual del doc
+    var verActual=x.version||'';
+    if(!verActual){ var dRef2=docsEmpresa().find(function(d){return d.codigoActual===x.codigo;}); verActual=dRef2?dRef2.version:'-'; }
     var bg=i%2===0?'#fff':'#f9f9f9';
     rowsHtml+='<tr style="background:'+bg+'">'
       +'<td style="border:1px solid #bbb;padding:5px 7px;text-align:center;font-size:9px;color:#666">'+(i+1)+'</td>'
@@ -14748,7 +14768,7 @@ async function odLeerHojaActasEntrega(buf, wb){
     var tipoExcel=(celdas[r+'_2']||'').toLowerCase();
     var tipo=(tipoExcel==='recolección'||tipoExcel==='recoleccion'||tipoExcel==='obs')?'obs':'act';
     var fecha=celdas[r+'_3']||new Date().toISOString();
-    var total=parseInt(celdas[r+'_4']||'0')||0;
+    var total=parseInt(celdas[r+'_4']||'0')||0; // se sobreescribe con items.length real al parsear
     // Cols 5+ son items (código, área, responsable, versión) separados por |
     var itemsRaw=celdas[r+'_5']||'';
     // Separador: §§§ (nuevo), ||| (anterior), || (legacy)
@@ -14772,7 +14792,8 @@ async function odLeerHojaActasEntrega(buf, wb){
       };
     }).filter(Boolean):[];
     var htmlActa=celdas[r+'_6']||'';
-    actas.push({codigo:cod,tipo:tipo,fecha:fecha,total:total,items:items,htmlActa:htmlActa||undefined});
+    var realTotalParsed=items.length||total;
+    actas.push({codigo:cod,tipo:tipo,fecha:fecha,total:realTotalParsed,items:items,htmlActa:htmlActa||undefined});
   }
   return actas;
 }
@@ -14794,7 +14815,8 @@ function odEscribirActasEnExcel(wb){
     ws['B'+row]={v:tipoTxt,w:tipoTxt,t:'s'};
     var fechaStr='';try{fechaStr=fDL(a.fecha);}catch(e){fechaStr=a.fecha||'';}
     ws['C'+row]={v:fechaStr,w:fechaStr,t:'s'};
-    ws['D'+row]={v:a.total,w:String(a.total),t:'n'};
+    var realTotal=(a.items||[]).length||a.total||0;
+    ws['D'+row]={v:realTotal,w:String(realTotal),t:'n'};
     // Formato: codigo|area|responsable|version|subarea  separados por §§§
     var itemsStr=(a.items||[]).map(function(x){
       return [(x.codigo||''),(x.area||''),(x.responsable||''),(x.version||''),(x.subarea||'')].join('|');
