@@ -4444,72 +4444,9 @@ function dcpBackToLanding(){
 // BÚSQUEDA AVANZADA módulo Documentos
 function lmEsMbr(d){var v=String(d.mbr||'').toUpperCase().trim();return v==='X'||v==='MBR'||v==='SI'||v==='\u00cd';}
 function lmEsGxp(d){var v=String(d.docGxP||'').toUpperCase().trim();return v==='X'||v==='GXP'||v==='SI'||v==='\u00cd';}
-function lmPoblarAdministradores(){
-  var sel=document.getElementById('lm-f-adm');if(!sel)return;
-  var actual=sel.value,set={};
-  (docsEmpresa()||[]).forEach(function(d){var a=(d.administrador||'').trim();if(a)set[a]=1;});
-  var adms=Object.keys(set).sort();
-  sel.innerHTML='<option value="">Administrador: Todos</option>';
-  adms.forEach(function(a){var op=document.createElement('option');op.value=a;op.textContent=a;if(a===actual)op.selected=true;sel.appendChild(op);});
-}
-function lmFiltrar(){
-  var q=((document.getElementById('lm-srch-nombre')||{}).value||'').toLowerCase().trim();
-  var fMbr=((document.getElementById('lm-f-mbr')||{}).value||'');
-  var fGxp=((document.getElementById('lm-f-gxp')||{}).value||'');
-  var fAdm=((document.getElementById('lm-f-adm')||{}).value||'');
-  var fEst=((document.getElementById('lm-f-est')||{}).value||'');
-  var clrBtn=document.getElementById('lm-srch-clear');
-  if(clrBtn)clrBtn.style.display=q?'inline':'none';
-  if(!q&&!fMbr&&!fGxp&&!fAdm&&!fEst){lmLimpiarResultados();return;}
-  var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();
-  var res=(docsEmpresa()||[]).filter(function(d){
-    if(q){var hay=((d.codigoActual||'')+(d.descripcion||'')+(d.codigoAntiguo||'')).toLowerCase();if(hay.indexOf(q)<0)return false;}
-    if(fMbr==='si'&&!lmEsMbr(d))return false;
-    if(fMbr==='no'&&lmEsMbr(d))return false;
-    if(fGxp==='si'&&!lmEsGxp(d))return false;
-    if(fGxp==='no'&&lmEsGxp(d))return false;
-    if(fAdm&&(d.administrador||'').trim()!==fAdm)return false;
-    if(fEst){var fv=d.fechaVencimiento;var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):9999;var est=d.estado==='Obsoleto'?'Obsoleto':di<0?'Vencido':di<=30?'Por vencer':'Vigente';if(est!==fEst)return false;}
-    return true;
-  });
-  res.sort(function(a,b){return(a.codigoActual||'').localeCompare(b.codigoActual||'');});
-  var cntEl=document.getElementById('lm-result-count');
-  if(cntEl)cntEl.textContent=res.length+' resultado'+(res.length!==1?'s':'');
-  lmRenderResultados(res);
-}
-function lmRenderResultados(lista){
-  var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();
-  var cont=document.getElementById('lm-resultados');if(!cont)return;
-  cont.style.display='block';
-  if(!lista.length){cont.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--tx3);font-size:12px">Sin documentos que coincidan</div>';return;}
-  var MAX=200,frag=document.createDocumentFragment();
-  lista.slice(0,MAX).forEach(function(d){
-    var fv=d.fechaVencimiento;
-    var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):null;
-    var estC=d.estado==='Obsoleto'?'#A32D2D':di===null?'var(--tx3)':di<0?'#A32D2D':di<=30?'#854F0B':'#0F6E56';
-    var estL=d.estado==='Obsoleto'?'Obsoleto':di===null?'\u2014':di<0?'Vencido':di<=30?'Por vencer':'Vigente';
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border-bottom:1px solid var(--brd)';
-    row.onmouseover=function(){this.style.background='var(--bg3)';};
-    row.onmouseout=function(){this.style.background='transparent';};
-    row.onclick=function(){lmSeleccionar(d.id);};
-    var badges='';
-    if(lmEsGxp(d))badges+='<span style="background:#e8f0fb;color:#1a5fa0;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">GxP</span>';
-    if(lmEsMbr(d))badges+='<span style="background:#faeeda;color:#854F0B;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">MBR</span>';
-    var colDiv=document.createElement('div');colDiv.style.cssText='min-width:110px;font-family:monospace;font-size:11px;font-weight:700;color:var(--T3)';colDiv.textContent=d.codigoActual;
-    var nameDiv=document.createElement('div');nameDiv.style.cssText='flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nameDiv.title=d.descripcion;nameDiv.textContent=d.descripcion;
-    var badgeDiv=document.createElement('div');badgeDiv.style.cssText='display:flex;gap:4px;align-items:center;flex-shrink:0';badgeDiv.innerHTML=badges+'<span style="font-size:10px;color:'+estC+';font-weight:600;white-space:nowrap">'+estL+'</span>';
-    var admDiv=document.createElement('div');admDiv.style.cssText='min-width:120px;font-size:10px;color:var(--tx3);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';admDiv.textContent=d.administrador||'\u2014';
-    var btnDiv=document.createElement('div');btnDiv.style.cssText='display:flex;gap:5px;flex-shrink:0';
-    var bE=document.createElement('button');bE.className='btn gh sm';bE.style.cssText='font-size:10px;padding:3px 9px';bE.textContent='\u270f\ufe0f Editar';bE.onclick=function(e){e.stopPropagation();editDoc(d.id);};
-    var bV=document.createElement('button');bV.className='btn sm';bV.style.cssText='font-size:10px;padding:3px 9px';bV.textContent='\ud83d\udc41 Ver';bV.onclick=function(e){e.stopPropagation();lmSeleccionar(d.id);};
-    btnDiv.appendChild(bE);btnDiv.appendChild(bV);
-    row.appendChild(colDiv);row.appendChild(nameDiv);row.appendChild(badgeDiv);row.appendChild(admDiv);row.appendChild(btnDiv);
-    frag.appendChild(row);
-  });
-  cont.innerHTML='';cont.appendChild(frag);
-  if(lista.length>MAX){var m=document.createElement('div');m.style.cssText='padding:8px 10px;font-size:11px;color:var(--tx3);text-align:center';m.textContent='Mostrando los primeros '+MAX+' de '+lista.length+' resultados.';cont.appendChild(m);}
-}
+function lmPoblarAdministradores(){var sel=document.getElementById('lm-f-adm');if(!sel)return;var actual=sel.value,set={};(docsEmpresa()||[]).forEach(function(d){var a=(d.administrador||'').trim();if(a)set[a]=1;});var adms=Object.keys(set).sort();sel.innerHTML='<option value="">Administrador: Todos</option>';adms.forEach(function(a){var op=document.createElement('option');op.value=a;op.textContent=a;if(a===actual)op.selected=true;sel.appendChild(op);});}
+function lmFiltrar(){var q=((document.getElementById('lm-srch-nombre')||{}).value||'').toLowerCase().trim();var fMbr=((document.getElementById('lm-f-mbr')||{}).value||'');var fGxp=((document.getElementById('lm-f-gxp')||{}).value||'');var fAdm=((document.getElementById('lm-f-adm')||{}).value||'');var fEst=((document.getElementById('lm-f-est')||{}).value||'');var clrBtn=document.getElementById('lm-srch-clear');if(clrBtn)clrBtn.style.display=q?'inline':'none';if(!q&&!fMbr&&!fGxp&&!fAdm&&!fEst){lmLimpiarResultados();return;}var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();var res=(docsEmpresa()||[]).filter(function(d){if(q){var hay=((d.codigoActual||'')+(d.descripcion||'')+(d.codigoAntiguo||'')).toLowerCase();if(hay.indexOf(q)<0)return false;}if(fMbr==='si'&&!lmEsMbr(d))return false;if(fMbr==='no'&&lmEsMbr(d))return false;if(fGxp==='si'&&!lmEsGxp(d))return false;if(fGxp==='no'&&lmEsGxp(d))return false;if(fAdm&&(d.administrador||'').trim()!==fAdm)return false;if(fEst){var fv=d.fechaVencimiento;var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):9999;var est=d.estado==='Obsoleto'?'Obsoleto':di<0?'Vencido':di<=30?'Por vencer':'Vigente';if(est!==fEst)return false;}return true;});res.sort(function(a,b){return(a.codigoActual||'').localeCompare(b.codigoActual||'');});var cntEl=document.getElementById('lm-result-count');if(cntEl)cntEl.textContent=res.length+' resultado'+(res.length!==1?'s':'');lmRenderResultados(res);}
+function lmRenderResultados(lista){var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();var cont=document.getElementById('lm-resultados');if(!cont)return;cont.style.display='block';if(!lista.length){cont.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--tx3);font-size:12px">Sin documentos que coincidan</div>';return;}var MAX=200,frag=document.createDocumentFragment();lista.slice(0,MAX).forEach(function(d){var fv=d.fechaVencimiento;var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):null;var estC=d.estado==='Obsoleto'?'#A32D2D':di===null?'var(--tx3)':di<0?'#A32D2D':di<=30?'#854F0B':'#0F6E56';var estL=d.estado==='Obsoleto'?'Obsoleto':di===null?'\u2014':di<0?'Vencido':di<=30?'Por vencer':'Vigente';var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border-bottom:1px solid var(--brd)';row.onmouseover=function(){this.style.background='var(--bg3)';};row.onmouseout=function(){this.style.background='transparent';};row.onclick=function(){lmSeleccionar(d.id);};var badges='';if(lmEsGxp(d))badges+='<span style="background:#e8f0fb;color:#1a5fa0;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">GxP</span>';if(lmEsMbr(d))badges+='<span style="background:#faeeda;color:#854F0B;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">MBR</span>';var colDiv=document.createElement('div');colDiv.style.cssText='min-width:110px;font-family:monospace;font-size:11px;font-weight:700;color:var(--T3)';colDiv.textContent=d.codigoActual;var nameDiv=document.createElement('div');nameDiv.style.cssText='flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nameDiv.title=d.descripcion;nameDiv.textContent=d.descripcion;var badgeDiv=document.createElement('div');badgeDiv.style.cssText='display:flex;gap:4px;align-items:center;flex-shrink:0';badgeDiv.innerHTML=badges+'<span style="font-size:10px;color:'+estC+';font-weight:600;white-space:nowrap">'+estL+'</span>';var admDiv=document.createElement('div');admDiv.style.cssText='min-width:120px;font-size:10px;color:var(--tx3);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';admDiv.textContent=d.administrador||'\u2014';var btnDiv=document.createElement('div');btnDiv.style.cssText='display:flex;gap:5px;flex-shrink:0';var bE=document.createElement('button');bE.className='btn gh sm';bE.style.cssText='font-size:10px;padding:3px 9px';bE.textContent='\u270f\ufe0f Editar';bE.onclick=function(e){e.stopPropagation();editDoc(d.id);};var bV=document.createElement('button');bV.className='btn sm';bV.style.cssText='font-size:10px;padding:3px 9px';bV.textContent='\ud83d\udc41 Ver';bV.onclick=function(e){e.stopPropagation();lmSeleccionar(d.id);};btnDiv.appendChild(bE);btnDiv.appendChild(bV);row.appendChild(colDiv);row.appendChild(nameDiv);row.appendChild(badgeDiv);row.appendChild(admDiv);row.appendChild(btnDiv);frag.appendChild(row);});cont.innerHTML='';cont.appendChild(frag);if(lista.length>MAX){var m=document.createElement('div');m.style.cssText='padding:8px 10px;font-size:11px;color:var(--tx3);text-align:center';m.textContent='Mostrando los primeros '+MAX+' de '+lista.length+' resultados.';cont.appendChild(m);}}
 function lmSeleccionar(id){var d=docs.find(function(x){return x.id===id;});if(d)dcpSelectByCod(d.codigoActual);}
 function lmLimpiarResultados(){var c=document.getElementById('lm-resultados');if(c){c.style.display='none';c.innerHTML='';}var n=document.getElementById('lm-result-count');if(n)n.textContent='';}
 function lmLimpiarFiltros(){['lm-srch-nombre','lm-f-mbr','lm-f-gxp','lm-f-adm','lm-f-est'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var c=document.getElementById('lm-srch-clear');if(c)c.style.display='none';lmLimpiarResultados();}
@@ -13820,54 +13757,30 @@ function hideLogin(){
   if(overlay) overlay.style.display='none';
 }
 
-// Tiempo real de última acción del usuario
-var _inacUltimaAccion=0;
-var _inacIntervalId=null;
-var _inacAvisoMs=120000; // 2 min de countdown
-
+var _inacUltimaAccion=0,_inacIntervalId=null,_inacAvisoMs=120000;
 function iniciarTimerInactividad(){
   detenerTimerInactividad();
   _inacUltimaAccion=Date.now();
-  // Intervalo que revisa cada 10s si ya pasó el tiempo límite
-  // Funciona aunque la pestaña esté oculta o en background
   _inacIntervalId=setInterval(function(){
-    if(!currentUser||_inactividadAvisoActivo) return;
-    var transcurrido=Date.now()-_inacUltimaAccion;
-    var limiteAviso=(_inactividadMinutos*60*1000)-_inacAvisoMs;
-    if(transcurrido>=limiteAviso){
-      mostrarAvisoInactividad();
-    }
-  },10000); // revisar cada 10 segundos
-
-  // visibilitychange: cuando el usuario vuelve a la pestaña, revisar inmediatamente
+    if(!currentUser||_inactividadAvisoActivo)return;
+    if(Date.now()-_inacUltimaAccion>=(_inactividadMinutos*60*1000)-_inacAvisoMs) mostrarAvisoInactividad();
+  },10000);
   if(!window._inacVisAdded){
     window._inacVisAdded=true;
     document.addEventListener('visibilitychange',function(){
-      if(document.visibilityState==='visible'&&currentUser&&!_inactividadAvisoActivo){
-        var transcurrido=Date.now()-_inacUltimaAccion;
-        var limiteTotal=_inactividadMinutos*60*1000;
-        if(transcurrido>=limiteTotal){
-          // Ya pasó el tiempo completo → cerrar directamente sin aviso
-          cerrarSesionInactividad();
-        } else if(transcurrido>=limiteTotal-_inacAvisoMs){
-          // Está en la ventana de aviso → mostrar aviso con tiempo restante real
-          mostrarAvisoInactividad();
-        }
-      }
+      if(document.visibilityState!=='visible'||!currentUser||_inactividadAvisoActivo)return;
+      var t=Date.now()-_inacUltimaAccion,lim=_inactividadMinutos*60*1000;
+      if(t>=lim) cerrarSesionInactividad();
+      else if(t>=lim-_inacAvisoMs) mostrarAvisoInactividad();
     });
   }
 }
-
 function detenerTimerInactividad(){
   if(_inacIntervalId){clearInterval(_inacIntervalId);_inacIntervalId=null;}
   if(_inactividadTimer){clearTimeout(_inactividadTimer);_inactividadTimer=null;}
   if(_inactividadAviso){clearTimeout(_inactividadAviso);_inactividadAviso=null;}
 }
-
-function resetTimerInactividad(){
-  if(!currentUser) return;
-  _inacUltimaAccion=Date.now(); // solo actualizar timestamp, el interval sigue corriendo
-}
+function resetTimerInactividad(){if(!currentUser)return;_inacUltimaAccion=Date.now();}
 
 function mostrarAvisoInactividad(){
   if(_inactividadAvisoActivo) return;
@@ -13897,18 +13810,15 @@ function mostrarAvisoInactividad(){
   var el0=document.getElementById('inac-countdown');if(el0)el0.textContent=segundos;
   var intervalo=setInterval(function(){
     var restante=Math.max(0,Math.round((limiteTotal-(Date.now()-_inacUltimaAccion))/1000));
-    var el=document.getElementById('inac-countdown');
-    if(el)el.textContent=restante;
+    var el=document.getElementById('inac-countdown');if(el)el.textContent=restante;
     if(restante<=0){clearInterval(intervalo);cerrarSesionInactividad();}
   },1000);
 
   // Botón continuar
   document.getElementById('inac-btn-continuar').addEventListener('click',function(){
     clearInterval(intervalo);
-    var ov=document.getElementById('inac-overlay');
-    if(ov)ov.parentNode.removeChild(ov);
-    _inactividadAvisoActivo=false;
-    _inacUltimaAccion=Date.now(); // reiniciar el reloj
+    var ov=document.getElementById('inac-overlay');if(ov)ov.parentNode.removeChild(ov);
+    _inactividadAvisoActivo=false;_inacUltimaAccion=Date.now();
     toast('Sesión extendida','ok');
   });
 
@@ -22462,7 +22372,14 @@ function nfBuscarDoc(cod){
   Object.keys(TIPOS).forEach(function(p){ if(cod.toUpperCase().startsWith(p)) tipo=TIPOS[p]; });
   var tipEl = document.getElementById('nf-tipodoc');
   if(tipEl) tipEl.value = tipo||'';
-  if(cod.length < 3) return;
+  if(cod.length < 3){
+    window._nfDocObsoleto=false;
+    var _ci=document.getElementById('nf-cod');
+    if(_ci){_ci.style.borderColor='';_ci.style.background='';}
+    var _oa=document.getElementById('nf-obs-alerta');
+    if(_oa)_oa.parentNode.removeChild(_oa);
+    return;
+  }
   // Verificar duplicado si es Creación
   var tipoNov=(document.getElementById('nf-tipo')||{}).value||'';
   if(tipoNov==='Creación') nfVerificarCodigoDuplicado(cod);
@@ -22489,6 +22406,25 @@ function nfBuscarDoc(cod){
     }
     var obsStr = String(doc.obsoleto||'').toUpperCase().trim();
     var estStr = String(doc.estado||'').toUpperCase().trim();
+    // ── Bloqueo por documento Obsoleto ───────────────────────────
+    var esObsDoc = obsStr==='X'||obsStr==='SI'||obsStr==='SÍ'||estStr==='OBSOLETO';
+    window._nfDocObsoleto = esObsDoc;
+    var _codEl = document.getElementById('nf-cod');
+    var _oaEl  = document.getElementById('nf-obs-alerta');
+    if(esObsDoc){
+      if(_codEl){_codEl.style.borderColor='#dc2626';_codEl.style.background='#fef2f2';}
+      if(!_oaEl){
+        var _al=document.createElement('div');
+        _al.id='nf-obs-alerta';
+        _al.style.cssText='margin-top:8px;padding:10px 14px;background:#fef2f2;border:1.5px solid #dc2626;border-radius:6px;color:#991b1b;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px';
+        _al.innerHTML='⛔️ <span>El documento <strong>'+doc.codigoActual+'</strong> está marcado como <strong>Obsoleto</strong>. No es posible generar el PDF ni registrar novedad para este documento.</span>';
+        if(_codEl&&_codEl.parentNode)_codEl.parentNode.appendChild(_al);
+      }
+    } else {
+      window._nfDocObsoleto=false;
+      if(_codEl){_codEl.style.borderColor='';_codEl.style.background='';}
+      if(_oaEl&&_oaEl.parentNode)_oaEl.parentNode.removeChild(_oaEl);
+    }
     var esGXP = ['SI','SÍ','X','1','YES','S'].indexOf(String(doc.gxp||doc.esGXP||doc.GXP||'').toUpperCase().trim()) >= 0;
     if(gxpEl) gxpEl.textContent = esGXP ? 'SÍ' : 'NO';
     var tieneCopia = (copias||[]).some(function(x){
@@ -22981,6 +22917,10 @@ function nfValidarCampos(){
 }
 
 function nfGuardar(){
+  if(window._nfDocObsoleto){
+    alert('⛔ El documento ingresado está marcado como Obsoleto.\n\nNo es posible registrar una novedad para un documento obsoleto.');
+    return;
+  }
   if(!OD.fileHandle){ toast('Primero carga el Excel de SharePoint','er'); return; }
   if(!_nfPDFGenerado){
     alert('⚠️ Debe generar el PDF antes de guardar la solicitud.\n\nHaga clic en el botón 📄 PDF, descárguelo y luego guarde.');
@@ -23157,6 +23097,10 @@ function nfGuardarEjecutar(){
 
 // ── Limpiar ──────────────────────────────────────────────────
 function nfDescargarPDF(){
+  if(window._nfDocObsoleto){
+    alert('⛔ El documento ingresado está marcado como Obsoleto.\n\nNo es posible generar el PDF para un documento obsoleto.');
+    return;
+  }
   var faltantes=nfValidarCampos();
   if(faltantes.length){
     alert('⚠️ Complete los siguientes campos antes de generar el PDF:\n\n• '+faltantes.join('\n• '));
