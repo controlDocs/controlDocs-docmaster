@@ -25,7 +25,7 @@ body{background:#f0f9f6;color:var(--tx);font-family:var(--fn);font-size:14px;min
 .sb-md{font-size:8px;color:rgba(255,255,255,.4)}
 .ns{padding:7px 7px 2px}
 .nl{font-size:9px;text-transform:uppercase;letter-spacing:1.4px;color:rgba(255,255,255,.35);padding:0 7px;margin-bottom:3px;font-weight:600}
-.ni{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r);cursor:pointer;color:rgba(255,255,255,.65);font-size:12px;transition:background .12s;user-select:none}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r);cursor:pointer;color:rgba(255,255,255,.65);font-size:12px;transition:background .12s,color .12s;user-select:none;will-change:background}
 .ni:hover{background:rgba(255,255,255,.1);color:#fff}
 .ni.act{background:rgba(255,255,255,.18);color:#fff}
 .nic{width:15px;text-align:center;font-size:13px;flex-shrink:0}
@@ -49,11 +49,11 @@ body{background:#f0f9f6;color:var(--tx);font-family:var(--fn);font-size:14px;min
 .btn.ol{background:#fff;color:var(--T);border:1.5px solid var(--T)}.btn.ol:hover{background:var(--tl)}
 .btn.sm{padding:4px 9px;font-size:11px;border-radius:6px}
 
-.pg{display:none!important;padding:18px 22px;width:100%}
+.pg{display:none!important;padding:18px 22px;width:100%;content-visibility:auto}
 .pg.act{display:block!important}
 .pg.act{display:block;width:100%;min-height:calc(100vh - 60px);}
 
-.pg{display:none!important;padding:18px 22px;width:100%}
+.pg{display:none!important;padding:18px 22px;width:100%;content-visibility:auto}
 .pg.act{display:block!important}
 .pg.act{display:block;width:100%;min-height:calc(100vh - 60px);}
 
@@ -374,24 +374,24 @@ tbody tr:last-child td{border-bottom:none}
 <div class="ni" data-p="usrs" onclick="nav('usrs',this)"><span class="nic">👥</span>Usuarios</div>
     <div class="ni" data-p="correos" onclick="nav('correos',this)"><span class="nic">📧</span>Correos</div>
     <div class="ni" data-p="cfg" onclick="nav('cfg',this)"><span class="nic">⚙️</span>Configuración</div>
-<div class="ni" data-p="validacion" onclick="nav('validacion',this)"><span class="nic">📋</span>Validación IQ/OQ/PQ</div>
+
   </div>
 </nav>
 <main class="mn">
   <div class="topb">
     <div class="topb-t" id="ptitle">Inicio</div>
-    <input class="srch" type="text" id="gs" placeholder="Buscar documentos..." oninput="onSearch()" style="display:none">
+    <input class="srch" type="text" id="gs" placeholder="Buscar documentos..." oninput="debounceFn('gs',onSearch,300)" style="display:none">
     <!-- Botón guardar OneDrive siempre visible -->
     <div id="od-save-wrap" style="display:none;align-items:center;gap:8px">
-      <div id="od-save-status" style="font-size:10px;display:flex;align-items:center;gap:5px;color:var(--tx3)">
-        <span id="od-save-dot" style="width:8px;height:8px;border-radius:50%;background:#aaa;flex-shrink:0;display:inline-block"></span>
+      <div id="od-save-status" style="font-size:10px;display:flex;align-items:center;gap:5px;color:rgba(255,255,255,.85)">
+        <span id="od-save-dot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.5);flex-shrink:0;display:inline-block"></span>
         <span id="od-save-txt">Sin cambios</span>
       </div>
       <button id="od-save-btn" onclick="odGuardarAhora()" class="btn sm"
         style="background:#00695C;color:#fff;border:none;display:flex;align-items:center;gap:5px;padding:6px 12px;font-size:11px;font-weight:700;white-space:nowrap">
         ☁️ Guardar en OneDrive
       </button>
-      <span id="od-countdown" style="display:none;font-size:9px;color:var(--tx3);font-family:monospace;min-width:32px;text-align:center"></span>
+      <span id="od-countdown" style="display:none;font-size:9px;color:rgba(255,255,255,.7);font-family:monospace;min-width:32px;text-align:center"></span>
     </div>
     <button class="btn" onclick="openNewDoc()">+ Nuevo documento</button>
   </div>
@@ -461,8 +461,8 @@ tbody tr:last-child td{border-bottom:none}
           <div class="home-mod-card" onclick="nav('usrs',document.querySelector('[data-p=usrs]'))"><div class="home-mod-icon" style="background:#e8f0fb">👥</div><div class="home-mod-name">Usuarios</div></div>
           <div class="home-mod-card" onclick="nav('correos',document.querySelector('[data-p=correos]'))"><div class="home-mod-icon" style="background:#e8f0fb">📧</div><div class="home-mod-name">Correos</div></div>
           <div class="home-mod-card" onclick="nav('cfg',document.querySelector('[data-p=cfg]'))"><div class="home-mod-icon" style="background:#f0f0f0">⚙️</div><div class="home-mod-name">Configuración</div></div>
-          <div class="home-mod-card" onclick="nav('procs',document.querySelector('[data-p=procs]'))"><div class="home-mod-icon" style="background:#e1f5ee">🗺️</div><div class="home-mod-name">Mapa de Procesos</div></div>
-          <div class="home-mod-card" onclick="nav('validacion',document.querySelector('[data-p=validacion]'))"><div class="home-mod-icon" style="background:#e8f0fb">🧪</div><div class="home-mod-name">Validación IQ/OQ</div></div>
+          
+          
         </div>
       </div>
 
@@ -698,19 +698,44 @@ tbody tr:last-child td{border-bottom:none}
         </div>
       </div>
 
-      <!-- Barra búsqueda principal -->
-      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="flex:1;display:flex;align-items:center;gap:10px;background:var(--bg3);border:1.5px solid var(--T);border-radius:var(--r);padding:9px 14px;cursor:text" onclick="dcpOpen()">
-            <span style="font-size:16px;color:var(--T)">🔍</span>
-            <span style="font-size:13px;color:var(--tx3);flex:1">Escribe el código del documento que deseas consultar...</span>
-            <span style="display:flex;align-items:center;gap:3px">
-              <span class="dcp-kbd">Ctrl</span><span style="font-size:10px;color:var(--tx3)">+</span><span class="dcp-kbd">K</span>
-            </span>
+      <!-- Panel de busqueda avanzada -->
+      <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:14px 16px;margin-bottom:12px;box-shadow:var(--sh)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1.5px solid var(--T);border-radius:var(--r);padding:8px 13px">
+            <span style="font-size:15px;color:var(--T)">&#128269;</span>
+            <input id="lm-srch-nombre" type="text" placeholder="Buscar por nombre o codigo del documento..." autocomplete="off" spellcheck="false"
+              style="flex:1;border:none;background:transparent;font-size:12px;color:var(--tx);outline:none;font-family:var(--fn)"
+              oninput="debounceFn('lmNombre',lmFiltrar,220)" onkeydown="if(event.key==='Escape'){this.value='';lmLimpiarResultados();}">
+            <span id="lm-srch-clear" onclick="document.getElementById('lm-srch-nombre').value='';lmLimpiarResultados();" style="cursor:pointer;font-size:11px;color:var(--tx3);display:none">&#10005;</span>
           </div>
-          <button class="btn sm" onclick="dcpOpen()" style="white-space:nowrap;padding:9px 18px">Buscar</button>
-          <button class="btn sm" onclick="openNewDoc()" style="white-space:nowrap;padding:9px 16px;background:var(--T);color:#fff;border-color:var(--T)">➕ Nuevo documento</button>
+          <button class="btn sm" onclick="openNewDoc()" style="white-space:nowrap;padding:8px 15px;background:var(--T);color:#fff;border-color:var(--T)">&#10133; Nuevo</button>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);white-space:nowrap">Filtros:</span>
+          <select id="lm-f-mbr" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px">
+            <option value="">MBR: Todos</option>
+            <option value="si">MBR: Con MBR</option>
+            <option value="no">MBR: Sin MBR</option>
+          </select>
+          <select id="lm-f-gxp" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px">
+            <option value="">GxP: Todos</option>
+            <option value="si">GxP: Si</option>
+            <option value="no">GxP: No</option>
+          </select>
+          <select id="lm-f-adm" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:170px">
+            <option value="">Administrador: Todos</option>
+          </select>
+          <select id="lm-f-est" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:130px">
+            <option value="">Estado: Todos</option>
+            <option value="Vigente">Vigente</option>
+            <option value="Por vencer">Por vencer</option>
+            <option value="Vencido">Vencido</option>
+            <option value="Obsoleto">Obsoleto</option>
+          </select>
+          <button class="btn gh sm" onclick="lmLimpiarFiltros()" style="font-size:11px;white-space:nowrap">&#10005; Limpiar</button>
+          <span id="lm-result-count" style="font-size:11px;color:var(--tx3);margin-left:auto"></span>
+        </div>
+        <div id="lm-resultados" style="display:none;margin-top:10px;border-top:1px solid var(--brd);padding-top:10px;max-height:340px;overflow-y:auto"></div>
       </div>
 
       <!-- Fila 1: Consultados recientemente (full width) -->
@@ -804,7 +829,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="dcp-palette" id="dcp-palette">
         <div class="dcp-search-row">
           <span class="dcp-search-icon">🔍</span>
-          <input id="dcp-input" placeholder="Escribe el código del documento..." oninput="dcpSearch(this.value)" onkeydown="dcpKeydown(event)" autocomplete="off" spellcheck="false"/>
+          <input id="dcp-input" placeholder="Escribe el código del documento..." oninput="debounceFn('dcp',function(){dcpSearch(document.getElementById('dcp-input').value);},180)" onkeydown="dcpKeydown(event)" autocomplete="off" spellcheck="false"/>
           <span class="dcp-kbd" onclick="dcpClose()" style="cursor:pointer">Esc</span>
         </div>
         <div class="dcp-body">
@@ -856,7 +881,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="sh"><div class="st">Control de vencimientos</div>
         <select class="fsel" id="fv" onchange="renderVenc()"><option value="t">Todos</option><option value="v">Vencidos</option><option value="p">Por vencer</option><option value="g">Vigentes</option></select>
       </div>
-      <div class="tw"><table><thead><tr><th>Código</th><th>Descripción</th><th>Administrador</th><th>Líder</th><th>Vencimiento</th><th>Días</th><th>Estado</th><th></th></tr></thead><tbody id="venc-tb"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th>Código</th><th>Descripción</th><th>Área</th><th>Administrador</th><th>Líder</th><th>Vencimiento</th><th>Días</th><th>Estado</th><th>Ext. Vigencia</th><th>Acciones</th></tr></thead><tbody id="venc-tb"></tbody></table></div>
     </div>
   </div>
 
@@ -866,7 +891,7 @@ tbody tr:last-child td{border-bottom:none}
 
     <!-- Barra de acciones + búsqueda -->
     <div style="background:#fff;border:1px solid var(--brd);border-radius:var(--rl);padding:10px 14px;margin-bottom:12px;box-shadow:var(--sh);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <input type="text" id="fc-q" placeholder="🔍 Buscar código o responsable..." oninput="ccRenderTree();renderCopias()" style="width:230px;font-size:12px;padding:7px 12px;border:2px solid var(--T);border-radius:var(--r);background:#fff;color:var(--tx);outline:none;font-family:var(--fn)">
+      <input type="text" id="fc-q" placeholder="🔍 Buscar código o responsable..." oninput="debounceFn('copias',function(){ccRenderTree();renderCopias();},250)" style="width:230px;font-size:12px;padding:7px 12px;border:2px solid var(--T);border-radius:var(--r);background:#fff;color:var(--tx);outline:none;font-family:var(--fn)">
       <select class="fsel" id="fc-estado" onchange="ccRenderTree();renderCopias()" title="Filtrar por estado" style="font-size:11px;width:130px"><option value="">Todos los estados</option></select>
       <button class="btn gh sm" onclick="ccLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
       <!-- Hidden selects for compat -->
@@ -993,12 +1018,7 @@ tbody tr:last-child td{border-bottom:none}
     </div>
   </div>
 
-  <div class="pg" id="pg-procs">
-    <div class="card" style="margin-bottom:12px"><div class="sh"><div class="st">Mapa de procesos</div><button class="btn sm" onclick="openMo('mo-proc')">+ Nuevo</button></div><div class="pm" id="proc-map"></div></div>
-    <div class="card"><div class="sh"><div class="st">Documentos</div><span id="proc-sel" class="b tl">Selecciona un proceso</span></div>
-      <div class="tw"><table><thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>Ver.</th><th>Estado</th><th>GxP</th></tr></thead><tbody id="proc-tb"></tbody></table></div>
-    </div>
-  </div>
+<!-- pg-procs eliminado -->
 
   <div class="pg" id="pg-usrs">
     <div class="card"><div class="sh"><div class="st">Usuarios</div>
@@ -1155,7 +1175,7 @@ tbody tr:last-child td{border-bottom:none}
         <div style="font-size:12px;color:var(--tx3);margin-top:2px">Visualiza y edita los correos asignados a cada documento. Los cambios se sincronizan con el Excel.</div>
       </div>
       <div style="display:flex;gap:8px">
-        <input class="fi" id="cor-q" placeholder="Buscar por código o área..." style="width:260px" oninput="renderCorreos()">
+        <input class="fi" id="cor-q" placeholder="Buscar por código o área..." style="width:260px" oninput="debounceFn('cor',renderCorreos,200)">
         <select class="fs" id="cor-area" onchange="renderCorreos()" style="width:200px"><option value="">Todas las áreas</option></select>
       </div>
     </div>
@@ -1191,14 +1211,28 @@ tbody tr:last-child td{border-bottom:none}
     <div class="st">&#9729;&#65039; Sincronización con OneDrive</div>
     <span id="od-estado-badge" class="b ng" style="font-size:10px">Sin archivo</span>
   </div>
-  <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;line-height:1.6">
-    Selecciona el archivo <strong>LM-0019.xlsx</strong> de tu carpeta OneDrive local. Los cambios se guardan automáticamente y OneDrive los sube a la nube. <span style="color:var(--T3);font-weight:600">No requiere Azure AD.</span>
+  <div id="od-cfg-desc" style="font-size:11px;color:var(--tx3);margin-bottom:12px;line-height:1.6">
+    La app detecta automáticamente si corre desde <strong>SharePoint</strong> (modo nube) o desde un PC local (modo OneDrive). En modo SharePoint los Excel se leen y guardan directamente sin ninguna configuración adicional.
   </div>
-  <div style="background:var(--tl);border:1px solid var(--tb);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--T3)">
-    &#128193; Busca la carpeta <strong>Listado_Maestro</strong> dentro de <strong>OneDrive – Grupo Procaps</strong> en el Explorador de Windows de tu PC.
+  <div id="od-cfg-modo" style="background:var(--tl);border:1px solid var(--tb);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--T3)">
+    &#9729;&#65039; <strong>Modo SharePoint:</strong> Los Excel están en la misma carpeta que esta página. Se leen y guardan automáticamente via API REST de SharePoint.
   </div>
+  <script>
+  (function(){
+    var desc=document.getElementById('od-cfg-desc');
+    var modo=document.getElementById('od-cfg-modo');
+    if(modo){
+      if(window.SP&&SP.activo){
+        modo.innerHTML='&#9729;&#65039; <strong>Modo SharePoint activo.</strong> Carpeta: <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px">'+SP.carpetaUrl+'</code>';
+      } else {
+        modo.innerHTML='&#128193; <strong>Modo local (OneDrive).</strong> Selecciona la carpeta <strong>Listado_Maestro</strong> en el Explorador de Windows.';
+      }
+    }
+  })();
+  </script>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
     <button class="btn" onclick="odConectar()">&#128194; Seleccionar archivo Excel</button>
+    <button class="btn gh sm" onclick="odCambiarCarpeta()" title="Cambiar la carpeta de Excel (limpia la conexión guardada)">📁 Cambiar carpeta Excel</button>
     <button class="btn gh" id="od-btn-cargar" onclick="odCargarListado()" disabled style="opacity:.5">&#128260; Recargar desde archivo</button>
     <button class="btn gh" id="od-btn-guardar" onclick="odGuardarAhora()" disabled style="opacity:.5">&#128190; Guardar ahora</button>
     <button class="btn gh sm" id="od-btn-sync" onclick="odDesconectar()" disabled style="opacity:.5">&#9209; Detener sync</button>
@@ -1525,7 +1559,7 @@ tbody tr:last-child td{border-bottom:none}
           <div style="display:flex;align-items:center;gap:8px">
             <input id="ecc-actas-filtro" type="text" placeholder="Buscar por N° de acta, código o tipo..." class="fi"
               style="width:280px;font-size:12px"
-              oninput="eccFiltrarActas(this.value)"
+              oninput="debounceFn('actasF',function(){eccFiltrarActas(document.getElementById('ecc-actas-filtro').value);},200)"
               onkeydown="if(event.key==='Escape'){this.value='';eccFiltrarActas('');}">
             <button class="btn gh sm" onclick="document.getElementById('ecc-actas-filtro').value='';eccFiltrarActas('')">✕ Limpiar</button>
           </div>
@@ -1828,54 +1862,11 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn gh sm" onclick="pdfbc_cerrarPreview()">✕ Cerrar</button>
       </div>
     </div>
-    <iframe id="pdfbc-iframe" style="flex:1;border:none;border-radius:0 0 10px 10px;background:#525659"></iframe>
+    <div id="pdfbc-iframe-wrap" style="flex:1;border-radius:0 0 10px 10px;background:#525659;overflow:hidden"></div>
   </div>
 </div>
 
-<div class="pg" id="pg-validacion">
-  <div style="font-size:18px;font-weight:700;color:var(--tx);margin-bottom:4px">📋 Validación del Sistema IQ/OQ/PQ</div>
-  <div style="font-size:11px;color:var(--tx3);margin-bottom:20px">Genera el informe de validación del sistema según FDA 21 CFR Part 11 / BPM</div>
-  <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start">
-    <!-- Controles -->
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <div class="card" style="padding:16px">
-        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:12px">Información del informe</div>
-        <div class="fp"><label class="fl rq">Elaborado por</label><input class="fi" id="val-elaborado" placeholder="Nombre del validador"></div>
-        <div class="fp" style="margin-top:8px"><label class="fl rq">Cargo</label><input class="fi" id="val-cargo" placeholder="Cargo del validador"></div>
-        <div class="fp" style="margin-top:8px"><label class="fl">Revisado por</label><input class="fi" id="val-revisado" placeholder="Nombre del revisor"></div>
-        <div class="fp" style="margin-top:8px"><label class="fl">Aprobado por</label><input class="fi" id="val-aprobado" placeholder="Nombre del aprobador"></div>
-        <div class="fp" style="margin-top:8px"><label class="fl">Versión del informe</label><input class="fi" id="val-version" value="01"></div>
-        <div class="fp" style="margin-top:8px"><label class="fl">Fecha</label><input class="fi" type="date" id="val-fecha"></div>
-      </div>
-      <div class="card" style="padding:16px">
-        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px">Secciones a incluir</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" id="val-inc-iq" checked> IQ — Calificación de Instalación</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" id="val-inc-oq" checked> OQ — Calificación de Operación</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" id="val-inc-pq" checked> PQ — Calificación de Desempeño</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" id="val-inc-sum" checked> Resumen ejecutivo</label>
-        </div>
-      </div>
-      <button class="btn" onclick="generarInformeValidacion()" style="justify-content:center;padding:12px">
-        📄 Generar Informe PDF
-      </button>
-    </div>
-    <!-- Preview -->
-    <div class="card" style="padding:16px;min-height:500px">
-      <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px">Vista previa de pruebas</div>
-      <div id="val-preview">
-        <div class="emp">Completa los datos y genera el informe</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-
-
+<!-- pg-validacion eliminado -->
 
 <div class="pg" id="pg-revdoc">
   <div style="padding:0 16px">
@@ -2806,6 +2797,17 @@ tbody tr:last-child td{border-bottom:none}
 <script>
 
 // ============================================================
+// PERFORMANCE — debounce para evitar congelamientos
+// ============================================================
+var _dbTimers={};
+function debounceFn(key,fn,ms){
+  if(_dbTimers[key]) clearTimeout(_dbTimers[key]);
+  _dbTimers[key]=setTimeout(fn, ms||220);
+}
+function _dbAudQ(){ debounceFn('audQ',renderAudit,200); }
+function _dbAudU(){ debounceFn('audU',renderAudit,200); }
+
+// ============================================================
 // STORAGE — IndexedDB + memory fallback
 // ============================================================
 
@@ -2858,7 +2860,8 @@ var CHUNK=40;
 
 
 function saveDocs(arr){
-
+  if(typeof docsEmpresaInvalidar==='function')docsEmpresaInvalidar();
+  if(typeof lmPoblarAdministradores==='function')setTimeout(lmPoblarAdministradores,0);
   var prev=parseInt(lsGet('sg_dn')||'0');
   for(var i=0;i<prev;i++)lsDel('sg_d'+i);
   if(!arr||!arr.length){lsSet('sg_dn','0');return;}
@@ -2876,7 +2879,7 @@ function saveDocs(arr){
   // Disparar guardado en OneDrive si está conectado
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
+    OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
 }
@@ -2933,11 +2936,11 @@ var nTabActual='doc';
 var revdoc_texto = '';
 var revdoc_archivo = null;
 var revdoc_tipo = '';
-var revdoc_palabrasBase = ['Vicepresidente','Director SST','Director Seguridad y Salud En Trabajo','Director De Seguridad y Salud En Trabajo','Grupo Procaps','Procaps Grup','Contención','Contencion'];
+var revdoc_palabrasBase = ['Vicepresidente','Director SST','Director Seguridad y Salud En Trabajo','Director De Seguridad y Salud En Trabajo','Grupo Procaps','Procaps Grup','Contención','Contencion','Isopar','Trapero','Escoba','Detergente','Liquinox','Probio']
 
 var revdoc_palabrasExtra = [];
 var _inactividadTimer=null;
-var _inactividadMinutos=10;
+var _inactividadMinutos=5;
 var _inactividadAviso=null;
 var _inactividadAvisoActivo=false;
 
@@ -2945,25 +2948,18 @@ var _inactividadAvisoActivo=false;
 // Filtro global por empresa
 
 
+var _deCache=null,_deCacheLen=-1,_deCacheUser='';
+function docsEmpresaInvalidar(){_deCache=null;}
 function docsEmpresa(){
-  if(!currentUser||currentUser.rol==='Administrador') return docs;
+  if(!currentUser||currentUser.rol==='Administrador'){if(_deCache===docs&&_deCacheLen===docs.length)return _deCache;_deCache=docs;_deCacheLen=docs.length;_deCacheUser='__admin__';return docs;}
   var emp=(currentUser.empresa||currentUser.area||'').toLowerCase().trim();
-  if(!emp) return docs;
-  // Normalizar: quitar puntos, espacios extra, corregir typos comunes
-  function normalizar(s){
-    return (s||'').toLowerCase().trim()
-      .replace(/\./g,'')           // quitar puntos
-      .replace(/\s+/g,' ')         // normalizar espacios
-      .replace(/ph[ao]r[nm]a/,'pharma'); // corregir variantes pharma/pharna
-  }
+  var uid=emp+'|'+docs.length;
+  if(_deCache&&_deCacheUser===uid)return _deCache;
+  if(!emp){_deCache=docs;_deCacheUser=uid;_deCacheLen=docs.length;return docs;}
+  function normalizar(s){return(s||'').toLowerCase().trim().replace(/\./g,'').replace(/\s+/g,' ').replace(/ph[ao]r[nm]a/,'pharma');}
   var empNorm=normalizar(emp);
-  return docs.filter(function(d){
-    var dEmp=normalizar(d.administrador||d.empresa||'');
-    if(!dEmp) return false;
-    return dEmp===empNorm||
-           dEmp.indexOf(empNorm)>=0||
-           empNorm.indexOf(dEmp)>=0;
-  });
+  _deCache=docs.filter(function(d){var dEmp=normalizar(d.administrador||d.empresa||'');if(!dEmp)return false;return dEmp===empNorm||dEmp.indexOf(empNorm)>=0||empNorm.indexOf(dEmp)>=0;});
+  _deCacheLen=docs.length;_deCacheUser=uid;return _deCache;
 }
 
 function copiasEmpresa(){
@@ -3173,7 +3169,8 @@ function parseXDate(v){
   if(m){var dd=m[1],mo=m[2],yy=m[3];if(yy.length===2)yy='20'+yy;return yy+'-'+mo.padStart(2,'0')+'-'+dd.padStart(2,'0');}
   var dt=new Date(s);if(!isNaN(dt.getTime()))return fD(dt);return'';
 }
-function dH(s){if(!s)return 9999;var h=new Date();h.setHours(0,0,0,0);var r=new Date(s+'T00:00:00');if(isNaN(r))return 9999;return Math.round((r-h)/86400000);}
+var _dHBase=0,_dHDate=0;
+function dH(s){if(!s)return 9999;var now=Date.now();if(!_dHBase||now-_dHDate>60000){var h=new Date();h.setHours(0,0,0,0);_dHBase=h.getTime();_dHDate=now;}var r=new Date(s+'T00:00:00');if(isNaN(r))return 9999;return Math.round((r.getTime()-_dHBase)/86400000);}
 
 
 function calcEst(fv, obs){
@@ -3308,7 +3305,7 @@ function logA(u,a,d,cambios,modulo){
   // Guardar en SharePoint con debounce
   if(OD.fileHandle&&OD.syncActivo){
     if(window._auditSaveTimer) clearTimeout(window._auditSaveTimer);
-    window._auditSaveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+    window._auditSaveTimer=setTimeout(function(){odGuardarListado(true);},60000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
 }
@@ -3332,20 +3329,15 @@ function getSaludo(){var h=new Date().getHours();if(h>=5&&h<12)return'Buenos dia
 // NAV
 // ============================================================
 
-var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Programa de Inspecciones Rutinarias',procs:'Mapa de Procesos',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',validacion:'Informe de Validación IQ/OQ/PQ',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento F-SOP-0001-5'};
-var PR={dash:renderDash,kpi:function(){renderKPI();},docs:renderDocs,venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},procs:renderProcs,usrs:renderUsrs,notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,validacion:renderValidacion,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
+var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Programa de Inspecciones Rutinarias',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento F-SOP-0001-5'};
+var PR={dash:renderDash,kpi:function(){renderKPI();},docs:function(){renderDocs();lmInit();},venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:renderUsrs,notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
 
+var _navPgNodes=null,_navNiNodes=null;
+function _navGetNodes(){if(!_navPgNodes)_navPgNodes=Array.from(document.querySelectorAll('.pg'));if(!_navNiNodes)_navNiNodes=Array.from(document.querySelectorAll('.ni'));}
 function nav(p,el){
-  document.querySelectorAll('.pg').forEach(function(x){
-    x.classList.remove('act');
-    x.style.display='none';
-    x.style.minHeight='';
-    x.style.width='';
-    x.style.position='';
-    x.style.top='';x.style.left='';x.style.right='';x.style.bottom='';
-    x.style.zIndex='';
-  });
-  document.querySelectorAll('.ni').forEach(function(x){x.classList.remove('act');});
+  _navGetNodes();
+  _navPgNodes.forEach(function(x){x.classList.remove('act');x.style.display='none';x.style.minHeight='';x.style.width='';x.style.position='';x.style.top='';x.style.left='';x.style.right='';x.style.bottom='';x.style.zIndex='';});
+  _navNiNodes.forEach(function(x){x.classList.remove('act');});
   var pg=document.getElementById('pg-'+p);
   if(pg){
     pg.classList.add('act');
@@ -3390,17 +3382,8 @@ function nav(p,el){
 window._MOD_LOGO_SRC = document.querySelector('.sb-logo img') ? document.querySelector('.sb-logo img').src : '';
 
 function updBadges(){
-
-  // Contar por fecha real (dH<0) para que coincida exactamente con el Excel
-  var vt=docsEmpresa().filter(function(d){
-    return dH(d.fechaVencimiento)<0&&d.estado!=='Obsoleto'&&d.obsoleto!=='X'&&d.obsoleto!=='Si'&&d.obsoleto!=='Sí';
-  }).length;
-  var vp=docsEmpresa().filter(function(d){
-    var di=dH(d.fechaVencimiento);
-      // Verificar si está en ruta de borrador
-      var _rbSol=typeof rbGetEstadoCodigo==='function'?rbGetEstadoCodigo(d.codigoActual):null;
-    return di>=0&&di<=30&&d.estado!=='Obsoleto'&&d.obsoleto!=='X'&&d.obsoleto!=='Si'&&d.obsoleto!=='Sí';
-  }).length;  var ef=docsEmpresa().filter(function(d){return d.flujo&&d.flujo.etapa!=='Aprobado';}).length;
+  var _de=docsEmpresa();var hoy=new Date();hoy.setHours(0,0,0,0);var _hoyMs=hoy.getTime();var vt=0,vp=0,ef=0;
+  _de.forEach(function(d){var obs=d.estado==='Obsoleto'||d.obsoleto==='X'||d.obsoleto==='Si'||d.obsoleto==='Sí';if(obs)return;var fv=d.fechaVencimiento;var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-_hoyMs)/86400000):9999;if(di<0)vt++;if(di>=0&&di<=30)vp++;if(d.flujo&&d.flujo.etapa!=='Aprobado')ef++;});
 
   function setEl(id,txt,cls){
 
@@ -4457,6 +4440,107 @@ function dcpBackToLanding(){
 }
 
 /* ── Init ───────────────────────────────────────── */
+
+// BÚSQUEDA AVANZADA módulo Documentos
+function lmEsMbr(d){var v=String(d.mbr||'').toUpperCase().trim();return v==='X'||v==='MBR'||v==='SI'||v==='\u00cd';}
+function lmEsGxp(d){var v=String(d.docGxP||'').toUpperCase().trim();return v==='X'||v==='GXP'||v==='SI'||v==='\u00cd';}
+
+function lmPoblarAdministradores(){
+  var sel=document.getElementById('lm-f-adm');
+  if(!sel) return;
+  var actual=sel.value;
+  var set={};
+  (docsEmpresa()||[]).forEach(function(d){var a=(d.administrador||'').trim();if(a)set[a]=1;});
+  var adms=Object.keys(set).sort();
+  sel.innerHTML='<option value="">Administrador: Todos</option>';
+  adms.forEach(function(a){var op=document.createElement('option');op.value=a;op.textContent=a;if(a===actual)op.selected=true;sel.appendChild(op);});
+}
+
+function lmFiltrar(){
+  var q=((document.getElementById('lm-srch-nombre')||{}).value||'').toLowerCase().trim();
+  var fMbr=((document.getElementById('lm-f-mbr')||{}).value||'');
+  var fGxp=((document.getElementById('lm-f-gxp')||{}).value||'');
+  var fAdm=((document.getElementById('lm-f-adm')||{}).value||'');
+  var fEst=((document.getElementById('lm-f-est')||{}).value||'');
+  var clrBtn=document.getElementById('lm-srch-clear');
+  if(clrBtn) clrBtn.style.display=q?'inline':'none';
+  if(!q&&!fMbr&&!fGxp&&!fAdm&&!fEst){lmLimpiarResultados();return;}
+  var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();
+  var res=(docsEmpresa()||[]).filter(function(d){
+    if(q){var hay=((d.codigoActual||'')+(d.descripcion||'')+(d.codigoAntiguo||'')).toLowerCase();if(hay.indexOf(q)<0)return false;}
+    if(fMbr==='si'&&!lmEsMbr(d))return false;
+    if(fMbr==='no'&&lmEsMbr(d))return false;
+    if(fGxp==='si'&&!lmEsGxp(d))return false;
+    if(fGxp==='no'&&lmEsGxp(d))return false;
+    if(fAdm&&(d.administrador||'').trim()!==fAdm)return false;
+    if(fEst){var fv=d.fechaVencimiento;var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):9999;var est=d.estado==='Obsoleto'?'Obsoleto':di<0?'Vencido':di<=30?'Por vencer':'Vigente';if(est!==fEst)return false;}
+    return true;
+  });
+  res.sort(function(a,b){return(a.codigoActual||'').localeCompare(b.codigoActual||'');});
+  var cntEl=document.getElementById('lm-result-count');
+  if(cntEl) cntEl.textContent=res.length+' resultado'+(res.length!==1?'s':'');
+  lmRenderResultados(res);
+}
+
+function lmRenderResultados(lista){
+  var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();
+  var cont=document.getElementById('lm-resultados');
+  if(!cont) return;
+  cont.style.display='block';
+  if(!lista.length){cont.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--tx3);font-size:12px">Sin documentos que coincidan</div>';return;}
+  var MAX=200;
+  var frag=document.createDocumentFragment();
+  lista.slice(0,MAX).forEach(function(d){
+    var fv=d.fechaVencimiento;
+    var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):null;
+    var estC=d.estado==='Obsoleto'?'#A32D2D':di===null?'var(--tx3)':di<0?'#A32D2D':di<=30?'#854F0B':'#0F6E56';
+    var estL=d.estado==='Obsoleto'?'Obsoleto':di===null?'\u2014':di<0?'Vencido':di<=30?'Por vencer':'Vigente';
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border-bottom:1px solid var(--brd)';
+    row.onmouseover=function(){this.style.background='var(--bg3)';};
+    row.onmouseout=function(){this.style.background='transparent';};
+    row.onclick=function(){lmSeleccionar(d.id);};
+    var badges='';
+    if(lmEsGxp(d)) badges+='<span style="background:#e8f0fb;color:#1a5fa0;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">GxP</span>';
+    if(lmEsMbr(d)) badges+='<span style="background:#faeeda;color:#854F0B;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">MBR</span>';
+    var colDiv=document.createElement('div');
+    colDiv.style.cssText='min-width:110px;font-family:monospace;font-size:11px;font-weight:700;color:var(--T3)';
+    colDiv.textContent=d.codigoActual;
+    var nameDiv=document.createElement('div');
+    nameDiv.style.cssText='flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    nameDiv.title=d.descripcion;
+    nameDiv.textContent=d.descripcion;
+    var badgeDiv=document.createElement('div');
+    badgeDiv.style.cssText='display:flex;gap:4px;align-items:center;flex-shrink:0';
+    badgeDiv.innerHTML=badges+'<span style="font-size:10px;color:'+estC+';font-weight:600;white-space:nowrap">'+estL+'</span>';
+    var admDiv=document.createElement('div');
+    admDiv.style.cssText='min-width:120px;font-size:10px;color:var(--tx3);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    admDiv.textContent=d.administrador||'\u2014';
+    var btnDiv=document.createElement('div');
+    btnDiv.style.cssText='display:flex;gap:5px;flex-shrink:0';
+    var btnEdit=document.createElement('button');
+    btnEdit.className='btn gh sm'; btnEdit.style.cssText='font-size:10px;padding:3px 9px';
+    btnEdit.textContent='\u270f\ufe0f Editar';
+    btnEdit.onclick=function(e){e.stopPropagation();editDoc(d.id);};
+    var btnVer=document.createElement('button');
+    btnVer.className='btn sm'; btnVer.style.cssText='font-size:10px;padding:3px 9px';
+    btnVer.textContent='\ud83d\udc41 Ver';
+    btnVer.onclick=function(e){e.stopPropagation();lmSeleccionar(d.id);};
+    btnDiv.appendChild(btnEdit); btnDiv.appendChild(btnVer);
+    row.appendChild(colDiv); row.appendChild(nameDiv); row.appendChild(badgeDiv);
+    row.appendChild(admDiv); row.appendChild(btnDiv);
+    frag.appendChild(row);
+  });
+  cont.innerHTML='';
+  cont.appendChild(frag);
+  if(lista.length>MAX){var more=document.createElement('div');more.style.cssText='padding:8px 10px;font-size:11px;color:var(--tx3);text-align:center';more.textContent='Mostrando los primeros '+MAX+' de '+lista.length+' resultados. Refina la busqueda.';cont.appendChild(more);}
+}
+
+function lmSeleccionar(id){var d=docs.find(function(x){return x.id===id;});if(d)dcpSelectByCod(d.codigoActual);}
+function lmLimpiarResultados(){var cont=document.getElementById('lm-resultados');if(cont){cont.style.display='none';cont.innerHTML='';}var cntEl=document.getElementById('lm-result-count');if(cntEl)cntEl.textContent='';}
+function lmLimpiarFiltros(){['lm-srch-nombre','lm-f-mbr','lm-f-gxp','lm-f-adm','lm-f-est'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var c=document.getElementById('lm-srch-clear');if(c)c.style.display='none';lmLimpiarResultados();}
+function lmInit(){lmPoblarAdministradores();}
+
 function dcpInit(){
   dcpLoadStorage();
   dcpRenderLanding();
@@ -4477,7 +4561,7 @@ function onSearch(){dPage=0;renderDocs();}
 function filterDocs(){dPage=0;renderDocs();}
 function clearFiltros(){['f-tipo','f-est','f-proc','f-area','f-gxp'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var gs=document.getElementById('gs');if(gs)gs.value='';dPage=0;renderDocs();toast('Filtros limpiados','if');}
 var _docsLenCache=-1;
-function renderDocs(){
+function _renderDocsReal(){
   if(typeof dcpActualizarStatsBanner==='function') dcpActualizarStatsBanner();
   if(docs.length!==_docsLenCache){ populateFiltros(); _docsLenCache=docs.length; }
   var fT=(document.getElementById('f-tipo')||{}).value||'';
@@ -4536,6 +4620,13 @@ function docStripClass(estado){
   if(e==='vencido'||e==='obsoleto')return 'ob';
   return 'rv';
 }
+function renderDocs(){
+  if(window._rdRAF)cancelAnimationFrame(window._rdRAF);
+  if(window._rdIdle)cancelIdleCallback(window._rdIdle);
+  if(window.requestIdleCallback){window._rdIdle=requestIdleCallback(function(){window._rdIdle=null;_renderDocsReal();},{timeout:300});}
+  else{window._rdRAF=requestAnimationFrame(function(){window._rdRAF=null;_renderDocsReal();});}
+}
+
 function renderDocsPage(){
   if(_docsView==='cards'){renderDocsCards();return;}
   var tb=document.getElementById('docs-tb');if(!tb)return;
@@ -5117,12 +5208,56 @@ function renderVenc() {
   var frag = document.createDocumentFragment();
   lista.forEach(function(d) {
     var di = dH(d.fechaVencimiento); var r = document.createElement('tr');
-    r.innerHTML = '<td><span class="cd">'+d.codigoActual+'</span></td><td style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</td><td style="font-size:11px">'+(d.administrador||'-')+'</td><td style="font-size:11px">'+(d.liderProceso||'-')+'</td><td style="font-size:11px">'+fDD(d.fechaVencimiento)+'</td><td style="font-weight:700;color:'+(di<0?'var(--R)':di<=30?'var(--A)':'var(--G)')+'">'+Math.abs(di)+'d</td><td>'+eB(d.estado)+'</td><td><button class="btn gh sm" onclick="notifRap('+d.id+')">Notificar</button></td>';
+    // Determinar si puede tener extensión de vigencia
+    var extVigVal=(d.extensionVigencia||'').trim().toUpperCase();
+    var tieneExtActiva=(extVigVal==='X'||extVigVal==='SI'||extVigVal==='SÍ'||(extVigVal&&extVigVal!=='NO'&&extVigVal!==''));
+    var esPRGv=d.codigoActual&&d.codigoActual.toUpperCase().indexOf('PRG-')===0;
+    var esFormatov=d.codigoActual&&d.codigoActual.toUpperCase().indexOf('F-')===0;
+    var puedeExtender=di<0&&!esFormatov&&!esPRGv&&d.estado!=='Obsoleto'&&!tieneExtActiva&&Math.abs(di)<=365;
+    var extCell=puedeExtender
+      ?'<span style="background:#e8f8f1;color:#085041;border:1px solid #a7f3d0;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700">✅ Aplica</span>'
+      :tieneExtActiva
+        ?'<span style="background:#fff3cd;color:#7a4e00;border:1px solid #ffd97a;border-radius:6px;padding:2px 8px;font-size:10px">Ya extendido</span>'
+        :esPRGv||esFormatov
+          ?'<span style="background:#fde8e8;color:#a02020;border:1px solid #f5a5a5;border-radius:6px;padding:2px 8px;font-size:10px">No aplica</span>'
+          :Math.abs(di)>365
+            ?'<span style="background:#fde8e8;color:#a02020;border:1px solid #f5a5a5;border-radius:6px;padding:2px 8px;font-size:10px">&gt;1 año</span>'
+            :'<span style="font-size:10px;color:var(--tx3)">—</span>';
+    r.innerHTML = '<td><span class="cd">'+d.codigoActual+'</span></td>'
+      +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</td>'
+      +'<td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(d.areaGeneradora||'-')+'</td>'
+      +'<td style="font-size:11px">'+(d.administrador||'-')+'</td>'
+      +'<td style="font-size:11px">'+(d.liderProceso||'-')+'</td>'
+      +'<td style="font-size:11px">'+fDD(d.fechaVencimiento)+'</td>'
+      +'<td style="font-weight:700;color:'+(di<0?'var(--R)':di<=30?'var(--A)':'var(--G)')+'">'+Math.abs(di)+'d</td>'
+      +'<td>'+eB(d.estado)+'</td>'
+      +'<td style="text-align:center">'+extCell+'</td>'
+      +'<td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">'
+        +'<button class="btn gh sm" onclick="notifRap('+d.id+')">Notificar</button>'
+        +(puedeExtender?'<button class="btn sm" style="background:#00695C;color:#fff;font-size:10px" onclick="vencAbrirExtension(\''+d.codigoActual+'\')" title="Generar formato de extensión de vigencia">📋 Ext. Vigencia</button>':'')
+      +'</td>';
     frag.appendChild(r);
   });
-  if (!lista.length) { var r2=document.createElement('tr'); r2.innerHTML='<td colspan="8"><div class="emp"><div style="font-size:12px">Sin documentos</div></div></td>'; frag.appendChild(r2); }
+  if (!lista.length) { var r2=document.createElement('tr'); r2.innerHTML='<td colspan="10"><div class="emp"><div style="font-size:12px">Sin documentos</div></div></td>'; frag.appendChild(r2); }
   var tb = document.getElementById('venc-tb'); tb.innerHTML=''; tb.appendChild(frag);
 }
+function vencAbrirExtension(codigo){
+  // Navegar al módulo F-Extensión de Vigencia y pre-llenar el código
+  nav('fextvig', document.querySelector('[data-p="fextvig"]'));
+  setTimeout(function(){
+    var inputCod=document.getElementById('fev-codigo');
+    if(inputCod){
+      inputCod.value=codigo.toUpperCase();
+      // Disparar el evento de cambio para cargar los datos del documento
+      if(typeof fev_onCodigo==='function') fev_onCodigo(codigo.toUpperCase());
+    }
+    // Scroll to top of form
+    var pg=document.getElementById('pg-fextvig');
+    if(pg) pg.scrollTop=0;
+    toast('Documento '+codigo+' cargado en el formato de extensión de vigencia','ok');
+  }, 350);
+}
+
 function notifRap(id) {
   nav('notif', document.querySelector('[data-p="notif"]'));
   setTimeout(function() {
@@ -5916,7 +6051,7 @@ function generarActaCopias() {
   // Guardar en Excel de OneDrive inmediatamente
   if(OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
   var win=window.open('','_blank','width=940,height=1100,scrollbars=yes');
@@ -6011,7 +6146,7 @@ function delCop(id){
     if(OD.fileHandle&&window.currentUser){
       OD.syncActivo=true;
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
     }
     toast('Copia eliminada — guardando en SharePoint...','if');
     renderCopias();
@@ -7862,8 +7997,8 @@ function renderAudit(){
     +'<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--tx)">Registro de actividad</div>'
     +'<div style="font-size:11px;color:var(--tx3);margin-top:2px">'+lista.length+' registros · <span style="color:#00695C">📊 Sincronizado con hoja Auditrail del Excel</span></div></div>'
     +'<button class="btn gh sm" onclick="dashActualizar()" title="Recargar desde SharePoint">🔄 Actualizar</button>'
-    +'<input type="text" class="fi" id="f-aud-q" placeholder="Buscar en detalle..." oninput="renderAudit()" value="'+fQ+'" style="width:180px;font-size:11px">'
-    +'<input type="text" class="fi" id="f-aud-usr" placeholder="Usuario..." oninput="renderAudit()" value="'+fUsr+'" style="width:130px;font-size:11px">'
+    +'<input type="text" class="fi" id="f-aud-q" placeholder="Buscar en detalle..." oninput="_dbAudQ()" value="'+fQ+'" style="width:180px;font-size:11px">'
+    +'<input type="text" class="fi" id="f-aud-usr" placeholder="Usuario..." oninput="_dbAudU()" value="'+fUsr+'" style="width:130px;font-size:11px">'
     +'<select class="fsel" id="f-aud" onchange="renderAudit()" style="min-width:180px">'
     +'<option value="" '+(f===''?'selected':'')+'>Todas las actividades</option>'
     +tiposOpts
@@ -8215,7 +8350,7 @@ function procXLS(file){
       }
       function nX(v){
         var u=String(v||'').toUpperCase().trim();
-        if(u==='X'||u==='SI'||u==='YES'||u==='1'||u==='S'||u==='TRUE')return'X';
+        if(u==='X'||u==='SI'||u==='YES'||u==='1'||u==='S'||u==='TRUE'||u==='MBR'||u==='GXP'||u==='SÍ')return'X';
         return'';
       }
 
@@ -11133,7 +11268,7 @@ function ecc_generarInformeVerif(){
       // Disparar guardado inmediato al Excel de OneDrive
       if(OD.fileHandle&&OD.syncActivo){
         if(OD.saveTimer) clearTimeout(OD.saveTimer);
-        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
       }
       renderDashInsp&&renderDashInsp();
       renderTablaProg&&renderTablaProg();
@@ -13918,10 +14053,10 @@ function _construirTopbar(user){
   if(ud) ud.remove();
   var nuevoUd=document.createElement('div');
   nuevoUd.className='topb-user';
-  nuevoUd.style.cssText='font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:6px;flex-shrink:0';
-  nuevoUd.innerHTML='<span style="background:var(--tl);border:1px solid var(--tb);border-radius:99px;padding:3px 10px;color:var(--T3);font-weight:600">👤 '+user.nombre
-    +' <span style="opacity:.6;font-weight:400">('+user.rol+')</span>'
-    +(user.empresa?'<span style="opacity:.6;font-weight:400;margin-left:4px">· '+user.empresa+'</span>':'')
+  nuevoUd.style.cssText='font-size:11px;color:#fff;display:flex;align-items:center;gap:6px;flex-shrink:0';
+  nuevoUd.innerHTML='<span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:3px 10px;color:#fff;font-weight:600">👤 '+user.nombre
+    +' <span style="opacity:.7;font-weight:400">('+user.rol+')</span>'
+    +(user.empresa?'<span style="opacity:.7;font-weight:400;margin-left:4px">· '+user.empresa+'</span>':'')
     +'</span>'
     +'<button class="btn gh sm" onclick="abrirCambiarPassPropio()" style="font-size:10px">🔑 Contraseña</button>'
     +'<button class="btn gh sm" onclick="doLogout()" style="font-size:10px">Salir</button>';
@@ -13932,6 +14067,27 @@ function _construirTopbar(user){
 var _loginIntentos = {}; // login → {count, bloqueado}
 var _PASS_CADUCIDAD_DIAS = 60;
 var _MAX_INTENTOS = 5;
+var _ADMIN_EMAIL = 'jarevalo@sofgenpharma.com';
+
+function _notificarLoginFallido(usuario){
+  // Abrir cliente de correo con la notificación de bloqueo
+  var nombre=usuario?usuario.nombre||usuario.login:'Desconocido';
+  var login=usuario?usuario.login||'':'';
+  var fecha=new Date().toLocaleString('es-CO',{timeZone:'America/Bogota'});
+  var asunto=encodeURIComponent('⚠️ Alerta de seguridad — Usuario bloqueado: '+nombre);
+  var cuerpo=encodeURIComponent(
+    'Estimado administrador, se ha bloqueado el usuario por exceder '+_MAX_INTENTOS+' intentos fallidos.'
+    +' Usuario: '+nombre+' ('+login+').'
+    +' Fecha: '+fecha+'.'
+    +' Acciones: verifique si fue acceso no autorizado y si el usuario es legitimo desbloquee en modulo Usuarios.'
+  );
+  // Abrir cliente de correo predeterminado
+  var mailtoUrl='mailto:'+_ADMIN_EMAIL+'?subject='+asunto+'&body='+cuerpo;
+  try{ window.open(mailtoUrl,'_blank'); }catch(e){}
+  // También registrar en auditoría
+  logA('Sistema','Seguridad','Usuario '+nombre+' bloqueado por '+_MAX_INTENTOS+' intentos fallidos de login');
+  toast('⚠️ Usuario bloqueado. Se abrirá el cliente de correo para notificar al administrador.','er');
+}
 
 async function doLogin(){
   var loginVal=(document.getElementById('login-user').value||'').trim().toLowerCase();
@@ -13984,7 +14140,9 @@ async function doLogin(){
         userCandidate.bloqueado=true;
         userCandidate.activo=false;
         saveArr('u',usuarios);
-        if(errEl)errEl.textContent='Usuario BLOQUEADO por exceso de intentos. Contacta al Administrador.';
+        if(errEl)errEl.textContent='Usuario BLOQUEADO por exceso de intentos. Se ha notificado al administrador.';
+        // Enviar notificación por correo al administrador
+        _notificarLoginFallido(userCandidate);
       } else {
         if(errEl)errEl.textContent='Contraseña incorrecta. Intentos restantes: '+restantes;
       }
@@ -14183,6 +14341,107 @@ var OD_ARCHIVOS = {
   actividades:  'Actividadesdeldia.xlsx'
 };
 
+// ── MODO SHAREPOINT ───────────────────────────────────────────────────────────
+// Cuando la app corre desde SharePoint, los Excel están en la misma carpeta.
+// Se usa fetch() para leer y la REST API de SharePoint para escribir.
+// No se necesita File System Access API.
+var SP = {
+  activo:     false,   // true cuando corremos dentro de SharePoint
+  siteUrl:    '',      // ej: https://empresa.sharepoint.com/sites/Documentacion
+  carpetaUrl: '',      // URL relativa al servidor de la carpeta con los Excel
+              // ej: /sites/Documentacion/Documentos Compartidos/Listado_Maestro
+  digest:     null,    // X-RequestDigest para escritura (se renueva cada 30 min)
+  digestExp:  0        // timestamp de expiración del digest
+};
+
+function spDetectar(){
+  // Detectar si estamos corriendo dentro de SharePoint
+  var href=window.location.href;
+  var esSharePoint=href.indexOf('.sharepoint.com')>=0||href.indexOf('/_layouts/')>=0||href.indexOf('/sites/')>=0;
+  if(!esSharePoint) return false;
+  // Extraer siteUrl y carpetaUrl desde la URL actual
+  try{
+    var url=new URL(href);
+    // La app está en: https://empresa.sharepoint.com/sites/XXX/Documentos Compartidos/Listado_Maestro/index.html
+    // carpetaUrl = todo hasta el último '/'
+    var path=url.pathname;
+    var lastSlash=path.lastIndexOf('/');
+    SP.carpetaUrl=path.substring(0,lastSlash); // /sites/XXX/.../Listado_Maestro
+    SP.siteUrl=url.origin;
+    // Extraer siteUrl real (hasta /sites/XXX)
+    var siteMatch=path.match(/^(\/sites\/[^\/]+)/);
+    if(siteMatch) SP.siteUrl=url.origin+siteMatch[1];
+    SP.activo=true;
+    console.log('[SP] Modo SharePoint activo. carpetaUrl:',SP.carpetaUrl,'siteUrl:',SP.siteUrl);
+  }catch(e){
+    console.warn('[SP] Error detectando SharePoint:',e);
+    SP.activo=false;
+  }
+  return SP.activo;
+}
+
+async function spObtenerDigest(){
+  // Renovar digest si expiró (vida ~30 min, renovamos cada 25 min)
+  if(SP.digest&&Date.now()<SP.digestExp) return SP.digest;
+  try{
+    var r=await fetch(SP.siteUrl+'/_api/contextinfo',{
+      method:'POST',
+      headers:{'Accept':'application/json;odata=verbose','Content-Length':'0'}
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var data=await r.json();
+    SP.digest=data.d.GetContextWebInformation.FormDigestValue;
+    SP.digestExp=Date.now()+25*60*1000; // 25 minutos
+    return SP.digest;
+  }catch(e){
+    console.warn('[SP] No se pudo obtener digest:',e.message);
+    return null;
+  }
+}
+
+async function spLeerArchivo(nombre){
+  // Leer un Excel de la carpeta SharePoint por URL relativa
+  var url=SP.carpetaUrl+'/'+nombre;
+  try{
+    var r=await fetch(url,{credentials:'include',cache:'no-cache'});
+    if(!r.ok) throw new Error('HTTP '+r.status+' al leer '+nombre);
+    var buf=await r.arrayBuffer();
+    return {buf:buf, lastModified:Date.now(), handle:null};
+  }catch(e){
+    console.warn('[SP] Error leyendo '+nombre+':',e.message);
+    return null;
+  }
+}
+
+async function spEscribirArchivo(nombre, wbToWrite){
+  // Escribir un Excel en la carpeta SharePoint usando la REST API
+  try{
+    var buf=XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
+    var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var digest=await spObtenerDigest();
+    // URL de escritura con servidor relativo
+    var serverRelUrl=SP.carpetaUrl+'/'+nombre;
+    var apiUrl=SP.siteUrl+"/_api/web/getfilebyserverrelativeurl('"+encodeURIComponent(serverRelUrl)+"')/$value";
+    var headers={'Content-Type':'application/octet-stream','Content-Length':String(buf.byteLength)};
+    if(digest) headers['X-RequestDigest']=digest;
+    var r=await fetch(apiUrl,{method:'PUT',credentials:'include',headers:headers,body:blob});
+    if(!r.ok){
+      // Intentar con método alternativo (subir como nuevo archivo)
+      var apiUrl2=SP.siteUrl+"/_api/web/getfolderbyserverrelativeurl('"+encodeURIComponent(SP.carpetaUrl)+"')"+
+                  "/files/add(url='"+encodeURIComponent(nombre)+"',overwrite=true)";
+      if(digest) headers['X-RequestDigest']=digest;
+      var r2=await fetch(apiUrl2,{method:'POST',credentials:'include',headers:headers,body:blob});
+      if(!r2.ok) throw new Error('HTTP '+r2.status+' al escribir '+nombre);
+    }
+    console.log('[SP] ✅ Guardado: '+nombre);
+    return true;
+  }catch(e){
+    console.error('[SP] Error escribiendo '+nombre+':',e.message);
+    toast('⚠️ Error guardando '+nombre+': '+e.message,'er');
+    return false;
+  }
+}
+
 var OD = {
   fileHandle:    null,   // archivo principal (ListadoMaestro.xlsx) — retro-compat
   carpetaHandle: null,   // handle de la carpeta DocControl_Sofgen
@@ -14287,8 +14546,8 @@ async function odGetArchivoHandle(nombre, modo){
   try{
     var fh=await OD.carpetaHandle.getFileHandle(nombre,{create:false});
     if(modo==='readwrite'){
-      var perm=await fh.queryPermission({mode:'readwrite'});
-      if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
+      var perm=window.location.protocol==='file:'?'granted':(await fh.queryPermission({mode:'readwrite'}));
+      if(perm!=='granted') try{ perm=await fh.requestPermission({mode:'readwrite'}); }catch(eP){ perm='denied'; }
       if(perm!=='granted'){ console.warn('Sin permiso escritura en '+nombre); return null; }
     }
     return fh;
@@ -14297,6 +14556,11 @@ async function odGetArchivoHandle(nombre, modo){
 
 // ── Leer un archivo Excel de la carpeta ──────────────────────
 async function odLeerArchivo(nombre){
+  // MODO SHAREPOINT: leer por fetch desde la misma carpeta
+  if(SP.activo){
+    return await spLeerArchivo(nombre);
+  }
+  // MODO LOCAL: File System Access API
   var fh=await odGetArchivoHandle(nombre,'read');
   if(!fh) return null;
   try{
@@ -15327,7 +15591,7 @@ function odHookSaveInsp(){
     var SYNC_KEYS=['insp','inspProg','sol','c','p','u','nh'];
     if(SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
     }
   };
 }
@@ -15343,7 +15607,7 @@ function odHookSaveArr(){
     var OD_SYNC_KEYS=['c','sol','p','u','nh','insp','inspProg'];
     if(OD_SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
     }
   };
 }
@@ -15422,9 +15686,8 @@ async function odCargarListado(){
   if(window._odCargando){ console.warn('OD: Carga ya en progreso, ignorando llamada duplicada'); return; }
   window._odCargando=true;
   var _odCargandoRelease=function(){ window._odCargando=false; };
-  if(!OD.carpetaHandle&&!OD.fileHandle){
+  if(!SP.activo&&!OD.carpetaHandle&&!OD.fileHandle){
     toast('Selecciona la carpeta DocControl_Sofgen primero','er');
-    // Mostrar pantalla de selección si no hay handle
     if(!document.getElementById('od-seleccion-screen')) odMostrarSeleccion();
     _odCargandoRelease();
     return;
@@ -15435,7 +15698,10 @@ async function odCargarListado(){
     odSetInfo('Cargando desde OneDrive...','var(--tx3)');
     // ── Leer ListadoMaestro.xlsx ──────────────────────────────
     var lmData=null;
-    if(OD.carpetaHandle){
+    if(SP.activo){
+      // MODO SHAREPOINT: fetch directo
+      lmData=await spLeerArchivo(OD_ARCHIVOS.lm);
+    } else if(OD.carpetaHandle){
       lmData=await odLeerArchivo(OD_ARCHIVOS.lm);
     } else {
       // Compatibilidad: archivo único (modo anterior)
@@ -15445,7 +15711,7 @@ async function odCargarListado(){
     if(!lmData){
       var msgErr='No se encontró '+OD_ARCHIVOS.lm+' en la carpeta.';
       toast(msgErr,'er');
-      alert('⚠️ '+msgErr+'\n\nVerifica que la carpeta DocControl_Sofgen contiene el archivo ListadoMaestro.xlsx');
+      alert('⚠️ '+msgErr+'\n\nVerifica que seleccionaste la carpeta correcta.\n\nDebe ser: Listado_Maestro\n(donde están los archivos Excel, NO la carpeta del index.html)');
       // Limpiar y mostrar pantalla de selección para elegir otra carpeta
       OD.carpetaHandle=null;
       if(!document.getElementById('od-seleccion-screen')) odMostrarSeleccion();
@@ -15855,34 +16121,53 @@ async function odCargarListado(){
     try{
       var actData=await odLeerArchivo(OD_ARCHIVOS.actividades);
       if(actData){
-        var wbAct=XLSX.read(actData.buf,{type:'array'});
+        var wbAct=XLSX.read(actData.buf,{type:'array',cellDates:false,raw:false});
         var wsActEl=null;
-        ['Actividades del dia','Actividadesdeldia','actividades del dia','ACTIVIDADES DEL DIA'].forEach(function(n){
+        // Buscar por nombre conocido o usar la primera hoja
+        ['Actividades del dia','Actividadesdeldia','actividades del dia',
+         'ACTIVIDADES DEL DIA','Actividades','actividades'].forEach(function(n){
           if(!wsActEl&&wbAct.Sheets[n]) wsActEl=wbAct.Sheets[n];
         });
+        // Fallback: primera hoja disponible
+        if(!wsActEl&&wbAct.SheetNames.length) wsActEl=wbAct.Sheets[wbAct.SheetNames[0]];
+        console.log('[OD] Actividadesdeldia — hojas disponibles:',wbAct.SheetNames,'| hoja seleccionada:',wsActEl?'encontrada':'NINGUNA (usando primera)');
         if(wsActEl){
-          var a1v=(wsActEl['A1']&&wsActEl['A1'].v)?String(wsActEl['A1'].v).toUpperCase():'';
-          var tieneHdrAct=a1v.indexOf('ID')>=0||a1v.indexOf('TITULO')>=0||a1v.indexOf('TÍTULO')>=0;
-          var startRowAct=tieneHdrAct?2:1;
+          // Usar sheet_to_json para leer todas las filas con resolución automática de shared strings
+          var rawRows=XLSX.utils.sheet_to_json(wsActEl,{header:1,defval:'',raw:false});
+          // Detectar si la primera fila es encabezado
+          var fila1=rawRows[0]||[];
+          var hdr0=String(fila1[0]||'').toUpperCase();
+          var hdr1=String(fila1[1]||'').toUpperCase();
+          var tieneHdr=hdr0.indexOf('ID')>=0||hdr0.indexOf('TITULO')>=0||hdr0.indexOf('TAREA')>=0
+            ||hdr0.indexOf('ACTIVIDAD')>=0||hdr1.indexOf('TAREA')>=0||hdr1.indexOf('TITULO')>=0||hdr1.indexOf('ACTIVIDAD')>=0;
+          var startIdx=tieneHdr?1:0;
+          // Detectar si columna 0 es ID numérico
+          var primeraData=rawRows[startIdx]||[];
+          var col1esID=primeraData.length>1&&!isNaN(parseInt(String(primeraData[0]||'')))&&String(primeraData[0]||'').trim()!=='';
+          var iTitle=col1esID?1:0, iDesc=col1esID?2:1, iPrio=col1esID?3:2, iDone=col1esID?4:3, iDoneAt=col1esID?5:4;
           var tareasXL=[];
-          for(var rAct=startRowAct;rAct<=5000;rAct++){
-            if(!wsActEl['A'+rAct]&&!wsActEl['B'+rAct]) break;
-            var tit=wsActEl['B'+rAct]?String(wsActEl['B'+rAct].v||'').trim():'';
+          for(var rAct=startIdx;rAct<rawRows.length;rAct++){
+            var row=rawRows[rAct]||[];
+            var tit=String(row[iTitle]||'').trim();
             if(!tit) continue;
+            var doneVal=String(row[iDone]||'').toUpperCase().trim();
             tareasXL.push({
-              id:wsActEl['A'+rAct]?parseInt(wsActEl['A'+rAct].v)||Date.now()+rAct:Date.now()+rAct,
+              id:col1esID&&!isNaN(parseInt(row[0]))?parseInt(row[0]):Date.now()+rAct,
               title:tit,
-              desc:wsActEl['C'+rAct]?String(wsActEl['C'+rAct].v||''):'',
-              prio:wsActEl['D'+rAct]?String(wsActEl['D'+rAct].v||'').toLowerCase():'',
-              done:(wsActEl['E'+rAct]?String(wsActEl['E'+rAct].v||''):'').toUpperCase()==='COMPLETADA',
-              doneAt:wsActEl['F'+rAct]?String(wsActEl['F'+rAct].v||''):''
+              desc:String(row[iDesc]||'').trim(),
+              prio:String(row[iPrio]||'').toLowerCase().trim(),
+              done:doneVal==='COMPLETADA'||doneVal==='SI'||doneVal==='SÍ'||doneVal==='X'||doneVal==='1',
+              doneAt:String(row[iDoneAt]||'').trim()
             });
           }
+          console.log('[OD] Actividadesdeldia: '+tareasXL.length+' tareas parseadas de '+rawRows.length+' filas');
           if(tareasXL.length){
             _homeTasks=tareasXL;
             try{localStorage.setItem('home_tasks',JSON.stringify(_homeTasks));}catch(e){}
+            // Refrescar el módulo Dashboard si está activo
             if(typeof homeRenderTasks==='function') homeRenderTasks();
             if(typeof homeRenderGreeting==='function') homeRenderGreeting();
+            if(typeof updBadges==='function') updBadges();
             console.log('[OD] Actividadesdeldia: '+tareasXL.length+' tareas cargadas');
           }
         }
@@ -16012,6 +16297,13 @@ async function odGuardarListado(silencioso){
   try{
     // ── Función helper: guardar un workbook en un archivo de la carpeta ──
     async function _escribirArchivo(nombreArchivo, wbToWrite){
+      // MODO SHAREPOINT: usar REST API en lugar de File System Access
+      if(SP.activo){
+        var ok=await spEscribirArchivo(nombreArchivo, wbToWrite);
+        if(!ok) throw new Error('Error al guardar '+nombreArchivo+' en SharePoint');
+        return true;
+      }
+      // MODO LOCAL: File System Access API
       if(!OD.carpetaHandle) return false;
       // ── Esperar a que OneDrive no esté sincronizando el archivo ──────────
       // Si el archivo se modificó hace menos de OD_SYNC_WAIT ms, esperar.
@@ -16021,8 +16313,14 @@ async function odGuardarListado(silencioso){
       var OD_POLL_GAP   = 600;   // ms entre cada verificación de estabilidad
       try{
         var fh=await OD.carpetaHandle.getFileHandle(nombreArchivo,{create:false});
-        var perm=await fh.queryPermission({mode:'readwrite'});
-        if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
+        // En file:// queryPermission/requestPermission no funcionan — asumir acceso concedido
+        var perm;
+        if(window.location.protocol==='file:'){
+          perm='granted';
+        } else {
+          perm=await fh.queryPermission({mode:'readwrite'});
+          if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
+        }
         if(perm!=='granted'){ console.warn('Sin permiso escritura en '+nombreArchivo); return false; }
 
         // 1. Leer tamaño y lastModified actuales
@@ -16400,9 +16698,9 @@ async function odGuardarListado(silencioso){
     // Regenerar buffer DESPUÉS de escribir el auditrail en wb
     buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
 
-    // Actualizar timestamp de referencia
-    _odTsUltimaCarga=tsArchivoActual;
-    _odLastModified=tsArchivoActual;
+    // Actualizar timestamp de referencia (en SP mode usamos Date.now())
+    _odTsUltimaCarga=tsArchivoActual||Date.now();
+    _odLastModified=tsArchivoActual||Date.now();
 
     //  Intentar escritura con reintentos 
     var escrituraOk=false;
@@ -16411,8 +16709,8 @@ async function odGuardarListado(silencioso){
       intentos++;
       try{
         if(!OD.permisoEscritura){
-          var perm=await OD.fileHandle.queryPermission({mode:'readwrite'});
-          if(perm!=='granted') perm=await OD.fileHandle.requestPermission({mode:'readwrite'});
+          var perm=window.location.protocol==='file:'?'granted':(await OD.fileHandle.queryPermission({mode:'readwrite'}));
+          if(perm!=='granted'){ try{ perm=await OD.fileHandle.requestPermission({mode:'readwrite'}); }catch(eP){ perm='denied'; }}
           OD.permisoEscritura=(perm==='granted');
         }
         if(OD.permisoEscritura){
@@ -16492,7 +16790,7 @@ async function odGuardarListado(silencioso){
 async function odGuardarUsuariosEnExcel(){
   if(!OD.fileHandle) return;
   if(OD.saveTimer) clearTimeout(OD.saveTimer);
-  OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
+  OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
 }
 
 //  HOOK saveDocs → auto-guardar en OneDrive 
@@ -16505,7 +16803,7 @@ function odHookSaveDocs(){
     if(OD.fileHandle&&OD.syncActivo){
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },5000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
     }
   };
 }
@@ -16532,11 +16830,11 @@ function odIniciarSyncAuto(){
 
 //  SELECCIONAR ARCHIVO (primera vez) 
 async function odSolicitarPermisoEscritura(handle){
+  // En file:// los permisos no se pueden solicitar — el acceso fue concedido al seleccionar
+  if(window.location.protocol==='file:') return true;
   try{
-    // Verificar si ya tiene permiso de escritura
     var perm = await handle.queryPermission({mode:'readwrite'});
     if(perm === 'granted') return true;
-    // Solicitar explícitamente
     perm = await handle.requestPermission({mode:'readwrite'});
     return perm === 'granted';
   }catch(e){
@@ -16544,7 +16842,6 @@ async function odSolicitarPermisoEscritura(handle){
     return false;
   }
 }
-
 async function odConectar(){
   if(!window.showOpenFilePicker){toast('Usa Chrome o Edge','er');return;}
   try{
@@ -16579,6 +16876,25 @@ async function odConectar(){
 }
 
 //  DESCONECTAR 
+async function odCambiarCarpeta(){
+  // Limpiar handle guardado en IDB para poder seleccionar una carpeta diferente
+  try{
+    var db=await idbOpen();
+    await new Promise(function(res,rej){
+      var tx=db.transaction(_IDB.store,'readwrite');
+      tx.objectStore(_IDB.store).delete(_IDB.keyDir);
+      tx.oncomplete=res; tx.onerror=rej;
+    });
+  }catch(e){}
+  OD.carpetaHandle=null;
+  OD.fileHandle=null;
+  OD.syncActivo=false;
+  odSetBadge('Sin carpeta','ng');
+  odHabilitarBotones(false);
+  toast('Carpeta borrada — selecciona la nueva carpeta de Excel','if');
+  odMostrarSeleccion();
+}
+
 async function odDesconectar(){
   if(OD.syncTimer) clearInterval(OD.syncTimer);
   if(OD.saveTimer) clearTimeout(OD.saveTimer);
@@ -16595,7 +16911,7 @@ async function odDesconectar(){
 async function odRepararPermisoEscritura(){
   if(!OD.fileHandle){toast('No hay archivo conectado','er');return;}
   try{
-    var perm = await OD.fileHandle.requestPermission({mode:'readwrite'});
+    var perm = window.location.protocol==='file:'?'granted':(await OD.fileHandle.requestPermission({mode:'readwrite'}));
     OD.permisoEscritura = (perm === 'granted');
     if(OD.permisoEscritura){
       odSetBadge('📄 '+OD.fileHandle.name+' ✏️','ap');
@@ -16615,77 +16931,187 @@ async function odRepararPermisoEscritura(){
 async function odAutoCargar(){
   if(window._odIniciado){ return; }
   window._odIniciado=true;
-  // El File System Access API SIEMPRE necesita gesto del usuario
-  // Verificar si hay carpeta guardada en IDB para mostrar botón de reconexión
+
+  // ── MODO SHAREPOINT ──────────────────────────────────────────────────────
+  if(spDetectar()){
+    // En SharePoint los Excel están en la misma carpeta — carga automática, sin pedir nada al usuario
+    OD.syncActivo=true;
+    OD.permisoEscritura=true;
+    odSetBadge('☁️ SharePoint','ap');
+    odHabilitarBotones(true);
+    odMostrarCargando('Cargando desde SharePoint...');
+    try{
+      await odCargarListado();
+    }catch(eLoad){
+      console.error('[SP] Error en carga inicial:',eLoad);
+      odOcultarCargando();
+      toast('Error al cargar desde SharePoint: '+eLoad.message,'er');
+    }
+    odOcultarCargando();
+    showLogin();
+    // Auto-guardar cada 60s en SharePoint
+    OD.syncTimer=setInterval(function(){
+      if(OD.syncActivo&&!window._odCargando) odGuardarListado(true);
+    },60000);
+    return;
+  }
+
+  // ── MODO LOCAL: File System Access API ───────────────────────────────────
   var dirHandle=null;
   try{ dirHandle=await idbLoadDir(); }catch(e){}
   if(dirHandle){
     odMostrarReconectar(dirHandle);
   } else {
-    odMostrarSeleccion();
+    // En file:// IDB no puede guardar FileSystemHandles —
+    // si tenemos el nombre guardado, mostrar pantalla de reconexión simulada
+    var nombreGuardado='';
+    try{ nombreGuardado=localStorage.getItem('od_carpeta_nombre')||''; }catch(e){}
+    if(nombreGuardado){
+      odMostrarReconectarSinHandle(nombreGuardado);
+    } else {
+      odMostrarSeleccion();
+    }
   }
+}
+
+function odMostrarReconectarSinHandle(nombreCarpeta){
+  // Muestra pantalla de reconexión cuando el handle no se pudo guardar en IDB (file://)
+  // El usuario debe hacer clic para que Chrome abra el picker y se recupere el handle
+  var _lov=document.getElementById('login-overlay');
+  if(_lov) _lov.style.display='none';
+  var prev=document.getElementById('od-seleccion-screen');
+  if(prev) prev.remove();
+
+  var d=document.createElement('div');
+  d.id='od-seleccion-screen';
+  d.style.cssText='position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#003e37,#006860);display:flex;align-items:center;justify-content:center;padding:16px';
+  d.innerHTML=''
+    +'<div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">'
+      +'<div style="font-size:48px;margin-bottom:8px">📁</div>'
+      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>'
+      +'<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Sofgen Pharma · Grupo Procaps</div>'
+      +'<div style="background:#e8f8f1;border:2px solid #00A99E;border-radius:10px;padding:16px;margin-bottom:20px;text-align:left">'
+        +'<div style="font-size:11px;font-weight:700;color:#006860;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">📂 Última carpeta usada</div>'
+        +'<div style="font-size:14px;font-weight:700;font-family:monospace;color:#0a4a4a;padding:8px 12px;background:#fff;border-radius:6px;border-left:4px solid #00A99E;margin-bottom:8px">'+nombreCarpeta+'</div>'
+        +'<div style="font-size:11px;color:#336666;line-height:1.6">Haz clic en el botón para volver a abrir esta carpeta. Chrome necesita que confirmes el acceso cada vez que se abre el archivo.</div>'
+      +'</div>'
+      +'<button id="btn-reabrir-carpeta" style="width:100%;padding:14px;background:#00A99E;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;letter-spacing:.3px">&#9654; Abrir '+nombreCarpeta+'</button>'
+      +'<button id="btn-cambiar-carpeta2" style="width:100%;padding:10px;background:#fff;color:#006860;border:1.5px solid #c8dede;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">📁 Seleccionar otra carpeta</button>'
+    +'</div>';
+  document.body.appendChild(d);
+
+  document.getElementById('btn-reabrir-carpeta').addEventListener('click', async function(){
+    var btn=this;
+    btn.textContent='⏳ Abriendo carpeta...'; btn.disabled=true;
+    try{
+      var dirHandle=await window.showDirectoryPicker({mode:'readwrite'});
+      // Verificar que es la carpeta correcta o que tiene los archivos
+      var tieneExcel=false;
+      try{ await dirHandle.getFileHandle(OD_ARCHIVOS.lm,{create:false}); tieneExcel=true; }catch(e){}
+      if(!tieneExcel){
+        toast('La carpeta seleccionada no tiene los archivos Excel. Selecciona DocControl_Sofgen.','er');
+        btn.textContent='&#9654; Abrir '+nombreCarpeta; btn.disabled=false;
+        return;
+      }
+      OD.carpetaHandle=dirHandle;
+      OD.permisoEscritura=true;
+      OD.syncActivo=true;
+      await idbSaveDir(dirHandle);
+      try{localStorage.setItem('od_carpeta_nombre',dirHandle.name);}catch(e){}
+      var sc=document.getElementById('od-seleccion-screen');
+      if(sc) sc.remove();
+      odSetBadge('📁 '+dirHandle.name+' ✏️','ap');
+      odHabilitarBotones(true);
+      odMostrarCargando(dirHandle.name);
+      try{
+        await odCargarListado();
+      }catch(eLoad){
+        odOcultarCargando();
+        toast('Error al cargar: '+eLoad.message,'er');
+        btn.textContent='&#9654; Abrir '+nombreCarpeta; btn.disabled=false;
+        return;
+      }
+      odOcultarCargando();
+      showLogin();
+    }catch(e){
+      btn.textContent='&#9654; Abrir '+nombreCarpeta; btn.disabled=false;
+      if(e.name!=='AbortError') toast('Error: '+e.message,'er');
+    }
+  });
+
+  document.getElementById('btn-cambiar-carpeta2').addEventListener('click', function(){
+    try{localStorage.removeItem('od_carpeta_nombre');}catch(e){}
+    var sc=document.getElementById('od-seleccion-screen');
+    if(sc) sc.remove();
+    odMostrarSeleccion();
+  });
 }
 
 function odMostrarReconectar(dirHandle){
   var _lov=document.getElementById('login-overlay');
   if(_lov) _lov.style.display='none';
-  // Quitar pantalla anterior si existe
   var prev=document.getElementById('od-seleccion-screen');
   if(prev) prev.remove();
+
   var d=document.createElement('div');
   d.id='od-seleccion-screen';
   d.style.cssText='position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#003e37,#006860);display:flex;align-items:center;justify-content:center;padding:16px';
-  d.innerHTML='<div style="background:#fff;border-radius:16px;padding:32px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">'
-    +'<div style="font-size:40px;margin-bottom:12px">📋</div>'
-    +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>'
-    +'<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Sofgen Pharma &middot; Grupo Procaps</div>'
-    +'<div style="background:#f0f9f8;border:1px solid #c8dede;border-radius:10px;padding:14px;margin-bottom:16px;text-align:left">'
-    +'<div style="font-size:12px;font-weight:700;color:#006860;margin-bottom:6px">📁 Carpeta detectada</div>'
-    +'<div style="font-size:13px;font-weight:600;font-family:monospace;color:#0a4a4a;padding:8px 10px;background:#e8f0f0;border-radius:6px;border-left:3px solid #006860;margin-bottom:8px">'+dirHandle.name+'</div>'
-    +'<div style="font-size:11px;color:#336666;line-height:1.6">Haz clic en el botón para abrir la carpeta y cargar los datos.</div>'
-    +'</div>'
-    +'<button id="btn-reconectar" style="width:100%;padding:14px;background:#00A99E;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">▶ &nbsp;Abrir '+dirHandle.name+'</button>'
-    +'<button id="btn-otra-carpeta" style="width:100%;padding:10px;background:#f0f9f8;color:#006860;border:1px solid #c8dede;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">📁 Seleccionar otra carpeta</button>'
-    +'<div style="margin-top:10px;font-size:10px;color:#5e9090">Chrome requiere confirmación al abrir la carpeta</div>'
+  d.innerHTML=''
+    +'<div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">'
+      +'<div style="font-size:48px;margin-bottom:8px">📁</div>'
+      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>'
+      +'<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Sofgen Pharma · Grupo Procaps</div>'
+      +'<div style="background:#e8f8f1;border:2px solid #00A99E;border-radius:10px;padding:16px;margin-bottom:20px;text-align:left">'
+        +'<div style="font-size:11px;font-weight:700;color:#006860;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">✅ Carpeta detectada</div>'
+        +'<div style="font-size:14px;font-weight:700;font-family:monospace;color:#0a4a4a;padding:8px 12px;background:#fff;border-radius:6px;border-left:4px solid #00A99E;margin-bottom:8px">'+dirHandle.name+'</div>'
+        +'<div style="font-size:11px;color:#336666;line-height:1.6">Haz clic en el botón para cargar los datos.</div>'
+      +'</div>'
+      +'<button id="btn-reconectar" style="width:100%;padding:14px;background:#00A99E;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;letter-spacing:.3px">&#9654; Abrir '+dirHandle.name+'</button>'
+      +'<button id="btn-otra-carpeta" style="width:100%;padding:10px;background:#fff;color:#006860;border:1.5px solid #c8dede;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">📁 Seleccionar otra carpeta</button>'
     +'</div>';
   document.body.appendChild(d);
+
+  // ── Botón principal: abrir carpeta guardada ───────────────────────────────
   document.getElementById('btn-reconectar').addEventListener('click', async function(){
     var btn=this;
-    btn.textContent='⏳ Abriendo...'; btn.disabled=true;
+    btn.textContent='⏳ Cargando...'; btn.disabled=true;
     try{
-      var perm=await dirHandle.requestPermission({mode:'readwrite'});
-      if(perm==='granted'){
-        OD.carpetaHandle=dirHandle;
-        OD.permisoEscritura=true;
-        await idbSaveDir(dirHandle);
-        var sc=document.getElementById('od-seleccion-screen');
-        if(sc) sc.remove();
-        odSetBadge('📁 '+dirHandle.name+' ✏️','ap');
-        odHabilitarBotones(true);
-        odMostrarCargando(dirHandle.name);
-        try{
-          await odCargarListado();
-        }catch(eLoad){
-          console.error('[OD] Error en odCargarListado (reconectar):',eLoad);
-          odOcultarCargando();
-          alert('Error al cargar datos: '+eLoad.message);
-          btn.textContent='🔓 Abrir '+dirHandle.name; btn.disabled=false;
-          return;
-        }
+      OD.carpetaHandle=dirHandle;
+      OD.permisoEscritura=true;
+      OD.syncActivo=true;
+      await idbSaveDir(dirHandle);
+      var sc=document.getElementById('od-seleccion-screen');
+      if(sc) sc.remove();
+      odSetBadge('📁 '+dirHandle.name+' ✏️','ap');
+      odHabilitarBotones(true);
+      odMostrarCargando(dirHandle.name);
+      try{
+        await odCargarListado();
+      }catch(eLoad){
+        console.error('[OD] Error en odCargarListado:',eLoad);
         odOcultarCargando();
-        showLogin();
-      } else {
-        btn.textContent='▶ Abrir '+dirHandle.name;
-        btn.disabled=false;
-        toast('El navegador denegó el acceso. Intenta de nuevo.','er');
+        toast('Error al cargar datos: '+eLoad.message,'er');
+        btn.textContent='&#9654; Abrir '+dirHandle.name; btn.disabled=false;
+        return;
       }
+      odOcultarCargando();
+      showLogin();
     }catch(e){
-      btn.textContent='▶ Abrir '+dirHandle.name;
-      btn.disabled=false;
+      btn.textContent='&#9654; Abrir '+dirHandle.name; btn.disabled=false;
       if(e.name!=='AbortError') toast('Error: '+e.message,'er');
     }
   });
-  document.getElementById('btn-otra-carpeta').addEventListener('click', function(){
+
+  // ── Botón secundario: elegir carpeta diferente ────────────────────────────
+  document.getElementById('btn-otra-carpeta').addEventListener('click', async function(){
+    try{
+      var db=await idbOpen();
+      await new Promise(function(res){
+        var tx=db.transaction(_IDB.store,'readwrite');
+        tx.objectStore(_IDB.store).delete(_IDB.keyDir);
+        tx.oncomplete=res; tx.onerror=res;
+      });
+    }catch(e){}
     var sc=document.getElementById('od-seleccion-screen');
     if(sc) sc.remove();
     odMostrarSeleccion();
@@ -16717,40 +17143,43 @@ function odOcultarCargando(){
 }
 
 //  PANTALLA DE SELECCIÓN (primera vez) 
-function odMostrarSeleccion(){
+function odMostrarSeleccion(avisoMsg){
+  var prev=document.getElementById('od-seleccion-screen');
+  if(prev) prev.remove();
   var d=document.createElement('div');
   d.id='od-seleccion-screen';
   d.style.cssText='position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#003e37,#006860);display:flex;align-items:center;justify-content:center;padding:16px';
-  var html='<div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">';
-  html+='<div style="font-size:40px;margin-bottom:12px">📋</div>';
-  html+='<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>';
-  html+='<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Sofgen Pharma &middot; Grupo Procaps</div>';
 
-  html+='<div style="background:#f0f9f8;border:1px solid #c8dede;border-radius:10px;padding:14px;margin-bottom:16px;text-align:left">';
-  html+='<div style="font-size:12px;font-weight:700;color:#006860;margin-bottom:8px">📁 ¿Cómo encontrar la carpeta?</div>';
+  var avisoHtml=avisoMsg
+    ?'<div style="background:#fde8e8;border:1.5px solid #f5a5a5;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#a02020;text-align:left;line-height:1.6">'+avisoMsg+'</div>'
+    :'';
 
-  html+='<div style="font-size:11px;color:#336666;line-height:1.8">';
-  html+='Cada usuario debe buscar la carpeta sincronizada de SharePoint en <strong>su propio PC</strong>. La ruta varía según el equipo, pero sigue este patrón:<br>';
-  html+='</div>';
-
-  html+='<div style="margin:10px 0;background:#e8f0f0;border-radius:6px;padding:8px 10px;border-left:3px solid #006860">';
-  html+='<div style="font-size:9px;font-weight:700;color:#006860;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">📌 Cómo llegar:</div>';
-  html+='<div style="font-size:11px;color:#0a4a4a;line-height:1.8">';
-  html+='1. Abre el <strong>Explorador de archivos</strong> de Windows<br>';
-  html+='2. En el panel izquierdo busca <strong>OneDrive – Grupo Procaps</strong><br>';
-  html+='3. Dentro, navega a la carpeta <strong>Listado_Maestro</strong><br>';
-  html+='4. Esa es la carpeta que debes seleccionar aquí abajo';
-  html+='</div></div>';
-
-  html+='<div style="background:#fff9e8;border:1px solid #ffd97a;border-radius:6px;padding:8px 10px;font-size:11px;color:#7a4e00;line-height:1.6">';
-  html+='⚠️ <strong>Requisito:</strong> OneDrive debe estar instalado y la biblioteca de SharePoint sincronizada en tu PC. Si no ves la carpeta, contacta al administrador de sistemas.';
-  html+='</div>';
-  html+='</div>';
-
-  html+='<button onclick="odSeleccionarDesdeSeleccion()" style="width:100%;padding:14px;background:#00A99E;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px">📁 &nbsp;Seleccionar carpeta Listado_Maestro</button>';
-  html+='<div style="margin-top:10px;font-size:10px;color:#5e9090;text-align:center">Solo debes hacerlo <strong>una vez</strong> por equipo — la app lo recordará automáticamente</div>';
-  html+='</div>';
-  d.innerHTML=html;
+  d.innerHTML=''
+    +'<div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">'
+      +'<div style="font-size:40px;margin-bottom:12px">📋</div>'
+      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>'
+      +'<div style="font-size:12px;color:#5e9090;margin-bottom:16px">Sofgen Pharma · Grupo Procaps</div>'
+      +avisoHtml
+      +'<div style="background:#f0f9f8;border:1px solid #c8dede;border-radius:10px;padding:14px;margin-bottom:16px;text-align:left">'
+        +'<div style="font-size:12px;font-weight:700;color:#006860;margin-bottom:8px">📁 ¿Cómo seleccionar la carpeta?</div>'
+        +'<div style="font-size:11px;color:#336666;line-height:1.8">'
+          +'1. Haz clic en el botón de abajo<br>'
+          +'2. En el explorador, navega hasta la carpeta <strong>DocControl_Sofgen</strong><br>'
+          +'   (la que contiene los archivos Excel)<br>'
+          +'3. Selecciona esa carpeta y confirma<br>'
+          +'4. La app la recordará para las próximas sesiones'
+        +'</div>'
+        +'<div style="margin-top:10px;background:#e8f0f0;border-radius:6px;padding:7px 10px;font-size:10px;font-family:monospace;color:#0a4a4a;border-left:3px solid #006860">'
+          +'DocControl_Sofgen/<br>'
+          +'&nbsp;&nbsp;├─ ListadoMaestro.xlsx<br>'
+          +'&nbsp;&nbsp;├─ CopiaControladas.xlsx<br>'
+          +'&nbsp;&nbsp;├─ Solicitudes.xlsx<br>'
+          +'&nbsp;&nbsp;└─ ...'
+        +'</div>'
+      +'</div>'
+      +'<button id="od-btn-seleccion" onclick="odSeleccionarDesdeSeleccion()" style="width:100%;padding:14px;background:#00A99E;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px">📁 Seleccionar carpeta DocControl_Sofgen</button>'
+      +'<div style="margin-top:10px;font-size:10px;color:#5e9090">Solo debes hacerlo <strong>una vez</strong> por equipo — la app lo recordará automáticamente</div>'
+    +'</div>';
   document.body.appendChild(d);
 }
 
@@ -16779,6 +17208,8 @@ async function odSeleccionarDesdeSeleccion(){
     OD.carpetaHandle=dirHandle;
     OD.permisoEscritura=true;
     await idbSaveDir(dirHandle);
+    // Guardar nombre en localStorage como respaldo (funciona en file://)
+    try{localStorage.setItem('od_carpeta_nombre',dirHandle.name);}catch(e){}
     var d=document.getElementById('od-seleccion-screen');
     if(d) d.remove();
     window._odIniciado=true;
@@ -17700,23 +18131,12 @@ function fev_descargarPDF(){
     +'</div>'
     +'</body></html>';
 
-  // Crear iframe oculto para generar el PDF sin abrir ventana emergente
-  var iframe=document.createElement('iframe');
-  iframe.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;border:none;opacity:0';
-  document.body.appendChild(iframe);
-  // Limpiar referencias a archivo local antes de escribir en iframe
   var htmlClean=html.replace(/<base[^>]*>/gi,'').replace(/src=["']file:\/\/[^"']*["']/gi,'src=""');
-  iframe.contentDocument.open();
-  iframe.contentDocument.write(htmlClean);
-  iframe.contentDocument.close();
-
-  iframe.onload=function(){
-    try{
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    }catch(e){}
-    setTimeout(function(){ iframe.remove(); },3000);
-  };
+  var win=window.open('','_blank','width=940,height=1100,scrollbars=yes');
+  if(!win){toast('❌ Ventana bloqueada — permite popups para este archivo','er');return;}
+  win.document.write(htmlClean);
+  win.document.close();
+  setTimeout(function(){try{win.focus();win.print();}catch(e){}},600);
 
   toast('📄 Se abrió el diálogo de impresión — elige "Guardar como PDF" y la carpeta de descargas','ok');
 }
@@ -18928,7 +19348,10 @@ function homeSaveTasks(){
 }
 
 function homeInit(){
-  homeLoadTasks();
+  // Si ya hay tareas del Excel en _homeTasks, no sobreescribir desde localStorage
+  if(!_homeTasks||!_homeTasks.length){
+    homeLoadTasks(); // carga desde localStorage solo si no hay datos del Excel
+  }
   homeRenderGreeting();
   homeRenderTasks();
 }
@@ -19037,15 +19460,15 @@ function homeAddTask(){
 
 async function dashActualizar(){
   var btn=document.getElementById('dash-btn-actualizar');
-  if(!OD.fileHandle&&!OD.carpetaHandle){
-    // Sin archivo: refrescar desde memoria y recalcular estados
+  if(!SP.activo&&!OD.fileHandle&&!OD.carpetaHandle){
+    // Sin archivo y sin SP: refrescar desde memoria
     try{ recalcEstados(); }catch(e){}
     dashActualizarUI();
     toast('Datos actualizados desde memoria local','ok');
     return;
   }
   // Si hay fileHandle pero sin permiso, solicitarlo (hay gesto activo del usuario)
-  if(OD.fileHandle&&!OD.permisoEscritura){
+  if(!SP.activo&&OD.fileHandle&&!OD.permisoEscritura){
     try{
       var perm=await OD.fileHandle.requestPermission({mode:'readwrite'});
       OD.permisoEscritura=(perm==='granted');
@@ -19559,7 +19982,7 @@ function rbEditarGuardar(){
     '','Ruta de Borrador');
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer)clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
   }
   toast('✅ Solicitud #'+consecutivo+' actualizada','ok');
   rbRender();
@@ -19608,7 +20031,7 @@ function rbAnularConfirmar(){
     'Solicitud '+desc+' anulada | Motivo: '+motivo,'','Ruta de Borrador');
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
   }
   toast('🚫 Solicitud '+desc+' anulada','ok');
   rbRender();
@@ -19628,7 +20051,7 @@ function rbAprobar(consecutivo){
     'Ruta de Borrador');
   toast('Solicitud #'+consecutivo+' marcada como En proceso de firma','ok');
   rbRender();
-  if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);}
+  if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);}
 }
 
 function rbToggleAcc(id){var el=document.getElementById(id);if(el)el.classList.toggle('rb-open');}
@@ -19667,7 +20090,7 @@ function rbEliminarSolicitud(consecutivo){
   if(OD.fileHandle&&window.currentUser){
     OD.syncActivo=true;
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
   }
   toast('✅ Solicitud eliminada — guardando en SharePoint...','ok');
   rbRender();
@@ -19824,7 +20247,7 @@ function rbActualizarOficializacion(codigo){
   // Guardar en Excel si hay conexión
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
   }
 }
 
@@ -20001,7 +20424,7 @@ function rbFechaDocConfirmar(){
   // Guardar en Excel
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
   }
   if(typeof rbRender==='function') rbRender();
 }
@@ -20013,7 +20436,19 @@ var _pdfbc_previewUrl=null;
 function pdfbc_mostrarVistaPrevia(url, nombre, blob){
   _pdfbc_previewUrl=url;
   document.getElementById('pdfbc-mo-preview').style.display='flex';
-  document.getElementById('pdfbc-iframe').src=url;
+  // Crear iframe dinámicamente para evitar error de file:// al cargar
+  var wrap=document.getElementById('pdfbc-iframe-wrap');
+  if(wrap){
+    wrap.innerHTML='';
+    var ifr=document.createElement('iframe');
+    ifr.id='pdfbc-iframe';
+    ifr.style.cssText='width:100%;height:100%;border:none';
+    ifr.src=url;
+    wrap.appendChild(ifr);
+  } else {
+    var el=document.getElementById('pdfbc-iframe');
+    if(el) el.src=url;
+  }
   document.getElementById('pdfbc-prev-nombre').textContent=nombre;
   var dlBtn=document.getElementById('pdfbc-prev-dl');
   if(dlBtn){
@@ -20029,7 +20464,9 @@ function pdfbc_mostrarVistaPrevia(url, nombre, blob){
 
 function pdfbc_cerrarPreview(){
   document.getElementById('pdfbc-mo-preview').style.display='none';
-  document.getElementById('pdfbc-iframe').src='';
+  var wrap2=document.getElementById('pdfbc-iframe-wrap');
+  if(wrap2) wrap2.innerHTML='';
+  else{ var el2=document.getElementById('pdfbc-iframe'); if(el2) el2.src=''; }
   if(_pdfbc_previewUrl){ URL.revokeObjectURL(_pdfbc_previewUrl); _pdfbc_previewUrl=null; }
 }
 
@@ -20636,7 +21073,7 @@ function rlExportarExcel(datos){
 <!-- LOGIN OVERLAY                                              -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 
-<div id="login-overlay" style="display:flex;position:fixed;inset:0;z-index:99999;background:rgba(0,62,55,0.82);align-items:center;justify-content:center;padding:16px">
+<div id="login-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,62,55,0.82);align-items:center;justify-content:center;padding:16px">
   <div style="background:#fff;border-radius:16px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.28);position:relative">
     <!-- Logo -->
     <div style="text-align:center;margin-bottom:20px">
@@ -21133,7 +21570,7 @@ function ecc_registrarHallazgos(area, subsInspeccionar, tipoInsp, inspector){
     saveArr('insp',inspecciones);
     if(OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
     }
     renderDashInsp&&renderDashInsp();
     renderTablaProg&&renderTablaProg();
@@ -22012,6 +22449,7 @@ function nfBuscarDoc(cod){
   var TIPOS = {
     'SOP-':'Procedimiento','INST-':'Instructivo','F-':'Formato','DA-':'Documento Asociado',
     'GUI-':'Guía','POL-':'Politica','PLN-':'Plan','PRO-':'Protocolo','MA-':'Manual',
+    'PRG-':'Programa','MAN-':'Manual','DP-':'Descripcion De Procesos','CR-':'Cronograma',
     'NI-':'Norma_Interna','LM-':'Listado','MP-':'Mapa De Procesos','SUB-':'Subprocesos',
     'CAR-':'Caracterización De Procesos','DM-':'Descripción De Macroproceso',
     'REG-':'Reglamento','PLA-':'Planos','VDT-':'Videos Tutoriales',
@@ -22988,7 +23426,7 @@ function nfRenovarSolicitud(info){
       '','Novedad de Documento');
     if(OD.syncActivo||OD.carpetaHandle){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},5000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
     }
     toast('✅ Solicitud N°'+info.consecutivo+' marcada como Renovada','ok');
   }
@@ -23371,6 +23809,5 @@ document.addEventListener('click',function(e){
 
 
 
-</script>
 </body>
 </html>
