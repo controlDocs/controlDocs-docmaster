@@ -3062,7 +3062,7 @@ function recalcLC(){
 
   var aSet={},pSet={},tSet={};
   LC.areaAProceso={};LC.areaALider={};LC.areaAAdmin={};LC.areaACorreo={};
-  docsEmpresa().forEach(function(d){
+  docs.forEach(function(d){ // todos los docs
     if(d.areaGeneradora)aSet[d.areaGeneradora]=1;
     if(d.proceso)pSet[d.proceso]=1;
     if(d.tipoDocumento)tSet[d.tipoDocumento]=1;
@@ -4451,7 +4451,6 @@ function lmSeleccionar(id){var d=docs.find(function(x){return x.id===id;});if(d)
 function lmLimpiarResultados(){var c=document.getElementById('lm-resultados');if(c){c.style.display='none';c.innerHTML='';}var n=document.getElementById('lm-result-count');if(n)n.textContent='';}
 function lmLimpiarFiltros(){['lm-srch-nombre','lm-f-mbr','lm-f-gxp','lm-f-adm','lm-f-est'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var c=document.getElementById('lm-srch-clear');if(c)c.style.display='none';lmLimpiarResultados();}
 function lmInit(){lmPoblarAdministradores();}
-
 function dcpInit(){
   dcpLoadStorage();
   dcpRenderLanding();
@@ -13763,15 +13762,15 @@ function iniciarTimerInactividad(){
   _inacUltimaAccion=Date.now();
   _inacIntervalId=setInterval(function(){
     if(!currentUser||_inactividadAvisoActivo)return;
-    if(Date.now()-_inacUltimaAccion>=(_inactividadMinutos*60*1000)-_inacAvisoMs) mostrarAvisoInactividad();
+    if(Date.now()-_inacUltimaAccion>=(_inactividadMinutos*60*1000)-_inacAvisoMs)mostrarAvisoInactividad();
   },10000);
   if(!window._inacVisAdded){
     window._inacVisAdded=true;
     document.addEventListener('visibilitychange',function(){
       if(document.visibilityState!=='visible'||!currentUser||_inactividadAvisoActivo)return;
       var t=Date.now()-_inacUltimaAccion,lim=_inactividadMinutos*60*1000;
-      if(t>=lim) cerrarSesionInactividad();
-      else if(t>=lim-_inacAvisoMs) mostrarAvisoInactividad();
+      if(t>=lim)cerrarSesionInactividad();
+      else if(t>=lim-_inacAvisoMs)mostrarAvisoInactividad();
     });
   }
 }
@@ -13804,7 +13803,6 @@ function mostrarAvisoInactividad(){
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 
-  // Countdown basado en tiempo real restante
   var limiteTotal=_inactividadMinutos*60*1000;
   var segundos=Math.max(1,Math.round((limiteTotal-(Date.now()-_inacUltimaAccion))/1000));
   var el0=document.getElementById('inac-countdown');if(el0)el0.textContent=segundos;
@@ -15746,6 +15744,17 @@ async function odCargarListado(){
       if(tieneVal&&obj.codigoActual&&String(obj.codigoActual).trim()) nuevoDocs.push(obj);
     });
 
+    // Recalcular estado desde fecha real — ignorar valor guardado en el Excel
+    nuevoDocs.forEach(function(d){
+      var esObs=String(d.obsoleto||'').toUpperCase().trim()==='X'
+        ||String(d.obsoleto||'').toUpperCase().trim()==='SI'
+        ||String(d.obsoleto||'').toUpperCase().trim()==='SÍ'
+        ||d.estado==='Obsoleto';
+      d.estado=esObs?'Obsoleto':calcEst(d.fechaVencimiento,esObs?'X':'No');
+      if(esObs&&d.obsoleto!=='Si')d.obsoleto='Si';
+      else if(!esObs&&(!d.obsoleto||d.obsoleto==='No'||d.obsoleto===''))d.obsoleto='No';
+    });
+
     odSetProgreso(80,'Cargando usuarios...');
 
     // Leer usuarios de la hoja oculta — siempre reemplazar
@@ -16352,25 +16361,13 @@ async function odGuardarListado(silencioso){
       if(!wsLM[addr]) wsLM[addr]={v:h,t:'s'}; // solo si no existe
     });
 
-    // Función: generar fórmula columna J para una fila dada
-    // IMPORTANTE: SheetJS siempre usa nombres de función en INGLÉS internamente.
-    // Excel los convierte automáticamente al idioma local al abrir el archivo.
-    // IF=SI, IFS=SI.CONJUNTO, TODAY=HOY, TRUE=VERDADERO, OR=O
-    function formulaJ(excelRow){
-      var M='M'+excelRow, I='I'+excelRow;
-      // Usar IF anidados en lugar de IFS para máxima compatibilidad
-      // con Excel 2016 y anteriores que no tienen IFS.
-      // SheetJS requiere sintaxis inglesa + comas como separador (no punto y coma).
-      return 'IF(OR('+M+'="SI",'+M+'="X",'+M+'="Si"),"Obsoleto",'
-        +'IF('+I+'="","",'
-        +'IF('+I+'<TODAY(),"Vencido",'
-        +'IF('+I+'<=TODAY()+15,"Menos de 15 dias",'
-        +'IF('+I+'<=TODAY()+30,"Menos de 1 mes",'
-        +'IF('+I+'<=TODAY()+60,"Menos de 2 meses",'
-        +'IF('+I+'<=TODAY()+90,"Menos de 3 meses",'
-        +'IF('+I+'<=TODAY()+120,"Menos de 4 meses",'
-        +'IF('+I+'<=TODAY()+150,"Menos de 5 meses",'
-        +'"Vigente")))))))))';
+    // Columna J: estado calculado como texto plano en el momento del guardado.
+    // NO se usa fórmula porque en SharePoint las fórmulas no se recalculan
+    // hasta que alguien abre el archivo en Excel. Texto plano = siempre correcto.
+    function calcEstadoParaExcel(d){
+      var obs=String(d.obsoleto||'').toUpperCase().trim();
+      var esObs=obs==='X'||obs==='SI'||obs==='SÍ'||d.estado==='Obsoleto';
+      return esObs?'Obsoleto':calcEst(d.fechaVencimiento,esObs?'X':'No');
     }
 
     // PASO 3: Escribir filas de datos
@@ -16436,16 +16433,12 @@ async function odGuardarListado(silencioso){
         wsLM[addr]={v:strVal,t:'s'};
       });
 
-      // Columna J: siempre insertar/actualizar la fórmula
-      // Si ya existía una celda original la reemplazamos con la fórmula actualizada
-      // (el número de fila puede haber cambiado si se reordenaron documentos)
+      // Columna J: texto plano calculado en tiempo real con calcEst()
+      // Garantiza que al abrir el Excel en SharePoint el estado ya sea correcto
       var addrJ=XLSX.utils.encode_cell({r:row,c:9});
-      // SheetJS: para fórmulas normales (no array), solo 'f' y opcionalmente 'v'.
-      // NO incluir 't' cuando hay fórmula — SheetJS lo infiere automáticamente.
-      wsLM[addrJ]={
-        f: formulaJ(excelRow),
-        v: d.estado||''
-      };
+      var _estJ=calcEstadoParaExcel(d);
+      d.estado=_estJ; // sincronizar estado en memoria también
+      wsLM[addrJ]={v:_estJ,t:'s'};
     });
 
     // PASO 4: Actualizar !ref para cubrir todas las filas escritas
@@ -22372,14 +22365,7 @@ function nfBuscarDoc(cod){
   Object.keys(TIPOS).forEach(function(p){ if(cod.toUpperCase().startsWith(p)) tipo=TIPOS[p]; });
   var tipEl = document.getElementById('nf-tipodoc');
   if(tipEl) tipEl.value = tipo||'';
-  if(cod.length < 3){
-    window._nfDocObsoleto=false;
-    var _ci=document.getElementById('nf-cod');
-    if(_ci){_ci.style.borderColor='';_ci.style.background='';}
-    var _oa=document.getElementById('nf-obs-alerta');
-    if(_oa)_oa.parentNode.removeChild(_oa);
-    return;
-  }
+  if(cod.length<3){window._nfDocObsoleto=false;var _ci=document.getElementById('nf-cod');if(_ci){_ci.style.borderColor='';_ci.style.background='';}var _oa=document.getElementById('nf-obs-alerta');if(_oa&&_oa.parentNode)_oa.parentNode.removeChild(_oa);return;}
   // Verificar duplicado si es Creación
   var tipoNov=(document.getElementById('nf-tipo')||{}).value||'';
   if(tipoNov==='Creación') nfVerificarCodigoDuplicado(cod);
@@ -22406,21 +22392,13 @@ function nfBuscarDoc(cod){
     }
     var obsStr = String(doc.obsoleto||'').toUpperCase().trim();
     var estStr = String(doc.estado||'').toUpperCase().trim();
-    // ── Bloqueo por documento Obsoleto ───────────────────────────
-    var esObsDoc = obsStr==='X'||obsStr==='SI'||obsStr==='SÍ'||estStr==='OBSOLETO';
-    window._nfDocObsoleto = esObsDoc;
-    var _codEl = document.getElementById('nf-cod');
-    var _oaEl  = document.getElementById('nf-obs-alerta');
+    var esObsDoc=obsStr==='X'||obsStr==='SI'||obsStr==='SÍ'||estStr==='OBSOLETO';
+    window._nfDocObsoleto=esObsDoc;
+    var _codEl=document.getElementById('nf-cod'),_oaEl=document.getElementById('nf-obs-alerta');
     if(esObsDoc){
       if(_codEl){_codEl.style.borderColor='#dc2626';_codEl.style.background='#fef2f2';}
-      if(!_oaEl){
-        var _al=document.createElement('div');
-        _al.id='nf-obs-alerta';
-        _al.style.cssText='margin-top:8px;padding:10px 14px;background:#fef2f2;border:1.5px solid #dc2626;border-radius:6px;color:#991b1b;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px';
-        _al.innerHTML='⛔️ <span>El documento <strong>'+doc.codigoActual+'</strong> está marcado como <strong>Obsoleto</strong>. No es posible generar el PDF ni registrar novedad para este documento.</span>';
-        if(_codEl&&_codEl.parentNode)_codEl.parentNode.appendChild(_al);
-      }
-    } else {
+      if(!_oaEl){var _al=document.createElement('div');_al.id='nf-obs-alerta';_al.style.cssText='margin-top:8px;padding:10px 14px;background:#fef2f2;border:1.5px solid #dc2626;border-radius:6px;color:#991b1b;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px';_al.innerHTML='⛔️ <span>El documento <strong>'+doc.codigoActual+'</strong> está marcado como <strong>Obsoleto</strong>. No es posible generar PDF ni registrar novedad.</span>';if(_codEl&&_codEl.parentNode)_codEl.parentNode.appendChild(_al);}
+    }else{
       window._nfDocObsoleto=false;
       if(_codEl){_codEl.style.borderColor='';_codEl.style.background='';}
       if(_oaEl&&_oaEl.parentNode)_oaEl.parentNode.removeChild(_oaEl);
@@ -22917,10 +22895,7 @@ function nfValidarCampos(){
 }
 
 function nfGuardar(){
-  if(window._nfDocObsoleto){
-    alert('⛔ El documento ingresado está marcado como Obsoleto.\n\nNo es posible registrar una novedad para un documento obsoleto.');
-    return;
-  }
+  if(window._nfDocObsoleto){alert('⛔ El documento está marcado como Obsoleto.\nNo es posible registrar una novedad para un documento obsoleto.');return;}
   if(!OD.fileHandle){ toast('Primero carga el Excel de SharePoint','er'); return; }
   if(!_nfPDFGenerado){
     alert('⚠️ Debe generar el PDF antes de guardar la solicitud.\n\nHaga clic en el botón 📄 PDF, descárguelo y luego guarde.');
@@ -23097,10 +23072,7 @@ function nfGuardarEjecutar(){
 
 // ── Limpiar ──────────────────────────────────────────────────
 function nfDescargarPDF(){
-  if(window._nfDocObsoleto){
-    alert('⛔ El documento ingresado está marcado como Obsoleto.\n\nNo es posible generar el PDF para un documento obsoleto.');
-    return;
-  }
+  if(window._nfDocObsoleto){alert('⛔ El documento está marcado como Obsoleto.\nNo es posible generar el PDF para un documento obsoleto.');return;}
   var faltantes=nfValidarCampos();
   if(faltantes.length){
     alert('⚠️ Complete los siguientes campos antes de generar el PDF:\n\n• '+faltantes.join('\n• '));
