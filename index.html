@@ -675,6 +675,55 @@ tbody tr:last-child td{border-bottom:none}
           <div id="dash-insp-detail-body"></div>
         </div>
       </div>
+
+      <!-- ═══ KPI HALLAZGOS DE INSPECCIONES ══════════════════════ -->
+      <div style="margin-top:16px" id="kpi-hall-seccion">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--tx)">&#128202; KPI HALLAZGOS DE INSPECCIONES</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:10px;color:var(--tx3)">Mes:</span>
+            <select id="kpi-hall-mes" class="fsel" onchange="renderKpiHallazgos()" style="font-size:11px;min-width:120px">
+              <option value="">Todos los meses</option>
+              <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+              <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+              <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+              <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+            </select>
+            <button class="btn gh sm" onclick="renderKpiHallazgos()" style="font-size:11px">&#128260; Actualizar</button>
+          </div>
+        </div>
+        <div id="kpi-hall-totales" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px"></div>
+        <div id="kpi-hall-graficas" style="display:none;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div class="card" style="padding:14px">
+              <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:10px" id="kpi-chart-bar-title">HALLAZGOS POR AREA</div>
+              <div style="overflow-x:auto"><canvas id="kpi-chart-bar" height="260"></canvas></div>
+            </div>
+            <div class="card" style="padding:14px;display:flex;flex-direction:column">
+              <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:10px">DISTRIBUCION POR TIPO</div>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center">
+                <canvas id="kpi-chart-dona" width="260" height="260"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="padding:14px" id="kpi-chart-linea-card">
+            <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:10px">EVOLUCION MENSUAL DE HALLAZGOS</div>
+            <canvas id="kpi-chart-linea" height="140"></canvas>
+          </div>
+        </div>
+        <div class="card" style="padding:14px;overflow-x:auto">
+          <div id="kpi-hall-tabla"></div>
+        </div>
+        <div id="kpi-hall-detalle" style="display:none;margin-top:10px">
+          <div class="card" style="padding:14px;border-top:3px solid var(--A)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;color:var(--tx)" id="kpi-hall-det-title"></div>
+              <button class="btn gh sm" onclick="document.getElementById('kpi-hall-detalle').style.display='none'">Cerrar</button>
+            </div>
+            <div id="kpi-hall-det-body"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -712,26 +761,10 @@ tbody tr:last-child td{border-bottom:none}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);white-space:nowrap">Filtros:</span>
-          <select id="lm-f-mbr" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px">
-            <option value="">MBR: Todos</option>
-            <option value="si">MBR: Con MBR</option>
-            <option value="no">MBR: Sin MBR</option>
-          </select>
-          <select id="lm-f-gxp" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px">
-            <option value="">GxP: Todos</option>
-            <option value="si">GxP: Si</option>
-            <option value="no">GxP: No</option>
-          </select>
-          <select id="lm-f-adm" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:170px">
-            <option value="">Administrador: Todos</option>
-          </select>
-          <select id="lm-f-est" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:130px">
-            <option value="">Estado: Todos</option>
-            <option value="Vigente">Vigente</option>
-            <option value="Por vencer">Por vencer</option>
-            <option value="Vencido">Vencido</option>
-            <option value="Obsoleto">Obsoleto</option>
-          </select>
+          <select id="lm-f-mbr" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px"><option value="">MBR: Todos</option><option value="si">MBR: Con MBR</option><option value="no">MBR: Sin MBR</option></select>
+          <select id="lm-f-gxp" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px"><option value="">GxP: Todos</option><option value="si">GxP: Si</option><option value="no">GxP: No</option></select>
+          <select id="lm-f-adm" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:170px"><option value="">Administrador: Todos</option></select>
+          <select id="lm-f-est" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:130px"><option value="">Estado: Todos</option><option value="Vigente">Vigente</option><option value="Por vencer">Por vencer</option><option value="Vencido">Vencido</option><option value="Obsoleto">Obsoleto</option></select>
           <button class="btn gh sm" onclick="lmLimpiarFiltros()" style="font-size:11px;white-space:nowrap">&#10005; Limpiar</button>
           <span id="lm-result-count" style="font-size:11px;color:var(--tx3);margin-left:auto"></span>
         </div>
@@ -3018,7 +3051,7 @@ function initApp(){
     if(cfg.inactividadMinutos) _inactividadMinutos=cfg.inactividadMinutos;
     mstInfo=loadObj('mst',{fecha:null,archivo:null,registros:0});
 
-    renderDash();updBadges();populateFiltros();renderTablaProg();checkInspAlerts();renderDashInsp();
+    renderDash();updBadges();populateFiltros();renderTablaProg();checkInspAlerts();renderDashInsp();renderKpiHallazgos();
 
     // Todo viene de OneDrive — iniciar carga del Excel
     odAutoCargar();
@@ -3062,7 +3095,7 @@ function recalcLC(){
 
   var aSet={},pSet={},tSet={};
   LC.areaAProceso={};LC.areaALider={};LC.areaAAdmin={};LC.areaACorreo={};
-  docs.forEach(function(d){ // todos los docs
+  docs.forEach(function(d){
     if(d.areaGeneradora)aSet[d.areaGeneradora]=1;
     if(d.proceso)pSet[d.proceso]=1;
     if(d.tipoDocumento)tSet[d.tipoDocumento]=1;
@@ -3330,7 +3363,7 @@ function getSaludo(){var h=new Date().getHours();if(h>=5&&h<12)return'Buenos dia
 // ============================================================
 
 var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Programa de Inspecciones Rutinarias',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento F-SOP-0001-5'};
-var PR={dash:renderDash,kpi:function(){renderKPI();},docs:function(){renderDocs();lmInit();},venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:renderUsrs,notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
+var PR={dash:renderDash,kpi:function(){renderKPI();renderKpiHallazgos();},docs:function(){renderDocs();lmInit();},venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:renderUsrs,notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
 
 var _navPgNodes=null,_navNiNodes=null;
 function _navGetNodes(){if(!_navPgNodes)_navPgNodes=Array.from(document.querySelectorAll('.pg'));if(!_navNiNodes)_navNiNodes=Array.from(document.querySelectorAll('.ni'));}
@@ -4441,12 +4474,11 @@ function dcpBackToLanding(){
 
 /* ── Init ───────────────────────────────────────── */
 
-// BÚSQUEDA AVANZADA módulo Documentos
-function lmEsMbr(d){var v=String(d.mbr||'').toUpperCase().trim();return v==='X'||v==='MBR'||v==='SI'||v==='\u00cd';}
-function lmEsGxp(d){var v=String(d.docGxP||'').toUpperCase().trim();return v==='X'||v==='GXP'||v==='SI'||v==='\u00cd';}
+function lmEsMbr(d){var v=String(d.mbr||'').toUpperCase().trim();return v==='X'||v==='MBR'||v==='SI'||v==='Í';}
+function lmEsGxp(d){var v=String(d.docGxP||'').toUpperCase().trim();return v==='X'||v==='GXP'||v==='SI'||v==='Í';}
 function lmPoblarAdministradores(){var sel=document.getElementById('lm-f-adm');if(!sel)return;var actual=sel.value,set={};(docsEmpresa()||[]).forEach(function(d){var a=(d.administrador||'').trim();if(a)set[a]=1;});var adms=Object.keys(set).sort();sel.innerHTML='<option value="">Administrador: Todos</option>';adms.forEach(function(a){var op=document.createElement('option');op.value=a;op.textContent=a;if(a===actual)op.selected=true;sel.appendChild(op);});}
 function lmFiltrar(){var q=((document.getElementById('lm-srch-nombre')||{}).value||'').toLowerCase().trim();var fMbr=((document.getElementById('lm-f-mbr')||{}).value||'');var fGxp=((document.getElementById('lm-f-gxp')||{}).value||'');var fAdm=((document.getElementById('lm-f-adm')||{}).value||'');var fEst=((document.getElementById('lm-f-est')||{}).value||'');var clrBtn=document.getElementById('lm-srch-clear');if(clrBtn)clrBtn.style.display=q?'inline':'none';if(!q&&!fMbr&&!fGxp&&!fAdm&&!fEst){lmLimpiarResultados();return;}var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();var res=(docsEmpresa()||[]).filter(function(d){if(q){var hay=((d.codigoActual||'')+(d.descripcion||'')+(d.codigoAntiguo||'')).toLowerCase();if(hay.indexOf(q)<0)return false;}if(fMbr==='si'&&!lmEsMbr(d))return false;if(fMbr==='no'&&lmEsMbr(d))return false;if(fGxp==='si'&&!lmEsGxp(d))return false;if(fGxp==='no'&&lmEsGxp(d))return false;if(fAdm&&(d.administrador||'').trim()!==fAdm)return false;if(fEst){var fv=d.fechaVencimiento;var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):9999;var est=d.estado==='Obsoleto'?'Obsoleto':di<0?'Vencido':di<=30?'Por vencer':'Vigente';if(est!==fEst)return false;}return true;});res.sort(function(a,b){return(a.codigoActual||'').localeCompare(b.codigoActual||'');});var cntEl=document.getElementById('lm-result-count');if(cntEl)cntEl.textContent=res.length+' resultado'+(res.length!==1?'s':'');lmRenderResultados(res);}
-function lmRenderResultados(lista){var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();var cont=document.getElementById('lm-resultados');if(!cont)return;cont.style.display='block';if(!lista.length){cont.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--tx3);font-size:12px">Sin documentos que coincidan</div>';return;}var MAX=200,frag=document.createDocumentFragment();lista.slice(0,MAX).forEach(function(d){var fv=d.fechaVencimiento;var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):null;var estC=d.estado==='Obsoleto'?'#A32D2D':di===null?'var(--tx3)':di<0?'#A32D2D':di<=30?'#854F0B':'#0F6E56';var estL=d.estado==='Obsoleto'?'Obsoleto':di===null?'\u2014':di<0?'Vencido':di<=30?'Por vencer':'Vigente';var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border-bottom:1px solid var(--brd)';row.onmouseover=function(){this.style.background='var(--bg3)';};row.onmouseout=function(){this.style.background='transparent';};row.onclick=function(){lmSeleccionar(d.id);};var badges='';if(lmEsGxp(d))badges+='<span style="background:#e8f0fb;color:#1a5fa0;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">GxP</span>';if(lmEsMbr(d))badges+='<span style="background:#faeeda;color:#854F0B;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">MBR</span>';var colDiv=document.createElement('div');colDiv.style.cssText='min-width:110px;font-family:monospace;font-size:11px;font-weight:700;color:var(--T3)';colDiv.textContent=d.codigoActual;var nameDiv=document.createElement('div');nameDiv.style.cssText='flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nameDiv.title=d.descripcion;nameDiv.textContent=d.descripcion;var badgeDiv=document.createElement('div');badgeDiv.style.cssText='display:flex;gap:4px;align-items:center;flex-shrink:0';badgeDiv.innerHTML=badges+'<span style="font-size:10px;color:'+estC+';font-weight:600;white-space:nowrap">'+estL+'</span>';var admDiv=document.createElement('div');admDiv.style.cssText='min-width:120px;font-size:10px;color:var(--tx3);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';admDiv.textContent=d.administrador||'\u2014';var btnDiv=document.createElement('div');btnDiv.style.cssText='display:flex;gap:5px;flex-shrink:0';var bE=document.createElement('button');bE.className='btn gh sm';bE.style.cssText='font-size:10px;padding:3px 9px';bE.textContent='\u270f\ufe0f Editar';bE.onclick=function(e){e.stopPropagation();editDoc(d.id);};var bV=document.createElement('button');bV.className='btn sm';bV.style.cssText='font-size:10px;padding:3px 9px';bV.textContent='\ud83d\udc41 Ver';bV.onclick=function(e){e.stopPropagation();lmSeleccionar(d.id);};btnDiv.appendChild(bE);btnDiv.appendChild(bV);row.appendChild(colDiv);row.appendChild(nameDiv);row.appendChild(badgeDiv);row.appendChild(admDiv);row.appendChild(btnDiv);frag.appendChild(row);});cont.innerHTML='';cont.appendChild(frag);if(lista.length>MAX){var m=document.createElement('div');m.style.cssText='padding:8px 10px;font-size:11px;color:var(--tx3);text-align:center';m.textContent='Mostrando los primeros '+MAX+' de '+lista.length+' resultados.';cont.appendChild(m);}}
+function lmRenderResultados(lista){var hoy=new Date();hoy.setHours(0,0,0,0);var hoyMs=hoy.getTime();var cont=document.getElementById('lm-resultados');if(!cont)return;cont.style.display='block';if(!lista.length){cont.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--tx3);font-size:12px">Sin documentos que coincidan</div>';return;}var MAX=200,frag=document.createDocumentFragment();lista.slice(0,MAX).forEach(function(d){var fv=d.fechaVencimiento;var di=fv?Math.round((new Date(fv+'T00:00:00').getTime()-hoyMs)/86400000):null;var estC=d.estado==='Obsoleto'?'#A32D2D':di===null?'var(--tx3)':di<0?'#A32D2D':di<=30?'#854F0B':'#0F6E56';var estL=d.estado==='Obsoleto'?'Obsoleto':di===null?'—':di<0?'Vencido':di<=30?'Por vencer':'Vigente';var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border-bottom:1px solid var(--brd)';row.onmouseover=function(){this.style.background='var(--bg3)';};row.onmouseout=function(){this.style.background='transparent';};row.onclick=function(){lmSeleccionar(d.id);};var badges='';if(lmEsGxp(d))badges+='<span style="background:#e8f0fb;color:#1a5fa0;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">GxP</span>';if(lmEsMbr(d))badges+='<span style="background:#faeeda;color:#854F0B;border-radius:3px;padding:2px 6px;font-size:9px;font-weight:700">MBR</span>';var colDiv=document.createElement('div');colDiv.style.cssText='min-width:110px;font-family:monospace;font-size:11px;font-weight:700;color:var(--T3)';colDiv.textContent=d.codigoActual;var nameDiv=document.createElement('div');nameDiv.style.cssText='flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nameDiv.title=d.descripcion;nameDiv.textContent=d.descripcion;var badgeDiv=document.createElement('div');badgeDiv.style.cssText='display:flex;gap:4px;align-items:center;flex-shrink:0';badgeDiv.innerHTML=badges+'<span style="font-size:10px;color:'+estC+';font-weight:600;white-space:nowrap">'+estL+'</span>';var admDiv=document.createElement('div');admDiv.style.cssText='min-width:120px;font-size:10px;color:var(--tx3);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';admDiv.textContent=d.administrador||'—';var btnDiv=document.createElement('div');btnDiv.style.cssText='display:flex;gap:5px;flex-shrink:0';var bE=document.createElement('button');bE.className='btn gh sm';bE.style.cssText='font-size:10px;padding:3px 9px';bE.textContent='✏️ Editar';bE.onclick=function(e){e.stopPropagation();editDoc(d.id);};var bV=document.createElement('button');bV.className='btn sm';bV.style.cssText='font-size:10px;padding:3px 9px';bV.textContent='👁 Ver';bV.onclick=function(e){e.stopPropagation();lmSeleccionar(d.id);};btnDiv.appendChild(bE);btnDiv.appendChild(bV);row.appendChild(colDiv);row.appendChild(nameDiv);row.appendChild(badgeDiv);row.appendChild(admDiv);row.appendChild(btnDiv);frag.appendChild(row);});cont.innerHTML='';cont.appendChild(frag);if(lista.length>MAX){var m=document.createElement('div');m.style.cssText='padding:8px 10px;font-size:11px;color:var(--tx3);text-align:center';m.textContent='Mostrando los primeros '+MAX+' de '+lista.length+' resultados.';cont.appendChild(m);}}
 function lmSeleccionar(id){var d=docs.find(function(x){return x.id===id;});if(d)dcpSelectByCod(d.codigoActual);}
 function lmLimpiarResultados(){var c=document.getElementById('lm-resultados');if(c){c.style.display='none';c.innerHTML='';}var n=document.getElementById('lm-result-count');if(n)n.textContent='';}
 function lmLimpiarFiltros(){['lm-srch-nombre','lm-f-mbr','lm-f-gxp','lm-f-adm','lm-f-est'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var c=document.getElementById('lm-srch-clear');if(c)c.style.display='none';lmLimpiarResultados();}
@@ -10043,6 +10075,244 @@ function verHallazgosDash(area, mes){
   detail.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
+
+// ═══ KPI HALLAZGOS + GRAFICAS ════════════════════════════════
+var KPI_TIPOS_INFO=[
+  {est:'NO_ENCONTRADO',     label:'Carpeta No Encontrada',  col:'#5e5e00',hex:'#c4b000'},
+  {est:'NO_ESCANEADO',      label:'Doc. No Encontrado',     col:'#8a1515',hex:'#e53e3e'},
+  {est:'OBSOLETO',          label:'Doc. Obsoleto',          col:'#7a1818',hex:'#c0392b'},
+  {est:'VENCIDO',           label:'Doc. Vencido',           col:'#7a4e00',hex:'#e67e22'},
+  {est:'VERSION_INCORRECTA',label:'Version Incorrecta',     col:'#3d5a00',hex:'#8bc34a'}
+];
+var MESES_NOM=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var MESES_ABR=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+var _kpiCharts=[];
+function _kpiDestroyCharts(){_kpiCharts.forEach(function(c){if(c&&c.destroy)c.destroy();});_kpiCharts=[];}
+
+function renderKpiHallazgos(){
+  var totBox=document.getElementById('kpi-hall-totales');
+  var tabBox=document.getElementById('kpi-hall-tabla');
+  var grafDiv=document.getElementById('kpi-hall-graficas');
+  if(!totBox||!tabBox)return;
+  var mesFil=parseInt((document.getElementById('kpi-hall-mes')||{}).value||'')||0;
+
+  var matriz={};
+  Object.keys(hallazgosXLS||{}).forEach(function(area){
+    Object.keys(hallazgosXLS[area]).forEach(function(mesStr){
+      var mes=parseInt(mesStr);
+      if(mesFil&&mes!==mesFil)return;
+      if(!matriz[area])matriz[area]={};
+      if(!matriz[area][mes]){matriz[area][mes]={};KPI_TIPOS_INFO.forEach(function(t){matriz[area][mes][t.est]=0;});}
+      Object.keys(hallazgosXLS[area][mesStr]).forEach(function(est){if(matriz[area][mes][est]!==undefined)matriz[area][mes][est]+=hallazgosXLS[area][mesStr][est]||0;});
+    });
+  });
+  (inspeccionesEmpresa()||[]).forEach(function(x){
+    if(!x.ejecutado||!x.hallazgos||!x.hallazgos.length)return;
+    if(mesFil&&x.mes!==mesFil)return;
+    var area=x.area||'Sin area';
+    if(!matriz[area])matriz[area]={};
+    if(!matriz[area][x.mes]){matriz[area][x.mes]={};KPI_TIPOS_INFO.forEach(function(t){matriz[area][x.mes][t.est]=0;});}
+    x.hallazgos.forEach(function(h){
+      var est=(h.estado||'').toUpperCase();
+      var enXLS=hallazgosXLS&&hallazgosXLS[area]&&hallazgosXLS[area][x.mes]&&(hallazgosXLS[area][x.mes][est]||0)>0;
+      if(!enXLS&&matriz[area][x.mes][est]!==undefined)matriz[area][x.mes][est]++;
+    });
+  });
+
+  var areas=Object.keys(matriz).sort();
+  var mesesSet={};
+  areas.forEach(function(a){Object.keys(matriz[a]).forEach(function(m){mesesSet[m]=1;});});
+  var meses=Object.keys(mesesSet).map(Number).sort(function(a,b){return a-b;});
+
+  if(!areas.length||!meses.length){
+    _kpiDestroyCharts();
+    if(grafDiv)grafDiv.style.display='none';
+    totBox.innerHTML='';
+    tabBox.innerHTML='<div class="emp" style="padding:28px 0;flex-direction:column;gap:8px"><div style="font-size:28px">&#128202;</div><div style="font-size:12px;color:var(--tx3)">Sin datos. Se completaran al registrar inspecciones o cargar el Excel.</div></div>';
+    document.getElementById('kpi-hall-detalle').style.display='none';
+    return;
+  }
+
+  var totales={};KPI_TIPOS_INFO.forEach(function(t){totales[t.est]=0;});var totalGen=0;
+  areas.forEach(function(a){meses.forEach(function(m){if(!matriz[a][m])return;KPI_TIPOS_INFO.forEach(function(t){var v=matriz[a][m][t.est]||0;totales[t.est]+=v;totalGen+=v;});});});
+
+  // Tarjetas
+  var fTot=document.createDocumentFragment();
+  var k0=document.createElement('div');k0.className='kpi';k0.style.cursor='default';
+  k0.innerHTML='<div class="kl">TOTAL HALLAZGOS</div><div class="kv r">'+totalGen+'</div><div class="ks">Todos los tipos</div>';
+  fTot.appendChild(k0);
+  KPI_TIPOS_INFO.forEach(function(t){
+    var k=document.createElement('div');k.className='kpi';k.style.cssText='cursor:default;border-top:3px solid '+t.col;
+    k.innerHTML='<div class="kl" style="font-size:9px">'+t.label.toUpperCase()+'</div>'
+      +'<div class="kv" style="color:'+t.col+';font-size:26px">'+totales[t.est]+'</div>'
+      +'<div class="ks">'+(totalGen?Math.round(totales[t.est]/totalGen*100)+'%':'—')+'</div>';
+    fTot.appendChild(k);
+  });
+  totBox.innerHTML='';totBox.appendChild(fTot);
+
+  if(grafDiv)grafDiv.style.display='block';
+  _kpiDestroyCharts();
+
+  var areasConDatos=areas.filter(function(a){return meses.some(function(m){return matriz[a][m]&&KPI_TIPOS_INFO.some(function(t){return(matriz[a][m][t.est]||0)>0;});});});
+  var porArea={};
+  areasConDatos.forEach(function(a){
+    porArea[a]={};KPI_TIPOS_INFO.forEach(function(t){porArea[a][t.est]=0;});
+    meses.forEach(function(m){if(!matriz[a][m])return;KPI_TIPOS_INFO.forEach(function(t){porArea[a][t.est]+=matriz[a][m][t.est]||0;});});
+  });
+
+  // Grafica barras apiladas
+  var cBar=document.getElementById('kpi-chart-bar');
+  var tBar=document.getElementById('kpi-chart-bar-title');
+  if(cBar&&areasConDatos.length){
+    if(tBar)tBar.textContent='HALLAZGOS POR AREA'+(mesFil?' - '+MESES_NOM[mesFil]:'');
+    var n=areasConDatos.length,W=Math.max(600,n*62+100),H=260;
+    cBar.width=W;cBar.height=H;
+    var ctx=cBar.getContext('2d');ctx.clearRect(0,0,W,H);
+    var PL=40,PR=20,PT=20,PB=60,cW=W-PL-PR,cH=H-PT-PB;
+    var maxT=0;
+    areasConDatos.forEach(function(a){var s=KPI_TIPOS_INFO.reduce(function(acc,t){return acc+(porArea[a][t.est]||0);},0);if(s>maxT)maxT=s;});
+    if(!maxT)maxT=1;
+    var bW=Math.min(42,Math.floor(cW/n*0.58)),gap=Math.floor(cW/n);
+    ctx.strokeStyle='#e0e0e0';ctx.lineWidth=1;
+    for(var g=1;g<=4;g++){var gy=PT+cH-cH*g/4;ctx.beginPath();ctx.moveTo(PL,gy);ctx.lineTo(W-PR,gy);ctx.stroke();ctx.fillStyle='#999';ctx.font='9px sans-serif';ctx.textAlign='right';ctx.fillText(Math.round(maxT*g/4),PL-4,gy+3);}
+    areasConDatos.forEach(function(a,i){
+      var x=PL+i*gap+Math.floor(gap/2)-Math.floor(bW/2),yB=PT+cH,accH=0;
+      KPI_TIPOS_INFO.forEach(function(t){var v=porArea[a][t.est]||0;if(!v)return;var h=Math.round(cH*v/maxT);ctx.fillStyle=t.hex;ctx.fillRect(x,yB-accH-h,bW,h);if(h>12){ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText(v,x+bW/2,yB-accH-h+10);}accH+=h;});
+      var tot=KPI_TIPOS_INFO.reduce(function(s,t){return s+(porArea[a][t.est]||0);},0);
+      if(tot){ctx.fillStyle='#333';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText(tot,x+bW/2,PT+cH-accH-4);}
+      ctx.save();ctx.translate(x+bW/2,PT+cH+8);ctx.rotate(-Math.PI/4);ctx.fillStyle='#555';ctx.font='9px sans-serif';ctx.textAlign='right';ctx.fillText(a.length>18?a.substring(0,17)+'…':a,0,0);ctx.restore();
+    });
+    ctx.strokeStyle='#ccc';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PL,PT);ctx.lineTo(PL,PT+cH);ctx.stroke();
+  }
+
+  // Grafica dona
+  var cDona=document.getElementById('kpi-chart-dona');
+  if(cDona&&totalGen>0){
+    var DW=240,DH=240;cDona.width=DW;cDona.height=DH;
+    var ctx2=cDona.getContext('2d');ctx2.clearRect(0,0,DW,DH);
+    var cx=DW/2,cy=DH/2-10,R=85,r=48,ang=-Math.PI/2;
+    KPI_TIPOS_INFO.forEach(function(t){var v=totales[t.est];if(!v)return;var sw=2*Math.PI*v/totalGen;ctx2.beginPath();ctx2.moveTo(cx,cy);ctx2.arc(cx,cy,R,ang,ang+sw);ctx2.closePath();ctx2.fillStyle=t.hex;ctx2.fill();ctx2.beginPath();ctx2.arc(cx,cy,r,0,2*Math.PI);ctx2.fillStyle='white';ctx2.fill();ang+=sw;});
+    ctx2.fillStyle='#333';ctx2.font='bold 18px sans-serif';ctx2.textAlign='center';ctx2.fillText(totalGen,cx,cy+7);
+    ctx2.font='10px sans-serif';ctx2.fillStyle='#888';ctx2.fillText('total',cx,cy+20);
+    var ly=DH-35,lx=4;
+    KPI_TIPOS_INFO.forEach(function(t){if(!totales[t.est])return;ctx2.fillStyle=t.hex;ctx2.fillRect(lx,ly,10,10);ctx2.fillStyle='#555';ctx2.font='8px sans-serif';ctx2.textAlign='left';ctx2.fillText(t.label.split(' ').pop()+' '+totales[t.est],lx+13,ly+9);lx+=DW/5;});
+  }
+
+  // Grafica linea mensual
+  var lCard=document.getElementById('kpi-chart-linea-card');
+  var cLinea=document.getElementById('kpi-chart-linea');
+  if(lCard&&cLinea){
+    if(mesFil){lCard.style.display='none';}
+    else{
+      lCard.style.display='block';
+      var porMes={};
+      meses.forEach(function(m){porMes[m]={};KPI_TIPOS_INFO.forEach(function(t){porMes[m][t.est]=0;});areas.forEach(function(a){if(!matriz[a][m])return;KPI_TIPOS_INFO.forEach(function(t){porMes[m][t.est]+=matriz[a][m][t.est]||0;});});});
+      var LW=Math.max(500,meses.length*80+80),LH=140;
+      cLinea.width=LW;cLinea.height=LH;
+      var lc=cLinea.getContext('2d');lc.clearRect(0,0,LW,LH);
+      var LP=40,RP=20,TP=14,BP=30,lcW=LW-LP-RP,lcH=LH-TP-BP,maxV=0;
+      meses.forEach(function(m){KPI_TIPOS_INFO.forEach(function(t){if(porMes[m][t.est]>maxV)maxV=porMes[m][t.est];});});
+      if(!maxV)maxV=1;
+      lc.strokeStyle='#e8e8e8';lc.lineWidth=1;
+      for(var g2=1;g2<=3;g2++){var gy2=TP+lcH-lcH*g2/3;lc.beginPath();lc.moveTo(LP,gy2);lc.lineTo(LW-RP,gy2);lc.stroke();lc.fillStyle='#aaa';lc.font='8px sans-serif';lc.textAlign='right';lc.fillText(Math.round(maxV*g2/3),LP-3,gy2+3);}
+      var step=lcW/(meses.length>1?meses.length-1:1);
+      KPI_TIPOS_INFO.forEach(function(t){
+        var pts=meses.map(function(m,i){return{x:LP+i*step,y:TP+lcH-lcH*(porMes[m][t.est]||0)/maxV};});
+        lc.beginPath();pts.forEach(function(p,i){if(i===0)lc.moveTo(p.x,p.y);else lc.lineTo(p.x,p.y);});
+        lc.strokeStyle=t.hex;lc.lineWidth=2;lc.stroke();
+        pts.forEach(function(p,i){lc.beginPath();lc.arc(p.x,p.y,3,0,2*Math.PI);lc.fillStyle=t.hex;lc.fill();var v=porMes[meses[i]][t.est]||0;if(v){lc.fillStyle=t.col;lc.font='bold 9px sans-serif';lc.textAlign='center';lc.fillText(v,p.x,p.y-6);}});
+      });
+      meses.forEach(function(m,i){lc.fillStyle='#666';lc.font='9px sans-serif';lc.textAlign='center';lc.fillText(MESES_ABR[m],LP+i*step,LH-8);});
+    }
+  }
+
+  // Tabla
+  var nT=KPI_TIPOS_INFO.length;
+  var areasTabla=areasConDatos;
+  var totRow={};meses.forEach(function(m){totRow[m]={};KPI_TIPOS_INFO.forEach(function(t){totRow[m][t.est]=0;});});
+  var grandTotal=0;
+  var tbl=document.createElement('table');tbl.style.cssText='width:100%;border-collapse:collapse;font-size:11px';
+  var thead=document.createElement('thead');
+  // Fila 1 encabezados meses
+  var tr1=document.createElement('tr');tr1.style.background='var(--bg3)';
+  var th0=document.createElement('th');th0.style.cssText='text-align:left;padding:6px 10px;font-size:10px;color:var(--tx3);font-weight:700;white-space:nowrap;position:sticky;left:0;background:var(--bg3);z-index:2;min-width:160px';th0.textContent='AREA';tr1.appendChild(th0);
+  meses.forEach(function(m){var th=document.createElement('th');th.colSpan=nT;th.style.cssText='text-align:center;padding:4px 6px;font-size:10px;color:var(--T3);font-weight:700;border-left:2px solid var(--brd);background:var(--tl)';th.textContent=MESES_ABR[m];tr1.appendChild(th);});
+  var thTot=document.createElement('th');thTot.style.cssText='text-align:right;padding:6px 8px;font-size:10px;color:var(--tx3);font-weight:700;border-left:2px solid var(--brd)';thTot.textContent='TOTAL';tr1.appendChild(thTot);
+  thead.appendChild(tr1);
+  // Fila 2 subtipos
+  var tr2=document.createElement('tr');tr2.style.background='var(--bg3)';
+  var th00=document.createElement('th');th00.style.cssText='position:sticky;left:0;background:var(--bg3);z-index:2';tr2.appendChild(th00);
+  meses.forEach(function(m){KPI_TIPOS_INFO.forEach(function(t,ti){var th=document.createElement('th');th.title=t.label;th.style.cssText='text-align:center;padding:3px 4px;font-size:8px;color:'+t.col+';font-weight:700;max-width:38px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'+(ti===0?';border-left:2px solid var(--brd)':'');th.textContent=t.label.split(' ').pop();tr2.appendChild(th);});});
+  var th01=document.createElement('th');th01.style.cssText='border-left:2px solid var(--brd)';tr2.appendChild(th01);
+  thead.appendChild(tr2);tbl.appendChild(thead);
+  var tbody=document.createElement('tbody');
+  areasTabla.forEach(function(area,ai){
+    var rowTotal=0;
+    var tr=document.createElement('tr');
+    tr.style.background=ai%2===0?'var(--bg)':'var(--bg3)';
+    tr.style.cursor='pointer';
+    var bgOrig=tr.style.background;
+    tr.onmouseover=function(){this.style.background='var(--tl)';};
+    tr.onmouseout=function(){this.style.background=bgOrig;};
+    var tdArea=document.createElement('td');tdArea.style.cssText='padding:5px 10px;font-size:11px;font-weight:600;color:var(--tx);white-space:nowrap;position:sticky;left:0;background:inherit;z-index:1';tdArea.textContent=area;tr.appendChild(tdArea);
+    meses.forEach(function(m){
+      KPI_TIPOS_INFO.forEach(function(t,ti){
+        var v=(matriz[area]&&matriz[area][m])?matriz[area][m][t.est]||0:0;
+        totRow[m][t.est]+=v;rowTotal+=v;grandTotal+=v;
+        var td=document.createElement('td');
+        var areaEsc=area;var mesV=m;var estV=t.est;
+        td.onclick=function(){kpiHallDetalle(areaEsc,mesV,estV);};
+        td.style.cssText='text-align:center;padding:4px 6px;font-size:11px;font-weight:'+(v>0?'700':'400')+';color:'+(v>0?t.col:'var(--tx3)')+(ti===0?';border-left:2px solid var(--brd)':'');
+        td.textContent=v>0?v:'—';
+        tr.appendChild(td);
+      });
+    });
+    var tdT=document.createElement('td');tdT.style.cssText='text-align:right;padding:5px 8px;font-size:11px;font-weight:700;color:var(--R);border-left:2px solid var(--brd)';tdT.textContent=rowTotal||'—';tr.appendChild(tdT);
+    tbody.appendChild(tr);
+  });
+  // Fila totales
+  var trTot=document.createElement('tr');trTot.style.cssText='background:var(--tl);border-top:2px solid var(--brd)';
+  var tdTotL=document.createElement('td');tdTotL.style.cssText='padding:5px 10px;font-size:10px;font-weight:700;color:var(--T3);position:sticky;left:0;background:var(--tl);z-index:1';tdTotL.textContent='TOTAL';trTot.appendChild(tdTotL);
+  meses.forEach(function(m){KPI_TIPOS_INFO.forEach(function(t,ti){var v=totRow[m][t.est]||0;var td=document.createElement('td');td.style.cssText='text-align:center;padding:4px 6px;font-size:10px;font-weight:700;color:'+(v>0?t.col:'var(--tx3)')+(ti===0?';border-left:2px solid var(--brd)':'');td.textContent=v>0?v:'—';trTot.appendChild(td);});});
+  var tdGT=document.createElement('td');tdGT.style.cssText='text-align:right;padding:5px 8px;font-size:11px;font-weight:700;color:var(--R);border-left:2px solid var(--brd)';tdGT.textContent=grandTotal;trTot.appendChild(tdGT);
+  tbody.appendChild(trTot);tbl.appendChild(tbody);
+  tabBox.innerHTML='';tabBox.appendChild(tbl);
+  document.getElementById('kpi-hall-detalle').style.display='none';
+}
+
+function kpiHallDetalle(area,mes,estFiltro){
+  var detDiv=document.getElementById('kpi-hall-detalle');
+  var detTitle=document.getElementById('kpi-hall-det-title');
+  var detBody=document.getElementById('kpi-hall-det-body');
+  if(!detDiv)return;
+  var info=KPI_TIPOS_INFO.find(function(t){return t.est===estFiltro;})||{label:estFiltro,col:'var(--brd)'};
+  detTitle.textContent=area+' - '+MESES_NOM[mes]+' - '+info.label;
+  var hallazgos=[];
+  (inspeccionesEmpresa()||[]).forEach(function(x){
+    if(x.area!==area||x.mes!==mes||!x.ejecutado)return;
+    (x.hallazgos||[]).forEach(function(h){if((h.estado||'').toUpperCase()===estFiltro)hallazgos.push({descripcion:h.descripcion||info.label,codigo:h.codigo||'-',subarea:h.subarea||x.subarea||'-',responsable:h.responsable||'-',fecha:h.fecha||'-'});});
+  });
+  var cntXLS=hallazgosXLS&&hallazgosXLS[area]&&hallazgosXLS[area][mes]?hallazgosXLS[area][mes][estFiltro]||0:0;
+  var frag=document.createDocumentFragment();
+  if(!hallazgos.length){
+    var msg=document.createElement('div');msg.style.cssText='padding:12px 14px;border-radius:var(--r);background:var(--bg3);font-size:12px;color:var(--tx3)';
+    var strong=document.createElement('strong');strong.style.color=info.col;strong.textContent=cntXLS>0?(cntXLS+' '+info.label):'0';
+    msg.appendChild(strong);
+    var span=document.createElement('span');span.textContent=cntXLS>0?' en Excel. Detalle disponible al registrar desde la app.':' Sin hallazgos registrados.';
+    msg.appendChild(span);frag.appendChild(msg);
+  } else {
+    hallazgos.forEach(function(h){
+      var row=document.createElement('div');row.style.cssText='border:1px solid var(--brd);border-left:3px solid '+info.col+';border-radius:var(--r);padding:8px 12px;margin-bottom:5px;background:var(--bg3)';
+      var d=document.createElement('div');d.style.cssText='font-size:12px;font-weight:600;color:var(--tx);margin-bottom:3px';d.textContent=h.descripcion;
+      var m=document.createElement('div');m.style.cssText='font-size:10px;color:var(--tx3)';
+      m.textContent='Cod: '+h.codigo+' | Fecha: '+h.fecha+' | Resp: '+h.responsable+' | Subarea: '+h.subarea;
+      row.appendChild(d);row.appendChild(m);frag.appendChild(row);
+    });
+  }
+  detBody.innerHTML='';detBody.appendChild(frag);
+  detDiv.style.display='block';
+  detDiv.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
 //  ALERTS 
 function checkInspAlerts(){
   var alertBox=document.getElementById('insp-alerts-box');
@@ -15029,6 +15299,15 @@ var OD_MESES={
   'SEP':9,'OCT':10,'NOV':11,'DIC':12,'ENE':1,'FEB':2
 };
 
+
+// ═══ HOJA "Detalle de Hallazgos" ════════════════════════════════
+var DH_COL_MAP={'CARPETA NO ENCONTRADA':'NO_ENCONTRADO','DOCUMENTO NO ENCONTRADO':'NO_ESCANEADO','DOCUMENTO OBSOLETA':'OBSOLETO','DOCUMENTO OBSOLETO':'OBSOLETO','DOCUMENTO VENCIDO':'VENCIDO','VERSIONES INCORRECTA':'VERSION_INCORRECTA','VERSION INCORRECTA':'VERSION_INCORRECTA'};
+var DH_MESES_NORM={ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
+var hallazgosXLS={};
+function _dhColMeta(rows){var fila0=rows[0]||[],fila1=rows[1]||[],mesAct=0,meta={};for(var c=1;c<fila0.length;c++){var v0=String(fila0[c]||'').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(DH_MESES_NORM[v0])mesAct=DH_MESES_NORM[v0];if(mesAct>0){var v1=String(fila1[c]||'').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\xc0-\xc6]/g,'A').replace(/[\xc8-\xcb]/g,'E').replace(/[\xcc-\xcf]/g,'I').replace(/[\xd2-\xd6]/g,'O').replace(/[\xd9-\xdc]/g,'U');var est=DH_COL_MAP[v1];if(est)meta[c]={mes:mesAct,est:est};}}return meta;}
+function odLeerHojaDetalleHallazgos(wb){var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos','Hallazgos_Detalle']);if(!hoja)return{};var rows=XLSX.utils.sheet_to_json(hoja.ws,{header:1,defval:''});if(rows.length<3)return{};var meta=_dhColMeta(rows),result={};for(var r=2;r<rows.length;r++){var area=String(rows[r][0]||'').trim();if(!area)continue;result[area]=result[area]||{};Object.keys(meta).forEach(function(c){var m=meta[c],v=parseInt(rows[r][parseInt(c)])||0;if(!result[area][m.mes])result[area][m.mes]={};result[area][m.mes][m.est]=(result[area][m.mes][m.est]||0)+v;});}return result;}
+function odEscribirDetalleHallazgos(wb){var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos','Hallazgos_Detalle']);if(!hoja)return;var ws=hoja.ws;var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});if(rows.length<3)return;var meta=_dhColMeta(rows);var conteos={};(inspecciones||[]).forEach(function(insp){if(!insp.ejecutado||!insp.hallazgos||!insp.hallazgos.length)return;var area=(insp.area||'').trim();if(!area)return;if(!conteos[area])conteos[area]={};if(!conteos[area][insp.mes])conteos[area][insp.mes]={NO_ENCONTRADO:0,NO_ESCANEADO:0,OBSOLETO:0,VENCIDO:0,VERSION_INCORRECTA:0};insp.hallazgos.forEach(function(h){var e=(h.estado||'').toUpperCase();if(conteos[area][insp.mes][e]!==undefined)conteos[area][insp.mes][e]++;});});for(var r=2;r<rows.length;r++){var area=String(rows[r][0]||'').trim();if(!area)continue;var aKey=null;Object.keys(conteos).forEach(function(k){if(k.toLowerCase()===area.toLowerCase())aKey=k;});Object.keys(meta).forEach(function(c){var m=meta[c],v=aKey&&conteos[aKey]&&conteos[aKey][m.mes]?conteos[aKey][m.mes][m.est]||0:0;var addr=XLSX.utils.encode_cell({r:r,c:parseInt(c)});if(v>0)ws[addr]={v:v,t:'n'};else if(ws[addr]&&ws[addr].v>0)ws[addr]={v:0,t:'n'};});}ws['!ref']='A1:'+XLSX.utils.encode_col((rows[0]||[]).length-1)+rows.length;wb.Sheets[hoja.nombre]=ws;}
+function dhFusionarConInspecciones(hXLS){if(!hXLS||!Object.keys(hXLS).length)return;Object.keys(hXLS).forEach(function(area){Object.keys(hXLS[area]).forEach(function(mesStr){var mes=parseInt(mesStr),tipos=hXLS[area][mesStr];var totalXLS=Object.keys(tipos).reduce(function(s,t){return s+(tipos[t]||0);},0);if(!totalXLS)return;var inspMem=(inspecciones||[]).find(function(x){return x.area===area&&x.mes===mes&&x.ejecutado;});if(inspMem&&inspMem.hallazgos&&inspMem.hallazgos.length>0)return;if(!inspMem){var n={id:Date.now()+mes+area.length,area:area,tipo:'Copias Controladas',mes:mes,anio:new Date().getFullYear(),programado:true,ejecutado:true,fechaEjecucion:'',hallazgos:[],totalHallazgosExcel:totalXLS,responsable:'',observaciones:''};Object.keys(tipos).forEach(function(est){for(var i=0;i<(tipos[est]||0);i++)n.hallazgos.push({descripcion:est.replace(/_/g,' '),codigo:'',responsable:'',fecha:'',estado:est,tipo:'Copias Controladas'});});if(!inspecciones)inspecciones=[];inspecciones.push(n);}else{Object.keys(tipos).forEach(function(est){for(var i=0;i<(tipos[est]||0);i++)inspMem.hallazgos.push({descripcion:est.replace(/_/g,' '),codigo:'',responsable:'',fecha:'',estado:est,tipo:'Copias Controladas'});});inspMem.totalHallazgosExcel=Math.max(inspMem.totalHallazgosExcel||0,totalXLS);}});});hallazgosXLS=hXLS;}
 async function odLeerHojaInspeccionesBuf(buf, wb){
   var hoja=odBuscarHoja(wb,['Programa_Inspeccion_Procaps','Programa Inspeccion','Programa_Inspección','ProgramaInspeccion','Inspecciones_Programa']);
   if(!hoja){console.log('OD: hoja Programa_Inspeccion_Procaps no encontrada');return null;}
@@ -15744,12 +16023,8 @@ async function odCargarListado(){
       if(tieneVal&&obj.codigoActual&&String(obj.codigoActual).trim()) nuevoDocs.push(obj);
     });
 
-    // Recalcular estado desde fecha real — ignorar valor guardado en el Excel
     nuevoDocs.forEach(function(d){
-      var esObs=String(d.obsoleto||'').toUpperCase().trim()==='X'
-        ||String(d.obsoleto||'').toUpperCase().trim()==='SI'
-        ||String(d.obsoleto||'').toUpperCase().trim()==='SÍ'
-        ||d.estado==='Obsoleto';
+      var esObs=String(d.obsoleto||'').toUpperCase().trim()==='X'||String(d.obsoleto||'').toUpperCase().trim()==='SI'||String(d.obsoleto||'').toUpperCase().trim()==='SÍ'||d.estado==='Obsoleto';
       d.estado=esObs?'Obsoleto':calcEst(d.fechaVencimiento,esObs?'X':'No');
       if(esObs&&d.obsoleto!=='Si')d.obsoleto='Si';
       else if(!esObs&&(!d.obsoleto||d.obsoleto==='No'||d.obsoleto===''))d.obsoleto='No';
@@ -15819,6 +16094,8 @@ async function odCargarListado(){
         } else { console.warn('OD: no se encontró '+OD_ARCHIVOS.inspecciones); }
       }catch(eInsp0){console.warn('OD: error leyendo Inspecciones.xlsx:',eInsp0);}
     }
+    var hallXLS={};
+    if(wbInsp){try{hallXLS=odLeerHojaDetalleHallazgos(wbInsp)||{};}catch(eH){console.warn('DH:',eH);}}
     var resultInsp=await odLeerHojaInspeccionesBuf(bufInsp, wbInsp);
     if(resultInsp!==null){
       programaInsp2026=resultInsp.programa;
@@ -15841,6 +16118,7 @@ async function odCargarListado(){
         }
         return ie;
       });
+      if(Object.keys(hallXLS).length)dhFusionarConInspecciones(hallXLS);
       saveArr('inspProg',programaInsp2026);
       saveArr('insp',inspecciones);
       console.log('OD: programa inspecciones cargado — '+programaInsp2026.length+' entradas, '+inspecciones.length+' inspecciones');
@@ -16361,14 +16639,7 @@ async function odGuardarListado(silencioso){
       if(!wsLM[addr]) wsLM[addr]={v:h,t:'s'}; // solo si no existe
     });
 
-    // Columna J: estado calculado como texto plano en el momento del guardado.
-    // NO se usa fórmula porque en SharePoint las fórmulas no se recalculan
-    // hasta que alguien abre el archivo en Excel. Texto plano = siempre correcto.
-    function calcEstadoParaExcel(d){
-      var obs=String(d.obsoleto||'').toUpperCase().trim();
-      var esObs=obs==='X'||obs==='SI'||obs==='SÍ'||d.estado==='Obsoleto';
-      return esObs?'Obsoleto':calcEst(d.fechaVencimiento,esObs?'X':'No');
-    }
+    function calcEstadoParaExcel(d){var obs=String(d.obsoleto||"").toUpperCase().trim();var esObs=obs==="X"||obs==="SI"||obs==="SÍ"||d.estado==="Obsoleto";return esObs?"Obsoleto":calcEst(d.fechaVencimiento,esObs?"X":"No");}
 
     // PASO 3: Escribir filas de datos
     docs.forEach(function(d, ri){
@@ -16433,12 +16704,7 @@ async function odGuardarListado(silencioso){
         wsLM[addr]={v:strVal,t:'s'};
       });
 
-      // Columna J: texto plano calculado en tiempo real con calcEst()
-      // Garantiza que al abrir el Excel en SharePoint el estado ya sea correcto
-      var addrJ=XLSX.utils.encode_cell({r:row,c:9});
-      var _estJ=calcEstadoParaExcel(d);
-      d.estado=_estJ; // sincronizar estado en memoria también
-      wsLM[addrJ]={v:_estJ,t:'s'};
+      var addrJ=XLSX.utils.encode_cell({r:row,c:9});var _estJ=calcEstadoParaExcel(d);d.estado=_estJ;wsLM[addrJ]={v:_estJ,t:'s'};
     });
 
     // PASO 4: Actualizar !ref para cubrir todas las filas escritas
@@ -16511,6 +16777,7 @@ async function odGuardarListado(silencioso){
         var inspData2=await odLeerArchivo(OD_ARCHIVOS.inspecciones);
         var wbInsp2=inspData2?XLSX.read(inspData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
         odEscribirInspeccionesEnExcel(wbInsp2);
+        try{odEscribirDetalleHallazgos(wbInsp2);}catch(eDH){}
         if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbInsp2,_AUDIT_MODULOS_INSP);
         await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
       }catch(eInsp){console.warn('Error guardando Inspecciones:',eInsp);}
@@ -16536,6 +16803,7 @@ async function odGuardarListado(silencioso){
       if(wb.Sheets[nombreHojaCop]){wb.Sheets[nombreHojaCop]=wsCop;}
       else{XLSX.utils.book_append_sheet(wb,wsCop,nombreHojaCop);}
       odEscribirInspeccionesEnExcel(wb);
+      try{odEscribirDetalleHallazgos(wb);}catch(eDH2){}
       odEscribirActasEnExcel(wb);
       try{odEscribirCodigosDocNuevos(wb);}catch(eCN){console.warn('CDN:',eCN);}
       try{if(solicitudes&&solicitudes.length)rbEscribirHoja(wb);}catch(eSolG){console.warn('rbEscribirHoja:',eSolG);}
@@ -22895,7 +23163,7 @@ function nfValidarCampos(){
 }
 
 function nfGuardar(){
-  if(window._nfDocObsoleto){alert('⛔ El documento está marcado como Obsoleto.\nNo es posible registrar una novedad para un documento obsoleto.');return;}
+  if(window._nfDocObsoleto){alert('⛔ El documento está marcado como Obsoleto.\nNo es posible registrar novedad.');return;}
   if(!OD.fileHandle){ toast('Primero carga el Excel de SharePoint','er'); return; }
   if(!_nfPDFGenerado){
     alert('⚠️ Debe generar el PDF antes de guardar la solicitud.\n\nHaga clic en el botón 📄 PDF, descárguelo y luego guarde.');
@@ -23072,7 +23340,7 @@ function nfGuardarEjecutar(){
 
 // ── Limpiar ──────────────────────────────────────────────────
 function nfDescargarPDF(){
-  if(window._nfDocObsoleto){alert('⛔ El documento está marcado como Obsoleto.\nNo es posible generar el PDF para un documento obsoleto.');return;}
+  if(window._nfDocObsoleto){alert('⛔ El documento está marcado como Obsoleto.\nNo es posible generar el PDF.');return;}
   var faltantes=nfValidarCampos();
   if(faltantes.length){
     alert('⚠️ Complete los siguientes campos antes de generar el PDF:\n\n• '+faltantes.join('\n• '));
