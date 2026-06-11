@@ -5671,36 +5671,19 @@ var CC_PROC=[
   'omadrid@sofgenpharma.com','lfsanchez@sofgenpharma.com','vsoto@sofgenpharma.com'
 ];
 
-function docGetCCCorreos(cod, gxp, mbr, tipo, codAntiguo){
+function docGetCCCorreos(cod, gxp, mbr, tipo){
   var cc=[];
   // GxP
   if(gxp==='X'||gxp==='X - GxP') CC_GXP.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
   // MBR
   if(mbr==='X') CC_MBR.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
-
-  // SUB- o DP-: verificar en el código actual
-  var codUpper = (cod||'').toUpperCase();
-  var codAntUpper = (codAntiguo||'').toUpperCase();
-
-  var esSUBDP = codUpper.startsWith('SUB-') || codUpper.startsWith('DP-');
-
-  // "CONTROL SOX" o "NOT. PROCESOS" / "NOT PROCESOS":
-  // buscar en código anterior (codigoAntiguo) que puede decir "CONTROL SOX" o "NOT. PROCESOS"
-  var esControlSOX = codAntUpper.indexOf('CONTROL SOX') >= 0
-    || codAntUpper.indexOf('CONTROL_SOX') >= 0;
-
-  var esNotProcesos = (codAntUpper.indexOf('NOT') >= 0 && codAntUpper.indexOf('PROCESO') >= 0)
-    || codAntUpper.indexOf('NOT. PROCESO') >= 0
-    || codAntUpper.indexOf('NOT.PROCESO') >= 0;
-
-  // También verificar en el tipo (por compatibilidad con registros anteriores)
-  var tipoUpper = (tipo||'').toUpperCase();
-  if(!esControlSOX) esControlSOX = tipoUpper.indexOf('CONTROL SOX') >= 0;
-  if(!esNotProcesos) esNotProcesos = (tipoUpper.indexOf('NOT') >= 0 && tipoUpper.indexOf('PROCESO') >= 0);
-
-  if(esSUBDP || esControlSOX || esNotProcesos){
-    CC_PROC.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
-  }
+  // SUB-, DP-, NOT. PROCESOS, CONTROL SOX
+  var codUpper=(cod||'').toUpperCase();
+  var tipoUpper=(tipo||'').toUpperCase();
+  var esProc=codUpper.startsWith('SUB-')||codUpper.startsWith('DP-')
+    ||tipoUpper.indexOf('NOT')>=0&&tipoUpper.indexOf('PROCESO')>=0
+    ||tipoUpper.indexOf('SOX')>=0||tipoUpper.indexOf('CONTROL SOX')>=0;
+  if(esProc) CC_PROC.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
   return cc;
 }
 
@@ -5718,14 +5701,6 @@ function enviarCorreoDocumento(){
              (document.getElementById('d-fvenc')||{}).value||'';
 
   if(!cod){toast('Completa el código del documento primero','er');return;}
-
-  // Buscar codigoAntiguo del documento actual
-  var codAnt='';
-  var _docActual=docs.find(function(x){return x.codigoActual===cod;});
-  if(_docActual) codAnt=_docActual.codigoAntiguo||'';
-  // También del campo del formulario si está visible
-  var _codAntInput=document.getElementById('d-codant');
-  if(_codAntInput&&_codAntInput.value&&_codAntInput.value!=='No Aplica') codAnt=_codAntInput.value;
 
   var org=(cfg&&cfg.org)||'Sofgen Pharma';
   var hora=new Date().getHours();
@@ -5747,7 +5722,7 @@ function enviarCorreoDocumento(){
   }
 
   var para=correo?[correo]:[];
-  var cc=docGetCCCorreos(cod, gxp, mbr, tipo, codAnt);
+  var cc=docGetCCCorreos(cod, gxp, mbr, tipo);
   var asunto='['+org+'] Notificación documento: '+cod+(ver?' v'+ver:'');
 
   var cuerpo=saludo+',\n\n';
@@ -9302,17 +9277,8 @@ function moNotificar(){
 
   // Reemplazar el cuerpo anterior que tenía "Atentamente" al final
   var correo=d.correoElectronico||LC.areaACorreo[d.areaGeneradora]||'';
-  // CC automático según código y código anterior
-  var _moCC=docGetCCCorreos(d.codigoActual, d.docGxP, d.mbr, d.tipoDocumento, d.codigoAntiguo||'');
-  var _moMailto='mailto:'+encodeURIComponent(correo);
-  var _moParams=[];
-  if(_moCC.length) _moParams.push('cc='+encodeURIComponent(_moCC.join(';')));
-  _moParams.push('subject='+encodeURIComponent(asunto));
-  _moParams.push('body='+encodeURIComponent(cuerpo));
-  if(_moParams.length) _moMailto+='?'+_moParams.join('&');
-  window.location.href=_moMailto;
-  var _moCCInfo=_moCC.length?' | CC: '+_moCC.join(', '):'';
-  toast('Abriendo correo...'+_moCCInfo,'if');
+  window.location.href='mailto:'+encodeURIComponent(correo)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  toast('Abriendo correo...','if');
 }
 
 
@@ -15027,6 +14993,166 @@ var OD_MESES={
   'SEP':9,'OCT':10,'NOV':11,'DIC':12,'ENE':1,'FEB':2
 };
 
+
+// ═══ HOJA "Detalle de Hallazgos" — Leer y Escribir ═══════════════
+// Mapeo encabezados Excel → estados internos de la app
+var DH_COL_MAP = {
+  'CARPETA NO ENCONTRADA': 'NO_ENCONTRADO',
+  'DOCUMENTO NO ENCONTRADO': 'NO_ESCANEADO',
+  'DOCUMENTO OBSOLETA': 'OBSOLETO',
+  'DOCUMENTO OBSOLETO': 'OBSOLETO',
+  'DOCUMENTO VENCIDO': 'VENCIDO',
+  'VERSIONES INCORRECTA': 'VERSION_INCORRECTA',
+  'VERSION INCORRECTA': 'VERSION_INCORRECTA'
+};
+// Meses en español → número
+var DH_MESES = {ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,
+                JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
+var hallazgosXLS = {};
+
+// Helper: construir mapa col→{mes,est} desde filas 0 y 1 (índice 0-based del sheet)
+function _dhMeta(rows){
+  var f0=rows[0]||[], f1=rows[1]||[], mesAct=0, meta={};
+  for(var c=1;c<f0.length;c++){
+    var v0=String(f0[c]||'').toUpperCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(DH_MESES[v0]) mesAct=DH_MESES[v0];
+    if(mesAct>0){
+      var v1=String(f1[c]||'').toUpperCase().trim()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/[\xc0-\xc6ÀÁÂÃÄ]/g,'A')
+        .replace(/[\xc8-\xcbÈÉÊËE]/g,'E')
+        .replace(/[\xcc-\xcfÌÍÎÏ]/g,'I')
+        .replace(/[\xd2-\xd6ÒÓÔÕÖ]/g,'O')
+        .replace(/[\xd9-\xdcÙÚÛÜ]/g,'U')
+        .replace(/Ñ/g,'N');
+      var est=DH_COL_MAP[v1];
+      if(est) meta[c]={mes:mesAct,est:est};
+    }
+  }
+  return meta;
+}
+
+function odLeerHojaDetalleHallazgos(wb){
+  var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);
+  if(!hoja){console.log('DH: hoja no encontrada');return{};}
+  var rows=XLSX.utils.sheet_to_json(hoja.ws,{header:1,defval:''});
+  if(rows.length<3)return{};
+  var meta=_dhMeta(rows),res={};
+  for(var r=2;r<rows.length;r++){
+    var area=String(rows[r][0]||'').trim(); if(!area)continue;
+    res[area]=res[area]||{};
+    Object.keys(meta).forEach(function(c){
+      var mt=meta[c],v=parseInt(rows[r][parseInt(c)])||0;
+      if(!res[area][mt.mes])res[area][mt.mes]={};
+      res[area][mt.mes][mt.est]=(res[area][mt.mes][mt.est]||0)+v;
+    });
+  }
+  console.log('DH: '+Object.keys(res).length+' areas leidas');
+  return res;
+}
+
+function odEscribirDetalleHallazgos(wb){
+  var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);
+  if(!hoja){console.log('DH escritura: hoja no encontrada');return;}
+  var ws=hoja.ws;
+  var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  if(rows.length<3)return;
+  var meta=_dhMeta(rows);
+
+  // Calcular conteos desde inspecciones en memoria
+  // Para cada area+mes, contar por tipo de hallazgo
+  var conteos={};
+  (inspecciones||[]).forEach(function(insp){
+    if(!insp.ejecutado||!insp.hallazgos||!insp.hallazgos.length)return;
+    var area=(insp.area||'').trim(); if(!area)return;
+    if(!conteos[area])conteos[area]={};
+    if(!conteos[area][insp.mes])conteos[area][insp.mes]={
+      NO_ENCONTRADO:0,NO_ESCANEADO:0,OBSOLETO:0,VENCIDO:0,VERSION_INCORRECTA:0
+    };
+    insp.hallazgos.forEach(function(h){
+      var e=(h.estado||'').toUpperCase();
+      if(conteos[area][insp.mes][e]!==undefined)conteos[area][insp.mes][e]++;
+    });
+  });
+
+  // Escribir en las celdas de la hoja
+  var maxRow=rows.length, maxCol=(rows[0]||[]).length;
+  for(var r=2;r<rows.length;r++){
+    var area=String(rows[r][0]||'').trim(); if(!area)continue;
+    // Buscar area con coincidencia case-insensitive
+    var aKey=null;
+    Object.keys(conteos).forEach(function(k){
+      if(k.toLowerCase()===area.toLowerCase())aKey=k;
+    });
+    Object.keys(meta).forEach(function(c){
+      var mt=meta[c];
+      var v=aKey&&conteos[aKey]&&conteos[aKey][mt.mes]?conteos[aKey][mt.mes][mt.est]||0:0;
+      var addr=XLSX.utils.encode_cell({r:r,c:parseInt(c)});
+      if(v>0){
+        ws[addr]={v:v,t:'n'};
+      } else {
+        // Solo sobrescribir con 0 si había un valor positivo antes (no ensuciar vacíos)
+        var prev=ws[addr];
+        if(prev&&prev.v>0) ws[addr]={v:0,t:'n'};
+      }
+    });
+  }
+
+  // Actualizar !ref
+  ws['!ref']='A1:'+XLSX.utils.encode_col(maxCol-1)+maxRow;
+  wb.Sheets[hoja.nombre]=ws;
+  console.log('DH: hoja Detalle de Hallazgos actualizada');
+}
+
+// Fusionar datos del Excel con inspecciones en memoria al cargar
+function dhFusionarConInspecciones(hXLS){
+  if(!hXLS||!Object.keys(hXLS).length)return;
+  hallazgosXLS=hXLS;
+  // Para cada area+mes del Excel, si hay conteos pero no hay
+  // inspección detallada en memoria, construir hallazgos sintéticos
+  Object.keys(hXLS).forEach(function(area){
+    Object.keys(hXLS[area]).forEach(function(msStr){
+      var mes=parseInt(msStr),tipos=hXLS[area][msStr];
+      var totalXLS=Object.keys(tipos).reduce(function(s,t){return s+(tipos[t]||0);},0);
+      if(!totalXLS)return;
+      var inspMem=(inspecciones||[]).find(function(x){
+        return x.area===area&&x.mes===mes&&x.ejecutado;
+      });
+      if(inspMem&&inspMem.hallazgos&&inspMem.hallazgos.length>0){
+        // Ya tiene detalle — solo actualizar el total si el Excel tiene más
+        if(totalXLS>inspMem.totalHallazgosExcel)inspMem.totalHallazgosExcel=totalXLS;
+        return;
+      }
+      // Construir hallazgos sintéticos desde los conteos del Excel
+      var nuevoHall=[];
+      Object.keys(tipos).forEach(function(est){
+        var cnt=tipos[est]||0;
+        for(var i=0;i<cnt;i++){
+          nuevoHall.push({
+            descripcion:est.replace(/_/g,' '),codigo:'',
+            responsable:'',fecha:'',estado:est,tipo:'Copias Controladas'
+          });
+        }
+      });
+      if(!inspMem){
+        var nueva={
+          id:Date.now()+mes+area.length,area:area,
+          tipo:'Copias Controladas',mes:mes,
+          anio:new Date().getFullYear(),programado:true,ejecutado:true,
+          fechaEjecucion:'',hallazgos:nuevoHall,
+          totalHallazgosExcel:totalXLS,responsable:'',observaciones:''
+        };
+        if(!inspecciones)inspecciones=[];
+        inspecciones.push(nueva);
+      } else {
+        inspMem.hallazgos=nuevoHall;
+        inspMem.totalHallazgosExcel=Math.max(inspMem.totalHallazgosExcel||0,totalXLS);
+      }
+    });
+  });
+  console.log('DH: fusionados '+Object.keys(hXLS).length+' areas desde Excel');
+}
 async function odLeerHojaInspeccionesBuf(buf, wb){
   var hoja=odBuscarHoja(wb,['Programa_Inspeccion_Procaps','Programa Inspeccion','Programa_Inspección','ProgramaInspeccion','Inspecciones_Programa']);
   if(!hoja){console.log('OD: hoja Programa_Inspeccion_Procaps no encontrada');return null;}
@@ -15307,7 +15433,11 @@ function odEscribirInspeccionesEnExcel(wb){
     if(insp.tipo!=='Copias Controladas') return;
     var key=insp.area+'||'+insp.mes;
     if(!agrupado[key]) agrupado[key]={ejecutado:false,borrado:false,totalH:0,hallazgos:[],mes:insp.mes,area:insp.area,fechaEjec:insp.fechaEjecucion||''};
-    var nH=insp.totalHallazgosExcel>0?insp.totalHallazgosExcel:(insp.hallazgos||[]).length;
+    // Contar hallazgos: usar totalHallazgosExcel si > 0, sino contar el array.
+    // El array puede contener tanto hallazgos (estados != OK) como noEscaneados.
+    var _hArr=(insp.hallazgos||[]);
+    var _hCount=_hArr.filter(function(h){return h.estado!=='OK';}).length;
+    var nH=insp.totalHallazgosExcel>0?insp.totalHallazgosExcel:_hCount;
     agrupado[key].totalH=Math.max(agrupado[key].totalH,nH);
     // Solo marcar borrado si el usuario explícitamente borró la ejecución
     // (no para inspecciones cargadas del Excel que simplemente no están ejecutadas)
@@ -15808,6 +15938,9 @@ async function odCargarListado(){
         } else { console.warn('OD: no se encontró '+OD_ARCHIVOS.inspecciones); }
       }catch(eInsp0){console.warn('OD: error leyendo Inspecciones.xlsx:',eInsp0);}
     }
+    // Leer hoja Detalle de Hallazgos si existe
+    var _dhXLS={};
+    if(wbInsp){try{_dhXLS=odLeerHojaDetalleHallazgos(wbInsp)||{};}catch(_eH){console.warn('DH leer:',_eH);}}
     var resultInsp=await odLeerHojaInspeccionesBuf(bufInsp, wbInsp);
     if(resultInsp!==null){
       programaInsp2026=resultInsp.programa;
@@ -15830,6 +15963,8 @@ async function odCargarListado(){
         }
         return ie;
       });
+      // Fusionar datos de la hoja Detalle de Hallazgos con las inspecciones en memoria
+      if(Object.keys(_dhXLS).length)dhFusionarConInspecciones(_dhXLS);
       saveArr('inspProg',programaInsp2026);
       saveArr('insp',inspecciones);
       console.log('OD: programa inspecciones cargado — '+programaInsp2026.length+' entradas, '+inspecciones.length+' inspecciones');
@@ -16491,6 +16626,8 @@ async function odGuardarListado(silencioso){
         var inspData2=await odLeerArchivo(OD_ARCHIVOS.inspecciones);
         var wbInsp2=inspData2?XLSX.read(inspData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
         odEscribirInspeccionesEnExcel(wbInsp2);
+        // Escribir también la hoja Detalle de Hallazgos
+        try{odEscribirDetalleHallazgos(wbInsp2);}catch(_eDH){console.warn('DH write:',_eDH);}
         if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbInsp2,_AUDIT_MODULOS_INSP);
         await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
       }catch(eInsp){console.warn('Error guardando Inspecciones:',eInsp);}
@@ -16516,6 +16653,8 @@ async function odGuardarListado(silencioso){
       if(wb.Sheets[nombreHojaCop]){wb.Sheets[nombreHojaCop]=wsCop;}
       else{XLSX.utils.book_append_sheet(wb,wsCop,nombreHojaCop);}
       odEscribirInspeccionesEnExcel(wb);
+      // Escribir también la hoja Detalle de Hallazgos
+      try{odEscribirDetalleHallazgos(wb);}catch(_eDH2){console.warn('DH write2:',_eDH2);}
       odEscribirActasEnExcel(wb);
       try{odEscribirCodigosDocNuevos(wb);}catch(eCN){console.warn('CDN:',eCN);}
       try{if(solicitudes&&solicitudes.length)rbEscribirHoja(wb);}catch(eSolG){console.warn('rbEscribirHoja:',eSolG);}
@@ -17559,23 +17698,9 @@ function fev_generarCorreo(){
     +'Cordialmente,\n'
     +((cfg&&cfg.org)?cfg.org:'Sofgen DocControl');
 
-  // Buscar el documento para obtener sus datos y calcular CC
-  var _fevDoc=docs.find(function(x){return x.codigoActual.toUpperCase()===(codigo||'').toUpperCase();});
-  var _fevCC=[];
-  if(_fevDoc){
-    _fevCC=docGetCCCorreos(_fevDoc.codigoActual,_fevDoc.docGxP,_fevDoc.mbr,_fevDoc.tipoDocumento,_fevDoc.codigoAntiguo||'');
-  } else {
-    // Si no hay doc cargado, evaluar solo el código
-    _fevCC=docGetCCCorreos(codigo,'','','','');
-  }
-  // Abrir mailto con CC si corresponde
-  var _fevMailto='mailto:';
-  var _fevParams=[];
-  if(_fevCC.length) _fevParams.push('cc='+encodeURIComponent(_fevCC.join(';')));
-  _fevParams.push('subject='+encodeURIComponent(asunto));
-  _fevParams.push('body='+encodeURIComponent(cuerpo));
-  if(_fevParams.length) _fevMailto+='?'+_fevParams.join('&');
-  window.open(_fevMailto,'_blank');
+  // Abrir mailto (adjunta el correo — el PDF se debe copiar manualmente)
+  var mailtoUrl='mailto:?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  window.open(mailtoUrl,'_blank');
 
   // Mostrar instrucciones para adjuntar el PDF
   var instrEl=document.getElementById('fev-correo-instruc');
@@ -21807,7 +21932,9 @@ function ecc_generarInformeGlobal(){
   });
   inspGlob.ejecutado=true;
   inspGlob.hallazgos=todosHallazgos;
-  inspGlob.totalHallazgosExcel=todosHallazgos.length;
+  // totalHallazgosExcel = suma de hallazgos con estado != OK + copias no encontradas
+  // (totalHallazgos ya incluye hallazgos de porSub, totalNoEncontrados los noEscaneados)
+  inspGlob.totalHallazgosExcel=totalHallazgos+totalNoEncontrados;
   inspGlob.fechaEjecucion=fechaGen;
   // También registrar para "Etiquetas Libros y Bitácoras" del mismo mes/área
   var inspGlobLB=inspecciones.find(function(x){
@@ -22347,7 +22474,6 @@ function nfBuscarDoc(cod){
   var TIPOS = {
     'SOP-':'Procedimiento','INST-':'Instructivo','F-':'Formato','DA-':'Documento Asociado',
     'GUI-':'Guía','POL-':'Politica','PLN-':'Plan','PRO-':'Protocolo','MA-':'Manual',
-    'PRG-':'Programa','MAN-':'Manual','DP-':'Descripcion De Procesos','CR-':'Cronograma',
     'NI-':'Norma_Interna','LM-':'Listado','MP-':'Mapa De Procesos','SUB-':'Subprocesos',
     'CAR-':'Caracterización De Procesos','DM-':'Descripción De Macroproceso',
     'REG-':'Reglamento','PLA-':'Planos','VDT-':'Videos Tutoriales',
