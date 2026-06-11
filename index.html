@@ -1000,7 +1000,7 @@ tbody tr:last-child td{border-bottom:none}
       <div id="usr-excel-notice" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:11px;color:#92400e">
         ⚠️ <strong>Usuarios gestionados desde Excel.</strong> Los cambios realizados aquí quedan guardados en este PC. Para que sean visibles desde otros equipos, edita la hoja <strong>Usuarios_Contraseña</strong> del archivo LM-0019.xlsx directamente en la carpeta de red.
       </div><button class="btn sm" onclick="limpiarModalUsr();openMo('mo-usr')">+ Nuevo</button></div>
-      <div class="tw"><table><thead><tr><th>Nombre</th><th>Usuario (login)</th><th>Email</th><th>Rol</th><th>Empresa</th><th>Contraseña</th><th id="usr-th-pass-ver" style="display:none">Contraseña (texto)</th><th>Estado</th><th></th></tr></thead><tbody id="usr-tb"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th>Nombre</th><th>Usuario (login)</th><th>Email</th><th>Rol</th><th>Empresa</th><th>Contraseña</th><th>Estado</th><th></th></tr></thead><tbody id="usr-tb"></tbody></table></div>
     </div>
   </div>
 
@@ -3305,7 +3305,7 @@ function getSaludo(){var h=new Date().getHours();if(h>=5&&h<12)return'Buenos dia
 // ============================================================
 
 var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Programa de Inspecciones Rutinarias',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento F-SOP-0001-5'};
-var PR={dash:renderDash,kpi:function(){renderKPI();},docs:renderDocs,venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:function(){window._usrShowPass=false;renderUsrs();},notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
+var PR={dash:renderDash,kpi:function(){renderKPI();},docs:renderDocs,venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:renderUsrs,notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
 
 var _navPgNodes=null,_navNiNodes=null;
 function _navGetNodes(){if(!_navPgNodes)_navPgNodes=Array.from(document.querySelectorAll('.pg'));if(!_navNiNodes)_navNiNodes=Array.from(document.querySelectorAll('.ni'));}
@@ -5671,19 +5671,36 @@ var CC_PROC=[
   'omadrid@sofgenpharma.com','lfsanchez@sofgenpharma.com','vsoto@sofgenpharma.com'
 ];
 
-function docGetCCCorreos(cod, gxp, mbr, tipo){
+function docGetCCCorreos(cod, gxp, mbr, tipo, codAntiguo){
   var cc=[];
   // GxP
   if(gxp==='X'||gxp==='X - GxP') CC_GXP.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
   // MBR
   if(mbr==='X') CC_MBR.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
-  // SUB-, DP-, NOT. PROCESOS, CONTROL SOX
-  var codUpper=(cod||'').toUpperCase();
-  var tipoUpper=(tipo||'').toUpperCase();
-  var esProc=codUpper.startsWith('SUB-')||codUpper.startsWith('DP-')
-    ||tipoUpper.indexOf('NOT')>=0&&tipoUpper.indexOf('PROCESO')>=0
-    ||tipoUpper.indexOf('SOX')>=0||tipoUpper.indexOf('CONTROL SOX')>=0;
-  if(esProc) CC_PROC.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
+
+  // SUB- o DP-: verificar en el código actual
+  var codUpper = (cod||'').toUpperCase();
+  var codAntUpper = (codAntiguo||'').toUpperCase();
+
+  var esSUBDP = codUpper.startsWith('SUB-') || codUpper.startsWith('DP-');
+
+  // "CONTROL SOX" o "NOT. PROCESOS" / "NOT PROCESOS":
+  // buscar en código anterior (codigoAntiguo) que puede decir "CONTROL SOX" o "NOT. PROCESOS"
+  var esControlSOX = codAntUpper.indexOf('CONTROL SOX') >= 0
+    || codAntUpper.indexOf('CONTROL_SOX') >= 0;
+
+  var esNotProcesos = (codAntUpper.indexOf('NOT') >= 0 && codAntUpper.indexOf('PROCESO') >= 0)
+    || codAntUpper.indexOf('NOT. PROCESO') >= 0
+    || codAntUpper.indexOf('NOT.PROCESO') >= 0;
+
+  // También verificar en el tipo (por compatibilidad con registros anteriores)
+  var tipoUpper = (tipo||'').toUpperCase();
+  if(!esControlSOX) esControlSOX = tipoUpper.indexOf('CONTROL SOX') >= 0;
+  if(!esNotProcesos) esNotProcesos = (tipoUpper.indexOf('NOT') >= 0 && tipoUpper.indexOf('PROCESO') >= 0);
+
+  if(esSUBDP || esControlSOX || esNotProcesos){
+    CC_PROC.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
+  }
   return cc;
 }
 
@@ -5701,6 +5718,14 @@ function enviarCorreoDocumento(){
              (document.getElementById('d-fvenc')||{}).value||'';
 
   if(!cod){toast('Completa el código del documento primero','er');return;}
+
+  // Buscar codigoAntiguo del documento actual
+  var codAnt='';
+  var _docActual=docs.find(function(x){return x.codigoActual===cod;});
+  if(_docActual) codAnt=_docActual.codigoAntiguo||'';
+  // También del campo del formulario si está visible
+  var _codAntInput=document.getElementById('d-codant');
+  if(_codAntInput&&_codAntInput.value&&_codAntInput.value!=='No Aplica') codAnt=_codAntInput.value;
 
   var org=(cfg&&cfg.org)||'Sofgen Pharma';
   var hora=new Date().getHours();
@@ -5722,7 +5747,7 @@ function enviarCorreoDocumento(){
   }
 
   var para=correo?[correo]:[];
-  var cc=docGetCCCorreos(cod, gxp, mbr, tipo);
+  var cc=docGetCCCorreos(cod, gxp, mbr, tipo, codAnt);
   var asunto='['+org+'] Notificación documento: '+cod+(ver?' v'+ver:'');
 
   var cuerpo=saludo+',\n\n';
@@ -6232,30 +6257,6 @@ function renderUsrs(){
   if(!tb)return;
   var esAdmin=currentUser&&currentUser.rol==='Administrador';
   var hoy=new Date();
-
-  // Mostrar/ocultar encabezado columna contraseña visible
-  var thPassVer=document.getElementById('usr-th-pass-ver');
-  if(thPassVer) thPassVer.style.display=esAdmin?'':'none';
-  // Botón global toggle contraseña
-  var btnTogPass=document.getElementById('usr-btn-toggle-pass');
-  if(!btnTogPass&&esAdmin){
-    var tblWrap=tb.closest('.tw')||tb.closest('div');
-    if(tblWrap){
-      var btnP=document.createElement('button');
-      btnP.id='usr-btn-toggle-pass';
-      btnP.className='btn gh sm';
-      btnP.style.cssText='font-size:11px;margin-bottom:8px';
-      btnP.textContent='👁 Mostrar contraseñas';
-      btnP.onclick=function(){
-        window._usrShowPass=!window._usrShowPass;
-        this.textContent=window._usrShowPass?'🙈 Ocultar contraseñas':'👁 Mostrar contraseñas';
-        renderUsrs();
-      };
-      var parent=tb.parentNode;
-      if(parent&&parent.parentNode) parent.parentNode.insertBefore(btnP,parent);
-    }
-  }
-
   tb.innerHTML=usuarios.map(function(u){
     var loginText=u.login||u.email||'—';
     var diasPass=999;
@@ -6274,17 +6275,6 @@ function renderUsrs(){
     var btnTog=esAdmin?'<button class="btn gh sm" onclick="togUsr('+u.id+')">'+(u.activo&&!u.bloqueado?'Desactivar':'Activar')+'</button>':'';
     var btnDesbloquear=(esAdmin&&u.bloqueado)?'<button class="btn sm" style="background:#006860;color:#fff;font-size:10px" onclick="desbloquearUsr('+u.id+')">🔓 Desbloquear</button>':'';
     var btnDel=esAdmin?'<button class="btn dn sm" onclick="delUsr('+u.id+')">✕</button>':'';
-    // Celda contraseña en texto (solo Administrador, toggle)
-    var passTdContent='';
-    if(esAdmin){
-      var passVal=u.password||'';
-      if(window._usrShowPass&&passVal){
-        passTdContent='<td style="font-family:monospace;font-size:11px;color:var(--tx);background:#fffde7;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+passVal+'">'+passVal+'</td>';
-      } else {
-        passTdContent='<td style="color:var(--tx3);font-size:11px">'+(passVal?'••••••••':'—')+'</td>';
-      }
-    }
-    var colspan=esAdmin?'9':'8';
     return '<tr>'
       +'<td>'+u.nombre+mods+'</td>'
       +'<td style="font-family:monospace;color:var(--T3);font-size:12px">'+loginText+'</td>'
@@ -6292,7 +6282,6 @@ function renderUsrs(){
       +'<td>'+rolBadge(u.rol)+'</td>'
       +'<td style="font-size:11px">'+(u.empresa||u.area||'-')+'</td>'
       +'<td>'+passInfo+'</td>'
-      +passTdContent
       +'<td>'+estadoBadge+'</td>'
       +'<td><div style="display:flex;gap:3px;flex-wrap:wrap">'+btnEditar+btnTog+btnDesbloquear+btnDel+'</div></td>'
       +'</tr>';
@@ -9313,8 +9302,17 @@ function moNotificar(){
 
   // Reemplazar el cuerpo anterior que tenía "Atentamente" al final
   var correo=d.correoElectronico||LC.areaACorreo[d.areaGeneradora]||'';
-  window.location.href='mailto:'+encodeURIComponent(correo)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
-  toast('Abriendo correo...','if');
+  // CC automático según código y código anterior
+  var _moCC=docGetCCCorreos(d.codigoActual, d.docGxP, d.mbr, d.tipoDocumento, d.codigoAntiguo||'');
+  var _moMailto='mailto:'+encodeURIComponent(correo);
+  var _moParams=[];
+  if(_moCC.length) _moParams.push('cc='+encodeURIComponent(_moCC.join(';')));
+  _moParams.push('subject='+encodeURIComponent(asunto));
+  _moParams.push('body='+encodeURIComponent(cuerpo));
+  if(_moParams.length) _moMailto+='?'+_moParams.join('&');
+  window.location.href=_moMailto;
+  var _moCCInfo=_moCC.length?' | CC: '+_moCC.join(', '):'';
+  toast('Abriendo correo...'+_moCCInfo,'if');
 }
 
 
@@ -14155,31 +14153,10 @@ function aplicarPermisos(user){
   var niUsrs = document.querySelector('.ni[data-p="usrs"]');
   if(niUsrs) niUsrs.style.display = esAdmin ? '' : 'none';
 
-  // Ocultar botones de acceso rápido del banner de inicio
-  // Los botones que tienen onclick con nav('X',...) se filtran igual que el menú
-  document.querySelectorAll('[onclick*="nav("]').forEach(function(el){
-    if(el.classList.contains('ni')) return; // ya procesados
-    var m=(el.getAttribute('onclick')||'').match(/nav\('([^']+)'/);
-    if(!m) return;
-    var p=m[1];
-    el.style.display=esAdmin?'':(modulosPermitidos.indexOf(p)>=0?'':'none');
-  });
-
   // Mostrar/ocultar ítems del menú lateral
   document.querySelectorAll('.ni[data-p]').forEach(function(el){
     var p = el.getAttribute('data-p');
     el.style.display = esAdmin ? '' : (modulosPermitidos.indexOf(p)>=0 ? '' : 'none');
-  });
-
-  // Mostrar/ocultar tarjetas del panel de inicio (home-mod-card)
-  document.querySelectorAll('.home-mod-card[onclick]').forEach(function(card){
-    var onclick = card.getAttribute('onclick') || '';
-    // Extraer el data-p del nav() en el onclick: nav('docs',...)
-    var m = onclick.match(/nav\('([^']+)'/);
-    if(m){
-      var p = m[1];
-      card.style.display = esAdmin ? '' : (modulosPermitidos.indexOf(p)>=0 ? '' : 'none');
-    }
   });
 
   // Botones eliminar: solo Administrador
@@ -17582,9 +17559,23 @@ function fev_generarCorreo(){
     +'Cordialmente,\n'
     +((cfg&&cfg.org)?cfg.org:'Sofgen DocControl');
 
-  // Abrir mailto (adjunta el correo — el PDF se debe copiar manualmente)
-  var mailtoUrl='mailto:?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
-  window.open(mailtoUrl,'_blank');
+  // Buscar el documento para obtener sus datos y calcular CC
+  var _fevDoc=docs.find(function(x){return x.codigoActual.toUpperCase()===(codigo||'').toUpperCase();});
+  var _fevCC=[];
+  if(_fevDoc){
+    _fevCC=docGetCCCorreos(_fevDoc.codigoActual,_fevDoc.docGxP,_fevDoc.mbr,_fevDoc.tipoDocumento,_fevDoc.codigoAntiguo||'');
+  } else {
+    // Si no hay doc cargado, evaluar solo el código
+    _fevCC=docGetCCCorreos(codigo,'','','','');
+  }
+  // Abrir mailto con CC si corresponde
+  var _fevMailto='mailto:';
+  var _fevParams=[];
+  if(_fevCC.length) _fevParams.push('cc='+encodeURIComponent(_fevCC.join(';')));
+  _fevParams.push('subject='+encodeURIComponent(asunto));
+  _fevParams.push('body='+encodeURIComponent(cuerpo));
+  if(_fevParams.length) _fevMailto+='?'+_fevParams.join('&');
+  window.open(_fevMailto,'_blank');
 
   // Mostrar instrucciones para adjuntar el PDF
   var instrEl=document.getElementById('fev-correo-instruc');
