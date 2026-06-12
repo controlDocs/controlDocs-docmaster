@@ -724,7 +724,7 @@ tbody tr:last-child td{border-bottom:none}
           <div id="kpi-svg-semestre"></div>
         </div>
         <div class="card" style="padding:14px;overflow-x:auto;margin-bottom:12px">
-          <div style="font-size:11px;font-weight:600;color:var(--tx);margin-bottom:8px">TABLA DETALLE</div>
+          <div style="font-size:11px;font-weight:600;color:var(--tx);margin-bottom:8px">TABLA DETALLE — clic en celda para ver hallazgos</div>
           <div id="kpi-hall-tabla"></div>
         </div>
         <div id="kpi-hall-detalle" style="display:none;margin-top:10px">
@@ -2908,8 +2908,7 @@ function saveDocs(arr){
     });
     lsSet('sg_d'+i,JSON.stringify(sl));
   }
-  // NO disparar guardado automático si acabamos de cargar el Excel
-  // (_odRecienCargado evita loop: cargar→recalc→saveDocs→guardar→sobreescribir)
+  // No disparar guardado si acabamos de cargar el Excel (evita loop)
   if(window._odRecienCargado) return;
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
@@ -15355,13 +15354,114 @@ var OD_MESES={
 };
 
 
-var DH_COL_MAP={'CARPETA NO ENCONTRADA':'NO_ENCONTRADO','DOCUMENTO NO ENCONTRADO':'NO_ESCANEADO','DOCUMENTO OBSOLETA':'OBSOLETO','DOCUMENTO OBSOLETO':'OBSOLETO','DOCUMENTO VENCIDO':'VENCIDO','VERSIONES INCORRECTA':'VERSION_INCORRECTA','VERSION INCORRECTA':'VERSION_INCORRECTA'};
-var DH_MESES_NORM={ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
+// ═══ Detalle de Hallazgos — variables globales ══════════════════
+var DH_COL_MAP={
+  'CARPETA NO ENCONTRADA':'NO_ENCONTRADO','DOCUMENTO NO ENCONTRADO':'NO_ESCANEADO',
+  'DOCUMENTO OBSOLETA':'OBSOLETO','DOCUMENTO OBSOLETO':'OBSOLETO',
+  'DOCUMENTO VENCIDO':'VENCIDO','VERSIONES INCORRECTA':'VERSION_INCORRECTA',
+  'VERSION INCORRECTA':'VERSION_INCORRECTA'
+};
+var DH_MESES_NORM={ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,
+                   JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
+// hallazgosXLS: area → mes → estado → count (leído del Excel)
 var hallazgosXLS={};
-function _dhMeta(rows){var f0=rows[0]||[],f1=rows[1]||[],mes=0,meta={};for(var c=1;c<f0.length;c++){var v0=String(f0[c]||'').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(DH_MESES_NORM[v0])mes=DH_MESES_NORM[v0];if(mes>0){var v1=String(f1[c]||'').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');var est=DH_COL_MAP[v1];if(est)meta[c]={mes:mes,est:est};}}return meta;}
-function odLeerHojaDetalleHallazgos(wb){var h=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);if(!h)return{};var rows=XLSX.utils.sheet_to_json(h.ws,{header:1,defval:''});if(rows.length<3)return{};var meta=_dhMeta(rows),res={};for(var r=2;r<rows.length;r++){var area=String(rows[r][0]||'').trim();if(!area)continue;res[area]=res[area]||{};Object.keys(meta).forEach(function(c){var mt=meta[c],v=parseInt(rows[r][parseInt(c)])||0;if(!res[area][mt.mes])res[area][mt.mes]={};res[area][mt.mes][mt.est]=(res[area][mt.mes][mt.est]||0)+v;});}return res;}
-function odEscribirDetalleHallazgos(wb){var h=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);if(!h)return;var ws=h.ws;var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});if(rows.length<3)return;var meta=_dhMeta(rows);var cnt={};(inspecciones||[]).forEach(function(insp){if(!insp.ejecutado||!insp.hallazgos||!insp.hallazgos.length)return;var area=(insp.area||'').trim();if(!area)return;if(!cnt[area])cnt[area]={};if(!cnt[area][insp.mes])cnt[area][insp.mes]={NO_ENCONTRADO:0,NO_ESCANEADO:0,OBSOLETO:0,VENCIDO:0,VERSION_INCORRECTA:0};insp.hallazgos.forEach(function(hh){var e=(hh.estado||'').toUpperCase();if(cnt[area][insp.mes][e]!==undefined)cnt[area][insp.mes][e]++;});});for(var r=2;r<rows.length;r++){var area=String(rows[r][0]||'').trim();if(!area)continue;var ak=null;Object.keys(cnt).forEach(function(k){if(k.toLowerCase()===area.toLowerCase())ak=k;});Object.keys(meta).forEach(function(c){var mt=meta[c],v=ak&&cnt[ak]&&cnt[ak][mt.mes]?cnt[ak][mt.mes][mt.est]||0:0;var addr=XLSX.utils.encode_cell({r:r,c:parseInt(c)});if(v>0)ws[addr]={v:v,t:'n'};else if(ws[addr]&&ws[addr].v>0)ws[addr]={v:0,t:'n'};});}ws['!ref']='A1:'+XLSX.utils.encode_col((rows[0]||[]).length-1)+rows.length;wb.Sheets[h.nombre]=ws;}
-function dhFusionarConInspecciones(hXLS){if(!hXLS||!Object.keys(hXLS).length)return;hallazgosXLS=hXLS;Object.keys(hXLS).forEach(function(area){Object.keys(hXLS[area]).forEach(function(msStr){var mes=parseInt(msStr),tipos=hXLS[area][msStr];var tot=Object.keys(tipos).reduce(function(s,t){return s+(tipos[t]||0);},0);if(!tot)return;var im=(inspecciones||[]).find(function(x){return x.area===area&&x.mes===mes&&x.ejecutado;});if(im&&im.hallazgos&&im.hallazgos.length>0){if(tot>im.totalHallazgosExcel)im.totalHallazgosExcel=tot;return;}var nH=[];Object.keys(tipos).forEach(function(e){for(var i=0;i<(tipos[e]||0);i++)nH.push({descripcion:e.replace(/_/g,' '),codigo:'',responsable:'',fecha:'',estado:e,tipo:'Copias Controladas'});});if(!im){var n={id:Date.now()+mes+area.length,area:area,tipo:'Copias Controladas',mes:mes,anio:new Date().getFullYear(),programado:true,ejecutado:true,fechaEjecucion:'',hallazgos:nH,totalHallazgosExcel:tot,responsable:'',observaciones:''};if(!inspecciones)inspecciones=[];inspecciones.push(n);}else{im.hallazgos=nH;im.totalHallazgosExcel=Math.max(im.totalHallazgosExcel||0,tot);}});});}
+
+function _dhMeta(rows){
+  var f0=rows[0]||[],f1=rows[1]||[],mes=0,meta={};
+  for(var c=1;c<f0.length;c++){
+    var v0=String(f0[c]||'').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(DH_MESES_NORM[v0])mes=DH_MESES_NORM[v0];
+    if(mes>0){
+      var v1=String(f1[c]||'').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      var est=DH_COL_MAP[v1];
+      if(est)meta[c]={mes:mes,est:est};
+    }
+  }
+  return meta;
+}
+
+function odLeerHojaDetalleHallazgos(wb){
+  var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);
+  if(!hoja)return{};
+  var rows=XLSX.utils.sheet_to_json(hoja.ws,{header:1,defval:''});
+  if(rows.length<3)return{};
+  var meta=_dhMeta(rows),res={};
+  for(var r=2;r<rows.length;r++){
+    var area=String(rows[r][0]||'').trim();if(!area)continue;
+    res[area]=res[area]||{};
+    Object.keys(meta).forEach(function(c){
+      var mt=meta[c],v=parseInt(rows[r][parseInt(c)])||0;
+      if(!res[area][mt.mes])res[area][mt.mes]={};
+      res[area][mt.mes][mt.est]=(res[area][mt.mes][mt.est]||0)+v;
+    });
+  }
+  console.log('[DH] leidas '+Object.keys(res).length+' areas de Detalle de Hallazgos');
+  return res;
+}
+
+function odEscribirDetalleHallazgos(wb){
+  var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);
+  if(!hoja)return;
+  var ws=hoja.ws;
+  var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  if(rows.length<3)return;
+  var meta=_dhMeta(rows);
+  var cnt={};
+  (inspecciones||[]).forEach(function(insp){
+    if(!insp.ejecutado||!insp.hallazgos||!insp.hallazgos.length)return;
+    var area=(insp.area||'').trim();if(!area)return;
+    if(!cnt[area])cnt[area]={};
+    if(!cnt[area][insp.mes])cnt[area][insp.mes]={NO_ENCONTRADO:0,NO_ESCANEADO:0,OBSOLETO:0,VENCIDO:0,VERSION_INCORRECTA:0};
+    insp.hallazgos.forEach(function(h){
+      var e=(h.estado||'').toUpperCase();
+      if(cnt[area][insp.mes][e]!==undefined)cnt[area][insp.mes][e]++;
+    });
+  });
+  for(var r=2;r<rows.length;r++){
+    var area=String(rows[r][0]||'').trim();if(!area)continue;
+    var ak=null;
+    Object.keys(cnt).forEach(function(k){if(k.toLowerCase()===area.toLowerCase())ak=k;});
+    Object.keys(meta).forEach(function(c){
+      var mt=meta[c],v=ak&&cnt[ak]&&cnt[ak][mt.mes]?cnt[ak][mt.mes][mt.est]||0:0;
+      var addr=XLSX.utils.encode_cell({r:r,c:parseInt(c)});
+      if(v>0)ws[addr]={v:v,t:'n'};
+      else if(ws[addr]&&ws[addr].v>0)ws[addr]={v:0,t:'n'};
+    });
+  }
+  ws['!ref']='A1:'+XLSX.utils.encode_col((rows[0]||[]).length-1)+rows.length;
+  wb.Sheets[hoja.nombre]=ws;
+}
+
+function dhFusionarConInspecciones(hXLS){
+  if(!hXLS||!Object.keys(hXLS).length)return;
+  hallazgosXLS=hXLS;
+  Object.keys(hXLS).forEach(function(area){
+    Object.keys(hXLS[area]).forEach(function(msStr){
+      var mes=parseInt(msStr),tipos=hXLS[area][msStr];
+      var tot=Object.keys(tipos).reduce(function(s,t){return s+(tipos[t]||0);},0);
+      if(!tot)return;
+      var im=(inspecciones||[]).find(function(x){return x.area===area&&x.mes===mes&&x.ejecutado;});
+      if(im&&im.hallazgos&&im.hallazgos.length>0){
+        if(tot>im.totalHallazgosExcel)im.totalHallazgosExcel=tot;return;
+      }
+      var nH=[];
+      Object.keys(tipos).forEach(function(e){
+        for(var i=0;i<(tipos[e]||0);i++)
+          nH.push({descripcion:e.replace(/_/g,' '),codigo:'',responsable:'',fecha:'',estado:e,tipo:'Copias Controladas'});
+      });
+      if(!im){
+        var n={id:Date.now()+mes+area.length,area:area,tipo:'Copias Controladas',
+          mes:mes,anio:new Date().getFullYear(),programado:true,ejecutado:true,
+          fechaEjecucion:'',hallazgos:nH,totalHallazgosExcel:tot,responsable:'',observaciones:''};
+        if(!inspecciones)inspecciones=[];inspecciones.push(n);
+      }else{im.hallazgos=nH;im.totalHallazgosExcel=Math.max(im.totalHallazgosExcel||0,tot);}
+    });
+  });
+  // ── CLAVE: refrescar KPI inmediatamente con los datos del Excel ──
+  if(typeof renderKpiHallazgos==='function'){
+    try{renderKpiHallazgos();}catch(e){console.warn('[DH] renderKpiHallazgos:',e);}
+  }
+}
 async function odLeerHojaInspeccionesBuf(buf, wb){
   var hoja=odBuscarHoja(wb,['Programa_Inspeccion_Procaps','Programa Inspeccion','Programa_Inspección','ProgramaInspeccion','Inspecciones_Programa']);
   if(!hoja){console.log('OD: hoja Programa_Inspeccion_Procaps no encontrada');return null;}
@@ -16145,8 +16245,12 @@ async function odCargarListado(){
         } else { console.warn('OD: no se encontró '+OD_ARCHIVOS.inspecciones); }
       }catch(eInsp0){console.warn('OD: error leyendo Inspecciones.xlsx:',eInsp0);}
     }
+    // Leer hoja Detalle de Hallazgos del Excel de Inspecciones
     var _dhXLS={};
-    if(wbInsp){try{_dhXLS=odLeerHojaDetalleHallazgos(wbInsp)||{};}catch(_eH){}}
+    if(wbInsp){
+      try{_dhXLS=odLeerHojaDetalleHallazgos(wbInsp)||{};
+      }catch(_eH){console.warn('[DH] Error al leer:',_eH);}
+    }
     var resultInsp=await odLeerHojaInspeccionesBuf(bufInsp, wbInsp);
     if(resultInsp!==null){
       programaInsp2026=resultInsp.programa;
@@ -16169,7 +16273,14 @@ async function odCargarListado(){
         }
         return ie;
       });
-      if(Object.keys(_dhXLS).length)dhFusionarConInspecciones(_dhXLS);
+      // Fusionar datos del Excel con inspecciones + refrescar KPI
+      if(Object.keys(_dhXLS).length){
+        dhFusionarConInspecciones(_dhXLS);
+      } else {
+        // Aunque no haya DH en el Excel, refrescar KPI con las inspecciones cargadas
+        if(typeof renderKpiHallazgos==='function')
+          setTimeout(function(){try{renderKpiHallazgos();}catch(e){}},200);
+      }
       saveArr('inspProg',programaInsp2026);
       saveArr('insp',inspecciones);
       console.log('OD: programa inspecciones cargado — '+programaInsp2026.length+' entradas, '+inspecciones.length+' inspecciones');
@@ -16362,6 +16473,11 @@ async function odCargarListado(){
     if(typeof renderTablaProg==='function') renderTablaProg();
     if(typeof checkInspAlerts==='function') checkInspAlerts();
     if(typeof renderDashInsp==='function') renderDashInsp();
+    // Refrescar KPI hallazgos siempre (aunque la página no esté activa)
+    // para que hallazgosXLS quede listo cuando el usuario navegue al KPI
+    if(typeof renderKpiHallazgos==='function'){
+      try{renderKpiHallazgos();}catch(_eKpi){}
+    }
     // Refrescar módulo KPI si está activo
     var _pgKpi=document.getElementById('pg-kpi');
     if(_pgKpi&&_pgKpi.classList.contains('act')){
