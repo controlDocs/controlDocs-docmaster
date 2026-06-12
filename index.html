@@ -2908,7 +2908,6 @@ function saveDocs(arr){
     });
     lsSet('sg_d'+i,JSON.stringify(sl));
   }
-  // No disparar guardado si acabamos de cargar el Excel (evita loop)
   if(window._odRecienCargado) return;
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
@@ -15354,7 +15353,9 @@ var OD_MESES={
 };
 
 
-// ═══ Detalle de Hallazgos — variables globales ══════════════════
+// ═══ Detalle de Hallazgos ════════════════════════════════════════
+// LEER: al cargar el Excel de Inspecciones
+// ESCRIBIR: solo al guardar una inspección ejecutada (nunca al abrir)
 var DH_COL_MAP={
   'CARPETA NO ENCONTRADA':'NO_ENCONTRADO','DOCUMENTO NO ENCONTRADO':'NO_ESCANEADO',
   'DOCUMENTO OBSOLETA':'OBSOLETO','DOCUMENTO OBSOLETO':'OBSOLETO',
@@ -15363,7 +15364,6 @@ var DH_COL_MAP={
 };
 var DH_MESES_NORM={ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,
                    JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
-// hallazgosXLS: area → mes → estado → count (leído del Excel)
 var hallazgosXLS={};
 
 function _dhMeta(rows){
@@ -15380,9 +15380,11 @@ function _dhMeta(rows){
   return meta;
 }
 
+// ── LEER hoja Detalle de Hallazgos desde el Excel ─────────────────
+// Llamar solo durante la carga del Excel, nunca al guardar
 function odLeerHojaDetalleHallazgos(wb){
   var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);
-  if(!hoja)return{};
+  if(!hoja){console.log('[DH] hoja no encontrada en el Excel');return{};}
   var rows=XLSX.utils.sheet_to_json(hoja.ws,{header:1,defval:''});
   if(rows.length<3)return{};
   var meta=_dhMeta(rows),res={};
@@ -15395,71 +15397,77 @@ function odLeerHojaDetalleHallazgos(wb){
       res[area][mt.mes][mt.est]=(res[area][mt.mes][mt.est]||0)+v;
     });
   }
-  console.log('[DH] leidas '+Object.keys(res).length+' areas de Detalle de Hallazgos');
+  console.log('[DH] '+Object.keys(res).length+' areas leidas de Detalle de Hallazgos');
   return res;
 }
 
+// ── ESCRIBIR hoja Detalle de Hallazgos ────────────────────────────
+// SOLO llamar cuando el usuario guarda una inspección ejecutada.
+// NUNCA llamar durante la carga inicial o al abrir la app.
+// Usa los conteos de inspecciones en memoria para actualizar las celdas.
 function odEscribirDetalleHallazgos(wb){
+  // Guard: no escribir si estamos en carga inicial
+  if(window._odRecienCargado){
+    console.log('[DH] escritura bloqueada — carga inicial en curso');
+    return;
+  }
   var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);
-  if(!hoja)return;
+  if(!hoja){console.log('[DH] hoja no encontrada para escritura');return;}
   var ws=hoja.ws;
   var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
   if(rows.length<3)return;
   var meta=_dhMeta(rows);
+
+  // Calcular conteos solo desde inspecciones EJECUTADAS en memoria
   var cnt={};
   (inspecciones||[]).forEach(function(insp){
     if(!insp.ejecutado||!insp.hallazgos||!insp.hallazgos.length)return;
     var area=(insp.area||'').trim();if(!area)return;
     if(!cnt[area])cnt[area]={};
-    if(!cnt[area][insp.mes])cnt[area][insp.mes]={NO_ENCONTRADO:0,NO_ESCANEADO:0,OBSOLETO:0,VENCIDO:0,VERSION_INCORRECTA:0};
+    if(!cnt[area][insp.mes])cnt[area][insp.mes]={
+      NO_ENCONTRADO:0,NO_ESCANEADO:0,OBSOLETO:0,VENCIDO:0,VERSION_INCORRECTA:0
+    };
     insp.hallazgos.forEach(function(h){
       var e=(h.estado||'').toUpperCase();
       if(cnt[area][insp.mes][e]!==undefined)cnt[area][insp.mes][e]++;
     });
   });
+
+  // Solo actualizar celdas donde hay inspecciones registradas en la app
+  // Si una celda tiene datos en el Excel pero no tenemos inspección en memoria,
+  // NO la tocamos — respetar lo que ya está en el Excel
+  var actualizadas=0;
   for(var r=2;r<rows.length;r++){
     var area=String(rows[r][0]||'').trim();if(!area)continue;
     var ak=null;
     Object.keys(cnt).forEach(function(k){if(k.toLowerCase()===area.toLowerCase())ak=k;});
+    if(!ak)continue; // No tocar filas donde no tenemos datos registrados
     Object.keys(meta).forEach(function(c){
-      var mt=meta[c],v=ak&&cnt[ak]&&cnt[ak][mt.mes]?cnt[ak][mt.mes][mt.est]||0:0;
+      var mt=meta[c];
+      var v=cnt[ak]&&cnt[ak][mt.mes]?cnt[ak][mt.mes][mt.est]||0:0;
       var addr=XLSX.utils.encode_cell({r:r,c:parseInt(c)});
-      if(v>0)ws[addr]={v:v,t:'n'};
-      else if(ws[addr]&&ws[addr].v>0)ws[addr]={v:0,t:'n'};
+      // Solo escribir si tenemos un valor positivo para este área+mes
+      if(cnt[ak]&&cnt[ak][mt.mes]){
+        ws[addr]={v:v,t:'n'};
+        actualizadas++;
+      }
+      // Si NO tenemos datos para este mes del área, NO tocar la celda
     });
   }
   ws['!ref']='A1:'+XLSX.utils.encode_col((rows[0]||[]).length-1)+rows.length;
   wb.Sheets[hoja.nombre]=ws;
+  console.log('[DH] '+actualizadas+' celdas actualizadas en Detalle de Hallazgos');
 }
 
-function dhFusionarConInspecciones(hXLS){
+// ── Cargar hallazgosXLS desde el Excel (sin tocar inspecciones) ───
+// Solo actualiza hallazgosXLS para el KPI. No modifica inspecciones.
+function dhCargarDesdeExcel(hXLS){
   if(!hXLS||!Object.keys(hXLS).length)return;
   hallazgosXLS=hXLS;
-  Object.keys(hXLS).forEach(function(area){
-    Object.keys(hXLS[area]).forEach(function(msStr){
-      var mes=parseInt(msStr),tipos=hXLS[area][msStr];
-      var tot=Object.keys(tipos).reduce(function(s,t){return s+(tipos[t]||0);},0);
-      if(!tot)return;
-      var im=(inspecciones||[]).find(function(x){return x.area===area&&x.mes===mes&&x.ejecutado;});
-      if(im&&im.hallazgos&&im.hallazgos.length>0){
-        if(tot>im.totalHallazgosExcel)im.totalHallazgosExcel=tot;return;
-      }
-      var nH=[];
-      Object.keys(tipos).forEach(function(e){
-        for(var i=0;i<(tipos[e]||0);i++)
-          nH.push({descripcion:e.replace(/_/g,' '),codigo:'',responsable:'',fecha:'',estado:e,tipo:'Copias Controladas'});
-      });
-      if(!im){
-        var n={id:Date.now()+mes+area.length,area:area,tipo:'Copias Controladas',
-          mes:mes,anio:new Date().getFullYear(),programado:true,ejecutado:true,
-          fechaEjecucion:'',hallazgos:nH,totalHallazgosExcel:tot,responsable:'',observaciones:''};
-        if(!inspecciones)inspecciones=[];inspecciones.push(n);
-      }else{im.hallazgos=nH;im.totalHallazgosExcel=Math.max(im.totalHallazgosExcel||0,tot);}
-    });
-  });
-  // ── CLAVE: refrescar KPI inmediatamente con los datos del Excel ──
+  console.log('[DH] hallazgosXLS cargado: '+Object.keys(hXLS).length+' areas');
+  // Refrescar KPI con los datos del Excel
   if(typeof renderKpiHallazgos==='function'){
-    try{renderKpiHallazgos();}catch(e){console.warn('[DH] renderKpiHallazgos:',e);}
+    try{renderKpiHallazgos();}catch(e){console.warn('[DH] KPI:',e);}
   }
 }
 async function odLeerHojaInspeccionesBuf(buf, wb){
@@ -16245,11 +16253,11 @@ async function odCargarListado(){
         } else { console.warn('OD: no se encontró '+OD_ARCHIVOS.inspecciones); }
       }catch(eInsp0){console.warn('OD: error leyendo Inspecciones.xlsx:',eInsp0);}
     }
-    // Leer hoja Detalle de Hallazgos del Excel de Inspecciones
+    // Leer Detalle de Hallazgos del Excel → hallazgosXLS (solo lectura)
     var _dhXLS={};
     if(wbInsp){
       try{_dhXLS=odLeerHojaDetalleHallazgos(wbInsp)||{};
-      }catch(_eH){console.warn('[DH] Error al leer:',_eH);}
+      }catch(_eH){console.warn('[DH] Error lectura:',_eH);}
     }
     var resultInsp=await odLeerHojaInspeccionesBuf(bufInsp, wbInsp);
     if(resultInsp!==null){
@@ -16273,14 +16281,9 @@ async function odCargarListado(){
         }
         return ie;
       });
-      // Fusionar datos del Excel con inspecciones + refrescar KPI
-      if(Object.keys(_dhXLS).length){
-        dhFusionarConInspecciones(_dhXLS);
-      } else {
-        // Aunque no haya DH en el Excel, refrescar KPI con las inspecciones cargadas
-        if(typeof renderKpiHallazgos==='function')
-          setTimeout(function(){try{renderKpiHallazgos();}catch(e){}},200);
-      }
+      // Cargar hallazgosXLS desde el Excel para el KPI (solo lectura)
+      // No modifica inspecciones — solo actualiza hallazgosXLS
+      dhCargarDesdeExcel(_dhXLS);
       saveArr('inspProg',programaInsp2026);
       saveArr('insp',inspecciones);
       console.log('OD: programa inspecciones cargado — '+programaInsp2026.length+' entradas, '+inspecciones.length+' inspecciones');
@@ -16473,8 +16476,7 @@ async function odCargarListado(){
     if(typeof renderTablaProg==='function') renderTablaProg();
     if(typeof checkInspAlerts==='function') checkInspAlerts();
     if(typeof renderDashInsp==='function') renderDashInsp();
-    // Refrescar KPI hallazgos siempre (aunque la página no esté activa)
-    // para que hallazgosXLS quede listo cuando el usuario navegue al KPI
+    // Refrescar KPI hallazgos (hallazgosXLS ya fue cargado desde el Excel)
     if(typeof renderKpiHallazgos==='function'){
       try{renderKpiHallazgos();}catch(_eKpi){}
     }
