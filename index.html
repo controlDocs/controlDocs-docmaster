@@ -720,7 +720,7 @@ tbody tr:last-child td{border-bottom:none}
           </div>
         </div>
         <div class="card" style="padding:14px;margin-bottom:12px;overflow-x:auto" id="kpi-semestre-card">
-          <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:8px">COMPARATIVO SEMESTRAL <span style="font-size:9px;color:var(--tx3);font-weight:400">(&#8595; verde=mejora, &#8593; rojo=empeora)</span></div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:8px">COMPARATIVO SEMESTRAL <span style="font-size:9px;color:var(--tx3);font-weight:400">(&#8595;verde=mejora &#8593;rojo=empeora)</span></div>
           <div id="kpi-svg-semestre"></div>
         </div>
         <div class="card" style="padding:14px;overflow-x:auto;margin-bottom:12px">
@@ -766,15 +766,7 @@ tbody tr:last-child td{border-bottom:none}
           <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1.5px solid var(--T);border-radius:var(--r);padding:8px 13px"><span style="font-size:15px;color:var(--T)">&#128269;</span><input id="lm-srch-nombre" type="text" placeholder="Buscar por nombre o código..." autocomplete="off" spellcheck="false" style="flex:1;border:none;background:transparent;font-size:12px;color:var(--tx);outline:none;font-family:var(--fn)" oninput="debounceFn('lmNombre',lmFiltrar,220)" onkeydown="if(event.key==='Escape'){this.value='';lmLimpiarResultados();}"><span id="lm-srch-clear" onclick="document.getElementById('lm-srch-nombre').value='';lmLimpiarResultados();" style="cursor:pointer;font-size:11px;color:var(--tx3);display:none">&#10005;</span></div>
           <button class="btn sm" onclick="openNewDoc()" style="white-space:nowrap;padding:8px 15px;background:var(--T);color:#fff;border-color:var(--T)">&#10133; Nuevo</button>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);white-space:nowrap">Filtros:</span>
-          <select id="lm-f-mbr" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px"><option value="">MBR: Todos</option><option value="si">Con MBR</option><option value="no">Sin MBR</option></select>
-          <select id="lm-f-gxp" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px"><option value="">GxP: Todos</option><option value="si">GxP: Sí</option><option value="no">GxP: No</option></select>
-          <select id="lm-f-adm" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:170px"><option value="">Administrador: Todos</option></select>
-          <select id="lm-f-est" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:130px"><option value="">Estado: Todos</option><option value="Vigente">Vigente</option><option value="Por vencer">Por vencer</option><option value="Vencido">Vencido</option><option value="Obsoleto">Obsoleto</option></select>
-          <button class="btn gh sm" onclick="lmLimpiarFiltros()" style="font-size:11px">&#10005; Limpiar</button>
-          <span id="lm-result-count" style="font-size:11px;color:var(--tx3);margin-left:auto"></span>
-        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);white-space:nowrap">Filtros:</span><select id="lm-f-mbr" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px"><option value="">MBR: Todos</option><option value="si">Con MBR</option><option value="no">Sin MBR</option></select><select id="lm-f-gxp" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px"><option value="">GxP: Todos</option><option value="si">GxP: Sí</option><option value="no">GxP: No</option></select><select id="lm-f-adm" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:170px"><option value="">Administrador: Todos</option></select><select id="lm-f-est" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:130px"><option value="">Estado: Todos</option><option value="Vigente">Vigente</option><option value="Por vencer">Por vencer</option><option value="Vencido">Vencido</option><option value="Obsoleto">Obsoleto</option></select><button class="btn gh sm" onclick="lmLimpiarFiltros()" style="font-size:11px">&#10005; Limpiar</button><span id="lm-result-count" style="font-size:11px;color:var(--tx3);margin-left:auto"></span></div>
         <div id="lm-resultados" style="display:none;margin-top:10px;border-top:1px solid var(--brd);padding-top:10px;max-height:340px;overflow-y:auto"></div>
       </div>
 
@@ -2916,7 +2908,9 @@ function saveDocs(arr){
     });
     lsSet('sg_d'+i,JSON.stringify(sl));
   }
-  // Disparar guardado en OneDrive si está conectado
+  // NO disparar guardado automático si acabamos de cargar el Excel
+  // (_odRecienCargado evita loop: cargar→recalc→saveDocs→guardar→sobreescribir)
+  if(window._odRecienCargado) return;
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
     OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
@@ -3045,25 +3039,22 @@ function inspeccionesEmpresa(){
 
 function initApp(){
   loadAllFromDB(function(){
-    // Cargar desde caché local como respaldo mientras llega el Excel.
-    // NO vaciamos aquí — odCargarListado() reemplazará los datos
-    // cuando lea el Excel exitosamente. Si el Excel falla o no está
-    // disponible, el usuario ve los datos de la última sesión.
-    var _dl=loadDocs(); if(_dl&&_dl.length>0) docs=_dl;
-    var _cl=loadArr('c'); if(_cl&&_cl.length>0) copias=_cl;
-    var _ul=loadArr('u'); if(_ul&&_ul.length>0) usuarios=_ul;
-    var _pl=loadArr('p'); if(_pl&&_pl.length>0) procesos=_pl;
-    var _al=loadArr('a'); if(_al&&_al.length>0) auditoria=_al;
-    var _nl=loadArr('nh'); if(_nl&&_nl.length>0) notifH=_nl;
-    inspecciones=loadArr('insp')||[];
-    programaInsp2026=loadArr('inspProg')||[];
+    // Limpiar todo — la fuente única de verdad es OneDrive/Excel
+    docs=[];
+    auditoria=[];
+    copias=[];
+    usuarios=[];
+    procesos=[];
+    notifH=[];
+    inspecciones=loadArr('insp');         // inspecciones sí se guardan local
+    programaInsp2026=loadArr('inspProg'); // programa insp también local
     cfg=loadObj('cfg',{org:'Sofgen Pharma',revDias:365,alertDias:30});
     if(cfg.inactividadMinutos) _inactividadMinutos=cfg.inactividadMinutos;
     mstInfo=loadObj('mst',{fecha:null,archivo:null,registros:0});
 
     renderDash();updBadges();populateFiltros();renderTablaProg();checkInspAlerts();renderDashInsp();renderKpiHallazgos();
 
-    // Cargar desde Excel — reemplaza los datos locales al terminar
+    // Todo viene de OneDrive — iniciar carga del Excel
     odAutoCargar();
   });
 }
@@ -5753,7 +5744,7 @@ function docGetCCCorreos(cod, gxp, mbr, tipo, codAntiguo){
   var cc=[];
   if(gxp==='X'||gxp==='X - GxP') CC_GXP.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
   if(mbr==='X') CC_MBR.forEach(function(e){if(cc.indexOf(e)<0)cc.push(e);});
-  var codU=(cod||'').toUpperCase(), antU=(codAntiguo||'').toUpperCase(), tipoU=(tipo||'').toUpperCase();
+  var codU=(cod||'').toUpperCase(),antU=(codAntiguo||'').toUpperCase(),tipoU=(tipo||'').toUpperCase();
   var esSUBDP=codU.startsWith('SUB-')||codU.startsWith('DP-');
   var esSOX=antU.indexOf('CONTROL SOX')>=0||tipoU.indexOf('CONTROL SOX')>=0;
   var esNOT=(antU.indexOf('NOT')>=0&&antU.indexOf('PROCESO')>=0)||(tipoU.indexOf('NOT')>=0&&tipoU.indexOf('PROCESO')>=0);
@@ -5778,8 +5769,7 @@ function enviarCorreoDocumento(){
 
   var _dA=docs.find(function(x){return x.codigoActual===cod;});
   var codAnt=(_dA?_dA.codigoAntiguo:'')||'';
-  var _cAEl=document.getElementById('d-codant');
-  if(_cAEl&&_cAEl.value&&_cAEl.value!=='No Aplica') codAnt=_cAEl.value;
+  var _cAEl=document.getElementById('d-codant');if(_cAEl&&_cAEl.value&&_cAEl.value!=='No Aplica') codAnt=_cAEl.value;
   var org=(cfg&&cfg.org)||'Sofgen Pharma';
   var hora=new Date().getHours();
   var saludo=hora<12?'Buenos días':hora<18?'Buenas tardes':'Buenas noches';
@@ -9364,10 +9354,7 @@ function moNotificar(){
   // Reemplazar el cuerpo anterior que tenía "Atentamente" al final
   var correo=d.correoElectronico||LC.areaACorreo[d.areaGeneradora]||'';
   var _moCC=docGetCCCorreos(d.codigoActual,d.docGxP,d.mbr,d.tipoDocumento,d.codigoAntiguo||'');
-  var _moU='mailto:'+encodeURIComponent(correo),_moP=[];
-  if(_moCC.length)_moP.push('cc='+encodeURIComponent(_moCC.join(';')));
-  _moP.push('subject='+encodeURIComponent(asunto),'body='+encodeURIComponent(cuerpo));
-  if(_moP.length)_moU+='?'+_moP.join('&');
+  var _moU='mailto:'+encodeURIComponent(correo),_moP=[];if(_moCC.length)_moP.push('cc='+encodeURIComponent(_moCC.join(';')));_moP.push('subject='+encodeURIComponent(asunto),'body='+encodeURIComponent(cuerpo));if(_moP.length)_moU+='?'+_moP.join('&');
   window.location.href=_moU;
   toast('Abriendo correo'+((_moCC.length)?' | CC: '+_moCC.join(', '):'')+'...','if');
 }
@@ -15368,7 +15355,6 @@ var OD_MESES={
 };
 
 
-// HOJA Detalle de Hallazgos
 var DH_COL_MAP={'CARPETA NO ENCONTRADA':'NO_ENCONTRADO','DOCUMENTO NO ENCONTRADO':'NO_ESCANEADO','DOCUMENTO OBSOLETA':'OBSOLETO','DOCUMENTO OBSOLETO':'OBSOLETO','DOCUMENTO VENCIDO':'VENCIDO','VERSIONES INCORRECTA':'VERSION_INCORRECTA','VERSION INCORRECTA':'VERSION_INCORRECTA'};
 var DH_MESES_NORM={ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
 var hallazgosXLS={};
@@ -16116,16 +16102,9 @@ async function odCargarListado(){
       saveArr('u',usuarios);
       console.log('OD: '+usuarios.length+' usuarios cargados de hoja "'+hojaUsr.nombre+'"');
     } else {
-      // Hoja usuarios no encontrada — conservar los de la caché local
-      var _uLocal=loadArr('u');
-      if(_uLocal&&_uLocal.length>0){
-        usuarios=_uLocal;
-        console.warn('OD: hoja usuarios no encontrada — usando '+usuarios.length+' usuarios locales');
-      } else {
-        usuarios=[];
-        saveArr('u',usuarios);
-        console.warn('OD: no se encontró hoja de usuarios en el Excel');
-      }
+      usuarios=[];
+      saveArr('u',usuarios);
+      console.warn('OD: no se encontró hoja de usuarios en el Excel');
     }
 
     // Leer hoja Copias Controladas del Excel
@@ -16147,16 +16126,9 @@ async function odCargarListado(){
         cop.estadoReal=ccEstadoReal(cop); // cache del estado real
       });
     } else {
-      // Hoja Copias_Controladas no encontrada — conservar las de la caché local
-      var _cLocal=loadArr('c');
-      if(_cLocal&&_cLocal.length>0){
-        copias=_cLocal;
-        console.log('OD: hoja Copias_Controladas no encontrada — usando '+copias.length+' copias locales');
-      } else {
-        copias=[];
-        saveArr('c',copias);
-        console.log('OD: hoja Copias_Controladas no encontrada en Excel — copias vacías');
-      }
+      copias=[];
+      saveArr('c',copias);
+      console.log('OD: hoja Copias_Controladas no encontrada en Excel — copias vacías');
     }
 
     // Leer hoja Programa_Inspeccion_Procaps del Excel
@@ -16373,15 +16345,13 @@ async function odCargarListado(){
     _auditPendientes=[]; // datos frescos del servidor
 
     odSetProgreso(95,'Actualizando app...');
-    // Asignar y guardar los nuevos docs ANTES de limpiar la caché anterior
-    // (si algo falla entre limpiar y guardar, se perderían los datos)
+    // Limpiar IndexedDB local — datos frescos vienen del Excel
+    var prevChunks=parseInt(lsGet('sg_dn')||'0');
+    for(var ci=0;ci<Math.max(prevChunks,10);ci++) lsDel('sg_d'+ci);
+    lsDel('sg_dn'); lsDel('sg_docs');
+    lsDel('sg_u'); lsDel('sg_c'); lsDel('sg_a');
     docs=nuevoDocs;
     saveDocs(docs);
-    // Limpiar solo las entradas sobrantes de la caché anterior
-    var prevChunks=parseInt(lsGet('sg_dn')||'0');
-    var newChunks=Math.ceil(docs.length/500)||1;
-    for(var ci=newChunks;ci<Math.max(prevChunks,newChunks+5);ci++) lsDel('sg_d'+ci);
-    lsDel('sg_docs');
     ccLimpiarCacheEstados(); // Estado de copias depende del Listado Maestro — limpiar cache
     // Marcar datos como recién cargados para evitar re-save inmediato
     window._odRecienCargado=true;
@@ -16462,14 +16432,10 @@ async function odCargarListado(){
     // Mostrar botón guardar en topbar
     if(typeof odSaveBtnMostrar==='function') odSaveBtnMostrar();
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('ok');
-    // Si la hoja de usuarios no tenía las columnas nuevas, guardar después de 35s
-    // (esperar a que _odRecienCargado expire para no reescribir datos recién leídos)
+    // Si la hoja de usuarios no tenía las columnas nuevas, guardar ahora
     if(_necesitaGuardarUsuarios){
-      console.log('OD: programando guardado de usuarios con columnas nuevas (35s)...');
-      setTimeout(function(){
-        if(!window._odRecienCargado) odGuardarListado(true);
-        else setTimeout(function(){ odGuardarListado(true); },10000);
-      }, 35000);
+      console.log('OD: guardando usuarios con campos nuevos (fechaCambioPass, bloqueado)...');
+      setTimeout(function(){ odGuardarListado(true); }, 3000);
     }
     odSetProgreso(100,'✅ '+nuevoDocs.length+' docs · '+copias.length+' copias');
     odSetInfo('✅ '+nuevoDocs.length+' docs · '+copias.length+' copias · '+usuarios.length+' usuarios · '+fTH(),'var(--G)');
@@ -17937,9 +17903,7 @@ function fev_generarCorreo(){
 
   var _fD=docs.find(function(x){return x.codigoActual.toUpperCase()===(codigo||'').toUpperCase();});
   var _fCC=_fD?docGetCCCorreos(_fD.codigoActual,_fD.docGxP,_fD.mbr,_fD.tipoDocumento,_fD.codigoAntiguo||''):docGetCCCorreos(codigo,'','','','');
-  var _fP=[];
-  if(_fCC.length)_fP.push('cc='+encodeURIComponent(_fCC.join(';')));
-  _fP.push('subject='+encodeURIComponent(asunto),'body='+encodeURIComponent(cuerpo));
+  var _fP=[];if(_fCC.length)_fP.push('cc='+encodeURIComponent(_fCC.join(';')));_fP.push('subject='+encodeURIComponent(asunto),'body='+encodeURIComponent(cuerpo));
   window.open('mailto:?'+_fP.join('&'),'_blank');
 
   // Mostrar instrucciones para adjuntar el PDF
