@@ -15426,8 +15426,12 @@ function odEscribirDetalleHallazgos(wb){
     return;
   }
   // Guard 3: solo escribir si hay inspecciones ejecutadas en memoria
+  // Se considera ejecutada con hallazgos si: tiene hallazgos en array local O tiene totalHallazgosExcel > 0
   var ejecutadas=(inspecciones||[]).filter(function(x){
-    return x.ejecutado && x.hallazgos && x.hallazgos.length>0;
+    return x.ejecutado && (
+      (x.hallazgos && x.hallazgos.length>0) ||
+      (x.totalHallazgosExcel && x.totalHallazgosExcel>0)
+    );
   });
   if(!ejecutadas.length){
     console.log('[DH] sin inspecciones ejecutadas — no se escribe');
@@ -15441,22 +15445,33 @@ function odEscribirDetalleHallazgos(wb){
   if(rows.length<3) return;
   var meta=_dhMeta(rows);
 
-  // Calcular conteos solo de inspecciones ejecutadas
+  // Calcular conteos solo de inspecciones ejecutadas que tienen detalle local.
+  // Las que solo tienen totalHallazgosExcel (sin hallazgos[] locales) se omiten
+  // para NO sobreescribir los valores que ya existen en la hoja de Excel.
   var cnt={};
+  var soloExcel={}; // area -> mes -> true: hay datos en Excel pero sin detalle local
   ejecutadas.forEach(function(insp){
     var area=(insp.area||'').trim(); if(!area) return;
+    var tieneDetalle=insp.hallazgos&&insp.hallazgos.length>0;
     if(!cnt[area]) cnt[area]={};
-    if(!cnt[area][insp.mes]) cnt[area][insp.mes]={
-      NO_ENCONTRADO:0, NO_ESCANEADO:0, OBSOLETO:0, VENCIDO:0, VERSION_INCORRECTA:0
-    };
-    insp.hallazgos.forEach(function(h){
-      var e=(h.estado||'').toUpperCase();
-      if(cnt[area][insp.mes][e]!==undefined) cnt[area][insp.mes][e]++;
-    });
+    if(!soloExcel[area]) soloExcel[area]={};
+    if(tieneDetalle){
+      if(!cnt[area][insp.mes]) cnt[area][insp.mes]={
+        NO_ENCONTRADO:0, NO_ESCANEADO:0, OBSOLETO:0, VENCIDO:0, VERSION_INCORRECTA:0
+      };
+      insp.hallazgos.forEach(function(h){
+        var e=(h.estado||'').toUpperCase();
+        if(cnt[area][insp.mes][e]!==undefined) cnt[area][insp.mes][e]++;
+      });
+    } else {
+      // Ejecutada con hallazgos registrados en Excel pero sin detalle local:
+      // marcar para NO tocar esas celdas al escribir (preservar valores del Excel)
+      soloExcel[area][insp.mes]=true;
+    }
   });
 
-  // Actualizar SOLO las filas donde tenemos datos de inspección
-  // Nunca tocar filas de áreas que no inspeccionamos
+  // Actualizar SOLO las filas donde tenemos datos de inspección CON detalle local.
+  // Si un área/mes solo tiene totalHallazgosExcel (soloExcel), no sobreescribir.
   var actualizadas=0;
   for(var r=2; r<rows.length; r++){
     var area=String(rows[r][0]||'').trim(); if(!area) continue;
@@ -15464,11 +15479,11 @@ function odEscribirDetalleHallazgos(wb){
     Object.keys(cnt).forEach(function(k){
       if(k.toLowerCase()===area.toLowerCase()) ak=k;
     });
-    if(!ak) continue; // No tenemos datos de esta área → no tocar
+    if(!ak) continue; // No tenemos detalle de esta área → no tocar
 
     Object.keys(meta).forEach(function(c){
       var mt=meta[c];
-      if(!cnt[ak][mt.mes]) return; // No tenemos datos de este mes → no tocar
+      if(!cnt[ak]||!cnt[ak][mt.mes]) return; // No hay detalle para este mes → no tocar
       var v=cnt[ak][mt.mes][mt.est]||0;
       var addr=XLSX.utils.encode_cell({r:r, c:parseInt(c)});
       ws[addr]={v:v, t:'n'};
