@@ -15425,18 +15425,18 @@ function odEscribirDetalleHallazgos(wb){
     console.log('[DH] escritura bloqueada (_odRecienCargado=true)');
     return;
   }
-  // Guard 3: solo escribir si hay inspecciones ejecutadas en memoria
-  // Se considera ejecutada con hallazgos si: tiene hallazgos en array local O tiene totalHallazgosExcel > 0
-  var ejecutadas=(inspecciones||[]).filter(function(x){
-    return x.ejecutado && (
-      (x.hallazgos && x.hallazgos.length>0) ||
-      (x.totalHallazgosExcel && x.totalHallazgosExcel>0)
-    );
+  // Guard 3: solo escribir si hay inspecciones ejecutadas CON hallazgos en detalle LOCAL.
+  // Las que solo tienen totalHallazgosExcel (número del Excel, sin array local) no pueden
+  // reconstruir el detalle por categoría → no escribir nada para esas áreas.
+  // La hoja solo se toca cuando hay hallazgos[] registrados desde esta sesión de la app.
+  var ejecutadasConDetalle=(inspecciones||[]).filter(function(x){
+    return x.ejecutado && x.hallazgos && x.hallazgos.length>0;
   });
-  if(!ejecutadas.length){
-    console.log('[DH] sin inspecciones ejecutadas — no se escribe');
+  if(!ejecutadasConDetalle.length){
+    console.log('[DH] sin hallazgos locales que escribir — hoja Detalle de Hallazgos preservada');
     return;
   }
+  var ejecutadas=ejecutadasConDetalle;
 
   var hoja=odBuscarHoja(wb,['Detalle de Hallazgos','Detalle_Hallazgos','DetalleHallazgos']);
   if(!hoja){ console.log('[DH] hoja no encontrada para escritura'); return; }
@@ -15470,6 +15470,13 @@ function odEscribirDetalleHallazgos(wb){
     }
   });
 
+  // Si cnt está vacío: no hay nada con detalle local que escribir.
+  // Salir SIN tocar la hoja para preservar exactamente lo que está en el Excel.
+  if(!Object.keys(cnt).length){
+    console.log('[DH] cnt vacío (todo soloExcel o sin detalle local) — hoja preservada sin cambios');
+    return;
+  }
+
   // Actualizar SOLO las filas donde tenemos datos de inspección CON detalle local.
   // Si un área/mes solo tiene totalHallazgosExcel (soloExcel), no sobreescribir.
   var actualizadas=0;
@@ -15479,7 +15486,7 @@ function odEscribirDetalleHallazgos(wb){
     Object.keys(cnt).forEach(function(k){
       if(k.toLowerCase()===area.toLowerCase()) ak=k;
     });
-    if(!ak) continue; // No tenemos detalle de esta área → no tocar
+    if(!ak) continue; // No tenemos detalle local de esta área → no tocar
 
     Object.keys(meta).forEach(function(c){
       var mt=meta[c];
@@ -15490,8 +15497,11 @@ function odEscribirDetalleHallazgos(wb){
       actualizadas++;
     });
   }
-  ws['!ref']='A1:'+XLSX.utils.encode_col((rows[0]||[]).length-1)+rows.length;
-  wb.Sheets[hoja.nombre]=ws;
+  // Solo actualizar !ref si realmente se escribió algo, para no corromper la hoja
+  if(actualizadas>0){
+    ws['!ref']='A1:'+XLSX.utils.encode_col((rows[0]||[]).length-1)+rows.length;
+    wb.Sheets[hoja.nombre]=ws;
+  }
   console.log('[DH] '+actualizadas+' celdas escritas');
 }
 async function odLeerHojaInspeccionesBuf(buf, wb){
@@ -15705,6 +15715,12 @@ function _odGetSheetFileName(wb, nombre){
 
 //  ESCRIBIR PROGRAMA INSPECCIONES AL EXCEL 
 function odEscribirInspeccionesEnExcel(wb){
+  // Guard: no ejecutar durante ni inmediatamente después de la carga inicial
+  // Esto evita que un guardado automático sobreescriba datos recién leídos del Excel
+  if(window._odRecienCargado){
+    console.log('[INSP] escritura bloqueada (_odRecienCargado=true)');
+    return;
+  }
   var hoja=odBuscarHoja(wb,['Programa_Inspeccion_Procaps','Programa Inspeccion','ProgramaInspeccion']);
   if(!hoja){console.log('OD insp: hoja no encontrada para escritura');return;}
   var ws=hoja.ws;
@@ -15936,11 +15952,19 @@ function odEscribirInspeccionesEnExcel(wb){
         if(colDesc>0)  wsSet(colDesc,  r, desc, 's');
         if(colEst>0)   wsSet(colEst,   r, 'Ejecutado', 's');
       } else {
-        // Sin inspección ejecutada → marcar Programado, limpiar datos
-        if(colMes>0)   wsSet(colMes,   r, '', 's');
-        if(colTotal>0) wsSet(colTotal,  r, '', 's');
-        if(colDesc>0)  wsSet(colDesc,   r, '', 's');
-        if(colEst>0)   wsSet(colEst,    r, 'Programado', 's');
+        // Sin inspección ejecutada en memoria:
+        // NO sobreescribir si la celda ya tiene contenido en el Excel.
+        // Solo escribir 'Programado' si la celda de estado estaba realmente vacía.
+        // Esto preserva datos que el inspector registró directamente en el Excel.
+        var estActual=wsGet(colEst>0?colEst:5, r);
+        var totalActual=wsGet(colTotal>0?colTotal:3, r);
+        var yaEjecutadoEnExcel=(estActual&&estActual.toUpperCase().indexOf('EJECUT')>=0)
+                               ||(totalActual&&String(totalActual).trim()!==''&&String(totalActual).trim()!=='0');
+        if(!yaEjecutadoEnExcel){
+          // Solo escribir 'Programado' si no hay dato real en el Excel
+          if(colEst>0) wsSet(colEst, r, 'Programado', 's');
+        }
+        // En ambos casos NO borrar MES, TOTAL ni DESCRIPCIÓN — respetar lo que hay en el Excel
       }
     }
   });
