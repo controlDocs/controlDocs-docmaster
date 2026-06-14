@@ -14448,6 +14448,20 @@ async function doLogin(){
     } else if(OD.fileHandle&&OD.permisoEscritura){
       OD.syncActivo=true;
     }
+    // Proteger hoja Detalle de Hallazgos durante 60s post-login:
+    // recalcEstados y otros hooks disparan guardados automáticos con datos
+    // incompletos (hallazgos[] vacíos). La hoja solo debe escribirse
+    // cuando el usuario realice una acción manual de inspección.
+    window._dhProtegido = true;
+    window._odRecienCargado = true;
+    setTimeout(function(){
+      window._odRecienCargado = false;
+      console.log('[DH] _odRecienCargado desactivado post-login');
+    }, 30000);
+    setTimeout(function(){
+      window._dhProtegido = false;
+      console.log('[DH] _dhProtegido desactivado post-login');
+    }, 60000);
   }, 50);
 
 }
@@ -14533,7 +14547,15 @@ function canDelete(){
 
 
 function doLogout(){
- detenerTimerInactividad(); 
+ detenerTimerInactividad();
+  // Cancelar cualquier guardado automático pendiente
+  if(window.OD && OD.saveTimer){ clearTimeout(OD.saveTimer); OD.saveTimer=null; }
+  // Proteger la hoja Detalle de Hallazgos: al volver a loguear
+  // se disparan recalcs y hooks que podrían escribir con datos incompletos.
+  // Los flags se desactivarán cuando el usuario recargue el Excel manualmente
+  // o cuando expire el timer natural después del login.
+  window._dhProtegido = true;
+  window._odRecienCargado = true;
   currentUser=null;
 
   // Limpiar campos de login
