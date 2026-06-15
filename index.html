@@ -9697,6 +9697,7 @@ function inspEliminarEjecucion(encoded){
       x.totalHallazgosExcel=0;
       x.fechaEjecucion='';
       x._borradoPorUsuario=true; // marcar para que PASO1 borre la celda E
+      window._dhPendiente=true;
     }
   });
   saveArr('insp',inspecciones);
@@ -9785,6 +9786,7 @@ function marcarEjecutadaDesdeModal(){
   if(x.ejecutado){toast('Esta inspección ya está marcada como ejecutada','if');return;}
   x.ejecutado=true;
   x.fechaEjecucion=fDToday();
+  window._dhPendiente=true;
   saveArr('insp',inspecciones);
   renderHallazgosModal(x);
   renderInsp(); renderTablaProg(); checkInspAlerts(); renderDashInsp();
@@ -9807,6 +9809,7 @@ function marcarEjecutado(id){
   x.ejecutado=true;
   x.fechaEjecucion=fDToday();
   if(!x.hallazgos)x.hallazgos=[];
+  window._dhPendiente=true;
   saveArr('insp',inspecciones);
   window._hallazgoTab='todos';
   renderHallazgosModal(x);
@@ -9913,6 +9916,7 @@ function agregarHallazgo(){
   if(!desc){toast('Describe el hallazgo','er');return;}
   if(!x.hallazgos)x.hallazgos=[];
   x.hallazgos.push({descripcion:desc,codigo:cod,responsable:resp,fecha:fDToday(),tipo:tipoHal});
+  window._dhPendiente=true; // marcar que hay cambios en hallazgos → escribir DH al guardar
   saveArr('insp',inspecciones);
   document.getElementById('h-desc').value='';
   document.getElementById('h-cod').value='';
@@ -9926,6 +9930,7 @@ function eliminarHallazgo(idx){
   var id=window._hallazgoInspId;
   var x=inspecciones.find(function(i){return i.id===id;});if(!x)return;
   x.hallazgos.splice(idx,1);
+  window._dhPendiente=true;
   saveArr('insp',inspecciones);
   renderHallazgosModal(x);
   renderDashInsp();
@@ -11489,6 +11494,7 @@ function ecc_generarInformeVerif(){
       hallazgosParaRegistrar.forEach(function(h){inspExist.hallazgos.push(h);});
       // Actualizar el total de hallazgos para que se escriba en la celda E del Excel
       inspExist.totalHallazgosExcel=inspExist.hallazgos.length;
+      window._dhPendiente=true;
       saveArr('insp',inspecciones);
       // Disparar guardado inmediato al Excel de OneDrive
       if(OD.fileHandle&&OD.syncActivo){
@@ -15433,8 +15439,20 @@ function odLeerHojaDetalleHallazgos(wb){
   return res;
 }
 
+// ── Trigger explícito: guardar Detalle de Hallazgos tras acción del usuario ──
+// Llama odGuardarListado (que escribe InspeccionesEnExcel + DH) Y también
+// escribe DH directamente sobre el archivo para asegurar que se persiste.
+function odDispararGuardadoHallazgos(){
+  if(!OD.syncActivo) return;
+  if(OD.saveTimer) clearTimeout(OD.saveTimer);
+  // Guardado inmediato con pequeño delay para que el call stack se limpie
+  OD.saveTimer=setTimeout(function(){
+    odGuardarListado(true);
+  }, 2000);
+}
+
 // ── ESCRIBIR al Excel (SOLO al guardar una inspección ejecutada) ─
-// Se llama desde odGuardarListado después de odEscribirInspeccionesEnExcel.
+// Se llama desde odDispararGuardadoHallazgos, NUNCA desde guardados automáticos.
 // Tiene múltiples guards para garantizar que NUNCA corra durante la carga.
 function odEscribirDetalleHallazgos(wb){
   // Guard 1: protección explícita de carga inicial
@@ -17028,7 +17046,12 @@ async function odGuardarListado(silencioso){
         var inspData2=await odLeerArchivo(OD_ARCHIVOS.inspecciones);
         var wbInsp2=inspData2?XLSX.read(inspData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
         odEscribirInspeccionesEnExcel(wbInsp2);
-        try{odEscribirDetalleHallazgos(wbInsp2);}catch(_eDH){}
+        // Escribir Detalle de Hallazgos SOLO si hay una acción del usuario pendiente
+        // (_dhPendiente=true). Nunca en guardados automáticos de fondo.
+        if(window._dhPendiente){
+          try{odEscribirDetalleHallazgos(wbInsp2);}catch(_eDH){}
+          window._dhPendiente=false;
+        }
         if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbInsp2,_AUDIT_MODULOS_INSP);
         await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
       }catch(eInsp){console.warn('Error guardando Inspecciones:',eInsp);}
@@ -17054,7 +17077,10 @@ async function odGuardarListado(silencioso){
       if(wb.Sheets[nombreHojaCop]){wb.Sheets[nombreHojaCop]=wsCop;}
       else{XLSX.utils.book_append_sheet(wb,wsCop,nombreHojaCop);}
       odEscribirInspeccionesEnExcel(wb);
-      try{odEscribirDetalleHallazgos(wb);}catch(_eDH2){}
+      if(window._dhPendiente){
+        try{odEscribirDetalleHallazgos(wb);}catch(_eDH2){}
+        window._dhPendiente=false;
+      }
       odEscribirActasEnExcel(wb);
       try{odEscribirCodigosDocNuevos(wb);}catch(eCN){console.warn('CDN:',eCN);}
       try{if(solicitudes&&solicitudes.length)rbEscribirHoja(wb);}catch(eSolG){console.warn('rbEscribirHoja:',eSolG);}
@@ -21991,6 +22017,7 @@ function ecc_registrarHallazgos(area, subsInspeccionar, tipoInsp, inspector){
     hallazgos.forEach(function(h){inspExist.hallazgos.push(h);});
     // 0 hallazgos = inspección perfecta (se escribe '0H' en el Excel)
     inspExist.totalHallazgosExcel=inspExist.hallazgos.length;
+    window._dhPendiente=true;
     saveArr('insp',inspecciones);
     if(OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
