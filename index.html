@@ -14136,8 +14136,14 @@ function mostrarAvisoInactividad(){
   // Botón continuar
   document.getElementById('inac-btn-continuar').addEventListener('click',function(){
     clearInterval(intervalo);
+    // Cancelar el auto-cierre de 120s — sin esto, el setTimeout dispara
+    // aunque el usuario haya pulsado Continuar, cerrando la sesión igual
+    if(_inactividadAviso){clearTimeout(_inactividadAviso);_inactividadAviso=null;}
     var ov=document.getElementById('inac-overlay');if(ov)ov.parentNode.removeChild(ov);
-    _inactividadAvisoActivo=false;_inacUltimaAccion=Date.now();
+    _inactividadAvisoActivo=false;
+    _inacUltimaAccion=Date.now();
+    // Reiniciar el timer de inactividad desde cero
+    iniciarTimerInactividad();
     toast('Sesión extendida','ok');
   });
 
