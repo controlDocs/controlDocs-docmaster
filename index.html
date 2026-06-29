@@ -4657,7 +4657,7 @@ function dcpExportarCambiosXLSX(){
 
   // Fila 2: Metadata
   var r2=[]; for(var ci=0;ci<NC;ci++) r2.push({v:'',t:'s',s:S_MVAL});
-  var mPairs=[['Código:','LM-0019'],['Versión:','00'],['Fecha:',fechaHoy],['Documentos:',String(filtrados.length)]];
+  var mPairs=[['Código:','LM-0019'],['Versión:','00'],['Fecha:',fechaHoy],['Documentos:',String(filtrados.length)+' (inc. '+filtrados.filter(function(r){return r.esNuevo;}).length+' nuevos)']];
   var mStep=Math.max(1,Math.floor(NC/mPairs.length));
   mPairs.forEach(function(p,mi){var c0=mi*mStep;if(c0<NC)r2[c0]={v:p[0],t:'s',s:S_MLBL};if(c0+1<NC)r2[c0+1]={v:p[1],t:'s',s:S_MVAL};});
   aoa.push(r2);
@@ -20692,6 +20692,46 @@ function rbAbrirListadoCambios(){
   rbCambioTab('identidad');
 }
 
+// ── Lista unificada: docs[] del LM + solicitudes sin doc en LM ───────────────
+// Documentos nuevos marcados en RB que aún no existen en docs[] se incluyen
+// como filas derivadas de la solicitud más reciente con ese código.
+function _rbDocsUnificados(){
+  // 1. Docs del LM sin obsoletos
+  var lmDocs = (docs||[]).filter(function(d){
+    return !(d.obsoleto&&String(d.obsoleto).trim().toLowerCase()==='si') &&
+           (d.estado||'').toLowerCase()!=='obsoleto';
+  });
+  var lmCods = {};
+  lmDocs.forEach(function(d){ lmCods[(d.codigoActual||'').toUpperCase().trim()]=true; });
+
+  // 2. Solicitudes con cambio marcado cuyo código NO está en docs[]
+  // Agrupar por código, tomar la más reciente
+  var solPorCod = {};
+  (solicitudes||[]).forEach(function(s){
+    var cod = (s.codigo||'').toUpperCase().trim();
+    if(!cod || lmCods[cod]) return; // ya está en LM, se maneja por docs[]
+    if(!solPorCod[cod] || (parseInt(s.consecutivo)||0) > (parseInt(solPorCod[cod].consecutivo)||0))
+      solPorCod[cod] = s;
+  });
+
+  // 3. Convertir solicitudes huérfanas a formato doc sintético
+  var solRows = Object.values(solPorCod).map(function(s){
+    return {
+      _deSolicitud: true,        // marcador para distinguir origen
+      codigoActual: s.codigo||'',
+      descripcion:  s.nombreDoc||'',
+      areaGeneradora: s.areaGeneradora||'',
+      version:      s.version||'—',
+      estado:       'Nuevo (en RB)',
+      cambioIdentidad: s.cambioIdentidad||'',
+      cambioCargos:    s.cambioCargos||'',
+      _sol: s
+    };
+  });
+
+  return lmDocs.concat(solRows);
+}
+
 function rbCambioTab(tab){
   _rbCambioTabActiva = tab;
   // Reset tab buttons
@@ -20706,11 +20746,8 @@ function rbCambioTab(tab){
 }
 
 function rbRenderCambiosTabla(tab){
-  // Obtener docs del Listado Maestro sin obsoletos
-  var lmDocs = (docs||[]).filter(function(d){
-    return !(d.obsoleto&&String(d.obsoleto).trim().toLowerCase()==='si') &&
-           (d.estado||'').toLowerCase()!=='obsoleto';
-  });
+  // Lista unificada: LM sin obsoletos + solicitudes cuyo código no está en LM
+  var unificados = _rbDocsUnificados();
 
   // Obtener el último consecutivo de solicitud por código (para saber estado RB)
   function rbUltimaSol(codigo){
@@ -20723,18 +20760,27 @@ function rbRenderCambiosTabla(tab){
     })[0];
   }
 
-  // Marcar cada doc LM con sus flags de cambio
-  var rows = lmDocs.map(function(d){
-    var sol = rbUltimaSol(d.codigoActual);
+  // Construir filas desde la lista unificada
+  var rows = unificados.map(function(d){
+    var sol = d._sol || rbUltimaSol(d.codigoActual);
+    // Para docs LM: leer flags desde solicitud (RB es la fuente para cambios en RB)
+    // Para docs de solicitud huérfana: flags ya vienen en d
+    var identidad = d._deSolicitud
+      ? d.cambioIdentidad==='SI'
+      : (sol && sol.cambioIdentidad==='SI') || d.cambioIdentidad==='SI';
+    var cargos = d._deSolicitud
+      ? d.cambioCargos==='SI'
+      : (sol && sol.cambioCargos==='SI') || d.cambioCargos==='SI';
     return {
-      codigo:       d.codigoActual||'',
-      nombre:       d.descripcion||d.nombreDoc||'',
-      area:         d.areaGeneradora||'',
-      version:      d.version||'',
-      identidad:    sol && sol.cambioIdentidad==='SI',
-      cargos:       sol && sol.cambioCargos==='SI',
-      estadoRB:     sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : '—',
-      esOfic:       sol && (sol.estadoOficializacion||'').toLowerCase().indexOf('oficial')>=0
+      codigo:    d.codigoActual||'',
+      nombre:    d.descripcion||'',
+      area:      d.areaGeneradora||'',
+      version:   d.version||'',
+      identidad: identidad,
+      cargos:    cargos,
+      estadoRB:  sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : '—',
+      esOfic:    sol && (sol.estadoOficializacion||'').toLowerCase().indexOf('oficial')>=0,
+      esNuevo:   !!d._deSolicitud
     };
   });
 
@@ -20745,11 +20791,10 @@ function rbRenderCambiosTabla(tab){
   else if(tab==='ambos')  filtrados = rows.filter(function(r){return r.identidad && r.cargos;});
   else                    filtrados = rows.filter(function(r){return !r.identidad && !r.cargos;});
 
-  // Ordenar por código
   filtrados.sort(function(a,b){return a.codigo.localeCompare(b.codigo);});
 
-  // Stats
-  var totalLM = lmDocs.length;
+  // Stats (sobre toda la lista unificada)
+  var totalLM = unificados.length;
   var cntId   = rows.filter(function(r){return r.identidad;}).length;
   var cntCar  = rows.filter(function(r){return r.cargos;}).length;
   var cntAmb  = rows.filter(function(r){return r.identidad&&r.cargos;}).length;
@@ -20784,8 +20829,11 @@ function rbRenderCambiosTabla(tab){
     var estadoBadge = r.estadoRB==='—'
       ? '<span style="color:var(--tx3);font-size:10px">Sin solicitud</span>'
       : '<span style="background:'+(r.esOfic?'#d1fae5':'#fef3c7')+';color:'+(r.esOfic?'#065f46':'#92400e')+';border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">'+(r.esOfic?'✅ ':'📋 ')+r.estadoRB+'</span>';
-    return '<tr style="'+bg+'">'
-      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);font-family:monospace;font-weight:700;color:var(--T3);font-size:10px">'+r.codigo+'</td>'
+    var codigoCel = r.esNuevo
+      ? r.codigo+'<span style="background:#fef9c3;color:#854d0e;font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:5px">Nuevo</span>'
+      : r.codigo;
+    return '<tr style="'+bg+(r.esNuevo?';background:#fffbeb':'')+'">'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);font-family:monospace;font-weight:700;color:var(--T3);font-size:10px">'+codigoCel+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx);max-width:280px">'+r.nombre+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx2);font-size:10px">'+r.area+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx3);text-align:center">'+r.version+'</td>'
@@ -20806,11 +20854,10 @@ function rbExportarCambiosCSV(){
     pendientes:'Sin Marcar'
   };
 
-  var lmDocs = (docs||[]).filter(function(d){
-    return !(d.obsoleto&&String(d.obsoleto).trim().toLowerCase()==='si') &&
-           (d.estado||'').toLowerCase()!=='obsoleto';
-  });
-  function rbUltimaSol(codigo){
+  // Lista unificada: LM sin obsoletos + solicitudes cuyo código no está en LM aún
+  var unificados = _rbDocsUnificados();
+
+  function rbUltimaSol2(codigo){
     var sols=(solicitudes||[]).filter(function(s){
       return (s.codigo||'').toUpperCase().trim()===(codigo||'').toUpperCase().trim();
     });
@@ -20818,18 +20865,31 @@ function rbExportarCambiosCSV(){
     return sols.sort(function(a,b){return (parseInt(b.consecutivo)||0)-(parseInt(a.consecutivo)||0);})[0];
   }
 
-  // Obtener filas según tab activo
-  var filtrados;
-  if(tab==='identidad')
-    filtrados = lmDocs.filter(function(d){ var s=rbUltimaSol(d.codigoActual); return s&&s.cambioIdentidad==='SI'; });
-  else if(tab==='cargos')
-    filtrados = lmDocs.filter(function(d){ var s=rbUltimaSol(d.codigoActual); return s&&s.cambioCargos==='SI'; });
-  else if(tab==='ambos')
-    filtrados = lmDocs.filter(function(d){ var s=rbUltimaSol(d.codigoActual); return s&&s.cambioIdentidad==='SI'&&s.cambioCargos==='SI'; });
-  else
-    filtrados = lmDocs.filter(function(d){ var s=rbUltimaSol(d.codigoActual); return !s||(s.cambioIdentidad!=='SI'&&s.cambioCargos!=='SI'); });
+  // Construir filas resueltas con flags definitivos
+  var rows = unificados.map(function(d){
+    var sol = d._sol || rbUltimaSol2(d.codigoActual);
+    var identidad = d._deSolicitud
+      ? d.cambioIdentidad==='SI'
+      : (sol&&sol.cambioIdentidad==='SI') || d.cambioIdentidad==='SI';
+    var cargos = d._deSolicitud
+      ? d.cambioCargos==='SI'
+      : (sol&&sol.cambioCargos==='SI') || d.cambioCargos==='SI';
+    return {
+      d: d, sol: sol,
+      identidad: identidad, cargos: cargos,
+      esNuevo: !!d._deSolicitud
+    };
+  });
 
-  filtrados.sort(function(a,b){ return (a.codigoActual||'').localeCompare(b.codigoActual||''); });
+  // Filtrar según tab
+  var filtRows;
+  if(tab==='identidad')   filtRows = rows.filter(function(r){return r.identidad;});
+  else if(tab==='cargos') filtRows = rows.filter(function(r){return r.cargos;});
+  else if(tab==='ambos')  filtRows = rows.filter(function(r){return r.identidad&&r.cargos;});
+  else                    filtRows = rows.filter(function(r){return !r.identidad&&!r.cargos;});
+
+  filtRows.sort(function(a,b){ return (a.d.codigoActual||'').localeCompare(b.d.codigoActual||''); });
+  var filtrados = filtRows; // alias para el bloque de escritura
 
   if(!filtrados.length){ toast('Sin documentos en esta categoría','er'); return; }
 
@@ -20886,19 +20946,23 @@ function rbExportarCambiosCSV(){
   aoa.push(cols.map(function(c){ return {v:c.h,t:'s',s:S_HDR}; }));
 
   // Datos
-  filtrados.forEach(function(d,ri){
-    var sol = rbUltimaSol(d.codigoActual);
+  filtrados.forEach(function(row,ri){
+    var d   = row.d;
+    var sol = row.sol;
     var alt = ri%2===1;
     var baseS = d.estado==='Vencido' ? S_VENC : alt ? S_CELL_A : S_CELL_W;
-    var idVal  = sol&&sol.cambioIdentidad==='SI' ? 'SI' : 'NO';
-    var carVal = sol&&sol.cambioCargos==='SI'    ? 'SI' : 'NO';
+    // Docs nuevos (solo en RB): resaltar en amarillo suave
+    if(row.esNuevo) baseS = {font:{name:'Calibri',sz:9,color:{rgb:'78350F'}},fill:{fgColor:{rgb:'FFFBEB'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+    var idVal  = row.identidad ? 'SI' : 'NO';
+    var carVal = row.cargos    ? 'SI' : 'NO';
     var rbEst  = sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : 'Sin solicitud';
+    var estadoVal = row.esNuevo ? 'Nuevo (en RB)' : (d.estado||'');
     aoa.push([
       {v:d.codigoActual||'',   t:'s',s:baseS},
       {v:d.descripcion||'',    t:'s',s:baseS},
       {v:d.areaGeneradora||'', t:'s',s:baseS},
       {v:d.version||'',        t:'s',s:baseS},
-      {v:d.estado||'',         t:'s',s:baseS},
+      {v:estadoVal,            t:'s',s:baseS},
       {v:idVal,                t:'s',s:idVal==='SI'?S_ID:S_NO},
       {v:carVal,               t:'s',s:carVal==='SI'?S_CAR:S_NO},
       {v:rbEst,                t:'s',s:sol?S_RB:baseS}
