@@ -765,6 +765,7 @@ tbody tr:last-child td{border-bottom:none}
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1.5px solid var(--T);border-radius:var(--r);padding:8px 13px"><span style="font-size:15px;color:var(--T)">&#128269;</span><input id="lm-srch-nombre" type="text" placeholder="Buscar por nombre o código..." autocomplete="off" spellcheck="false" style="flex:1;border:none;background:transparent;font-size:12px;color:var(--tx);outline:none;font-family:var(--fn)" oninput="debounceFn('lmNombre',lmFiltrar,220)" onkeydown="if(event.key==='Escape'){this.value='';lmLimpiarResultados();}"><span id="lm-srch-clear" onclick="document.getElementById('lm-srch-nombre').value='';lmLimpiarResultados();" style="cursor:pointer;font-size:11px;color:var(--tx3);display:none">&#10005;</span></div>
           <button class="btn sm" onclick="openNewDoc()" style="white-space:nowrap;padding:8px 15px;background:var(--T);color:#fff;border-color:var(--T)">&#10133; Nuevo</button>
+          <button class="btn sm" onclick="dcpAbrirListadoCambios()" style="white-space:nowrap;padding:8px 15px;background:#7c3aed;color:#fff;border-color:#7c3aed" title="Listado comparativo de cambios vs Listado Maestro">📊 Listado de Cambios</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);white-space:nowrap">Filtros:</span><select id="lm-f-mbr" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px"><option value="">MBR: Todos</option><option value="si">Con MBR</option><option value="no">Sin MBR</option></select><select id="lm-f-gxp" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:110px"><option value="">GxP: Todos</option><option value="si">GxP: Sí</option><option value="no">GxP: No</option></select><select id="lm-f-adm" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:170px"><option value="">Administrador: Todos</option></select><select id="lm-f-est" class="fsel" onchange="lmFiltrar()" style="font-size:11px;min-width:130px"><option value="">Estado: Todos</option><option value="Vigente">Vigente</option><option value="Por vencer">Por vencer</option><option value="Vencido">Vencido</option><option value="Obsoleto">Obsoleto</option></select><button class="btn gh sm" onclick="lmLimpiarFiltros()" style="font-size:11px">&#10005; Limpiar</button><span id="lm-result-count" style="font-size:11px;color:var(--tx3);margin-left:auto"></span></div>
         <div id="lm-resultados" style="display:none;margin-top:10px;border-top:1px solid var(--brd);padding-top:10px;max-height:340px;overflow-y:auto"></div>
@@ -884,6 +885,47 @@ tbody tr:last-child td{border-bottom:none}
           <span class="dcp-hint"><span class="dcp-kbd">Enter</span> consultar</span>
           <span class="dcp-hint"><span class="dcp-kbd">↑↓</span> navegar historial</span>
           <span class="dcp-hint"><span class="dcp-kbd">Esc</span> cerrar</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Listado Comparativo de Cambios (Documentos) -->
+    <div id="dcp-mo-cambios" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:12px;padding:0;width:960px;max-width:97vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.28)">
+        <div style="padding:18px 22px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--tx)">📊 Listado Comparativo de Cambios — Documentos</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">Listado Maestro (sin obsoletos) cruzado con cambios marcados en cada documento</div>
+          </div>
+          <button class="btn gh sm" onclick="document.getElementById('dcp-mo-cambios').style.display='none'">✕ Cerrar</button>
+        </div>
+        <div style="padding:12px 22px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button id="dcp-tab-identidad" class="btn sm" style="background:#7c3aed;color:#fff" onclick="dcpCambioTab('identidad')">🏢 Identidad Corporativa</button>
+          <button id="dcp-tab-cargos"    class="btn gh sm" onclick="dcpCambioTab('cargos')">👔 Cargos Gerente/Director</button>
+          <button id="dcp-tab-ambos"     class="btn gh sm" onclick="dcpCambioTab('ambos')">🔀 Ambos cambios</button>
+          <button id="dcp-tab-pendientes" class="btn gh sm" onclick="dcpCambioTab('pendientes')">⏳ Sin marcar (pendientes)</button>
+          <span id="dcp-cambios-stats" style="margin-left:auto;font-size:11px;color:var(--tx3);font-weight:600"></span>
+        </div>
+        <div style="overflow-y:auto;flex:1;padding:0 22px 16px">
+          <table id="dcp-cambios-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:12px">
+            <thead>
+              <tr style="background:var(--bg3);position:sticky;top:0;z-index:1">
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Código</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Nombre del Documento</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Área</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Versión</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Estado</th>
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#7c3aed">🏢 Identidad</th>
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#0284c7">👔 Cargos</th>
+              </tr>
+            </thead>
+            <tbody id="dcp-cambios-body"></tbody>
+          </table>
+          <div id="dcp-cambios-empty" style="display:none;padding:32px;text-align:center;color:var(--tx3);font-size:12px">Sin documentos en esta categoría.</div>
+        </div>
+        <div style="padding:12px 22px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn sm" style="background:#1e7145;color:#fff" onclick="dcpExportarCambiosXLSX()">📥 Descargar Excel</button>
+          <button class="btn gh sm" onclick="document.getElementById('dcp-mo-cambios').style.display='none'">Cerrar</button>
         </div>
       </div>
     </div>
@@ -2135,7 +2177,7 @@ tbody tr:last-child td{border-bottom:none}
         </div>
         <!-- Footer -->
         <div style="padding:12px 22px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn sm" style="background:#059669;color:#fff" onclick="rbExportarCambiosCSV()">⬇️ Exportar CSV</button>
+          <button class="btn sm" style="background:#1e7145;color:#fff" onclick="rbExportarCambiosCSV()">📥 Descargar Excel</button>
           <button class="btn gh sm" onclick="document.getElementById('rb-mo-cambios').style.display='none'">Cerrar</button>
         </div>
       </div>
@@ -4343,14 +4385,233 @@ function dcpRenderDetailPanel(d){
         + fi('Obsoleto', d.obsoleto)
       + '</div>'
     + '</div>'
-    // ── HISTORIAL ──
-    + '<div style="padding:14px 18px">'
-      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--tl)">🕐 Historial de cambios</div>'
-      + histHtml
-    + '</div>';
+    // ── CAMBIOS IDENTIDAD / CARGOS ──
+    + '<div style="padding:12px 18px;border-bottom:1px solid var(--brd);background:#f8fafc">'      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:10px">🏷️ Seguimiento de Cambios Aplicados</div>'      + '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:'+(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'?'8px':'0')+';">'        + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          + '<input type="checkbox" '+(d.cambioIdentidad==='SI'?'checked':'')+' onchange="dcpToggleCambio('+d.id+',\'identidad\',this.checked)" style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer">'          + '<span>🏢 Cambio Identidad Corporativa</span>'        + '</label>'        + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          + '<input type="checkbox" '+(d.cambioCargos==='SI'?'checked':'')+' onchange="dcpToggleCambio('+d.id+',\'cargos\',this.checked)" style="width:16px;height:16px;accent-color:#0284c7;cursor:pointer">'          + '<span>👔 Cambio Cargos (Gerente/Director)</span>'        + '</label>'      + '</div>'      + (d.cambioIdentidad==='SI'||d.cambioCargos==='SI' ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'        + (d.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">✓ Identidad Corporativa</span>':'')        + (d.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">✓ Cargos Gerente/Director</span>':'')        + '</div>' : '')    + '</div>'    // ── HISTORIAL ──
+    + '<div style="padding:14px 18px">'      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--tl)">🕐 Historial de cambios</div>'      + histHtml    + '</div>';
 
   panel.innerHTML = html;
 }
+// ── Toggle cambio identidad/cargos en documento ─────────────────────────────
+function dcpToggleCambio(docId, tipo, checked){
+  var d = docs.find(function(x){ return x.id===docId; });
+  if(!d){ toast('Documento no encontrado','er'); return; }
+  var campo = tipo==='identidad' ? 'cambioIdentidad' : 'cambioCargos';
+  d[campo] = checked ? 'SI' : '';
+  saveDocs(docs);
+  var etiqueta = tipo==='identidad' ? 'Cambio Identidad Corporativa' : 'Cambio Cargos (Gerente/Director)';
+  logA(currentUser?currentUser.nombre:'Sistema','Cambio marcado',
+    d.codigoActual+' — '+(checked?'✓ Marcado: ':'✗ Desmarcado: ')+etiqueta);
+  toast((checked?'✓ Marcado: ':'✗ Desmarcado: ')+etiqueta,'ok');
+}
+
+// ── Abrir modal listado comparativo (Documentos) ─────────────────────────────
+var _dcpCambioTabActiva = 'identidad';
+
+function dcpAbrirListadoCambios(){
+  _dcpCambioTabActiva = 'identidad';
+  document.getElementById('dcp-mo-cambios').style.display='flex';
+  dcpCambioTab('identidad');
+}
+
+function dcpCambioTab(tab){
+  _dcpCambioTabActiva = tab;
+  var colores = {identidad:'#7c3aed', cargos:'#0284c7', ambos:'#059669', pendientes:'#92400e'};
+  ['identidad','cargos','ambos','pendientes'].forEach(function(t){
+    var btn = document.getElementById('dcp-tab-'+t);
+    if(!btn) return;
+    btn.style.background = t===tab ? colores[t] : '';
+    btn.style.color      = t===tab ? '#fff' : '';
+    btn.className        = t===tab ? 'btn sm' : 'btn gh sm';
+  });
+  dcpRenderCambiosTabla(tab);
+}
+
+function _dcpGetFiltered(tab){
+  var lmDocs = (docs||[]).filter(function(d){
+    return !(d.obsoleto && String(d.obsoleto).trim().toLowerCase()==='si') &&
+           (d.estado||'').toLowerCase()!=='obsoleto';
+  });
+  if(tab==='identidad')   return lmDocs.filter(function(d){ return d.cambioIdentidad==='SI'; });
+  if(tab==='cargos')      return lmDocs.filter(function(d){ return d.cambioCargos==='SI'; });
+  if(tab==='ambos')       return lmDocs.filter(function(d){ return d.cambioIdentidad==='SI' && d.cambioCargos==='SI'; });
+  return lmDocs.filter(function(d){ return d.cambioIdentidad!=='SI' && d.cambioCargos!=='SI'; });
+}
+
+function dcpRenderCambiosTabla(tab){
+  var lmDocs = (docs||[]).filter(function(d){
+    return !(d.obsoleto && String(d.obsoleto).trim().toLowerCase()==='si') &&
+           (d.estado||'').toLowerCase()!=='obsoleto';
+  });
+  var cntId   = lmDocs.filter(function(d){ return d.cambioIdentidad==='SI'; }).length;
+  var cntCar  = lmDocs.filter(function(d){ return d.cambioCargos==='SI'; }).length;
+  var cntAmb  = lmDocs.filter(function(d){ return d.cambioIdentidad==='SI'&&d.cambioCargos==='SI'; }).length;
+  var cntPend = lmDocs.filter(function(d){ return d.cambioIdentidad!=='SI'&&d.cambioCargos!=='SI'; }).length;
+
+  var statsEl = document.getElementById('dcp-cambios-stats');
+  if(statsEl) statsEl.innerHTML =
+    'LM total: <strong>'+lmDocs.length+'</strong> &nbsp;|&nbsp; '+
+    '🏢 Identidad: <strong style="color:#7c3aed">'+cntId+'</strong> &nbsp;|&nbsp; '+
+    '👔 Cargos: <strong style="color:#0284c7">'+cntCar+'</strong> &nbsp;|&nbsp; '+
+    '🔀 Ambos: <strong style="color:#059669">'+cntAmb+'</strong> &nbsp;|&nbsp; '+
+    '⏳ Pendientes: <strong style="color:#92400e">'+cntPend+'</strong>';
+
+  var filtrados = _dcpGetFiltered(tab);
+  filtrados.sort(function(a,b){ return (a.codigoActual||'').localeCompare(b.codigoActual||''); });
+
+  var tbody = document.getElementById('dcp-cambios-body');
+  var empty = document.getElementById('dcp-cambios-empty');
+  if(!tbody) return;
+
+  if(!filtrados.length){
+    tbody.innerHTML = '';
+    if(empty) empty.style.display='block';
+    return;
+  }
+  if(empty) empty.style.display='none';
+
+  // Estado badge
+  var estadoColors = {
+    'Vigente':'#006860','Vencido':'#a02020','Obsoleto':'#7a2020',
+    'Menos de 15 días':'#856404','Menos de 1 Mes':'#856404',
+    'Menos de 2 Meses':'#856404','Menos de 3 Meses':'#856404',
+    'Menos de 4 Meses':'#a06000','Menos de 5 Meses':'#a06000'
+  };
+  var estadoBg = {
+    'Vigente':'#e6f9f3','Vencido':'#fde8e8','Obsoleto':'#f5d5d5',
+    'Menos de 15 días':'#fff3cd','Menos de 1 Mes':'#fff3cd',
+    'Menos de 2 Meses':'#fff3cd','Menos de 3 Meses':'#fff3cd',
+    'Menos de 4 Meses':'#fff9e8','Menos de 5 Meses':'#fff9e8'
+  };
+
+  tbody.innerHTML = filtrados.map(function(d, i){
+    var bg = i%2===0 ? '' : 'background:var(--bg3)';
+    var est = d.estado||'—';
+    var estBadge = '<span style="background:'+(estadoBg[est]||'#f0f0f0')+';color:'+(estadoColors[est]||'#666')+';border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">'+est+'</span>';
+    var idBadge  = d.cambioIdentidad==='SI'
+      ? '<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">✓ Sí</span>'
+      : '<span style="color:var(--tx3);font-size:10px">—</span>';
+    var carBadge = d.cambioCargos==='SI'
+      ? '<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">✓ Sí</span>'
+      : '<span style="color:var(--tx3);font-size:10px">—</span>';
+    return '<tr style="'+bg+'">'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);font-family:monospace;font-weight:700;color:var(--T3);font-size:10px">'+( d.codigoActual||'')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx);max-width:280px">'+( d.descripcion||'')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx2);font-size:10px">'+( d.areaGeneradora||'')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx3);text-align:center">v'+( d.version||'')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd)">'+estBadge+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+idBadge+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+carBadge+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ── Exportar Excel con formato Listado Maestro ───────────────────────────────
+function dcpExportarCambiosXLSX(){
+  var tab = _dcpCambioTabActiva || 'identidad';
+  var tabLabels = {
+    identidad: 'Identidad Corporativa',
+    cargos:    'Cargos Gerente-Director',
+    ambos:     'Ambos Cambios',
+    pendientes:'Sin Marcar'
+  };
+  var filtrados = _dcpGetFiltered(tab);
+  filtrados.sort(function(a,b){ return (a.codigoActual||'').localeCompare(b.codigoActual||''); });
+
+  if(!filtrados.length){ toast('Sin documentos en esta categoría','er'); return; }
+
+  var today = new Date();
+  var fechaHoy = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  // Estilos idénticos al generarExcelLM
+  var S_TITLE={font:{name:'Calibri',sz:13,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'006860'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  var S_SUB  ={font:{name:'Calibri',sz:10,color:{rgb:'D0F0EC'}},          fill:{fgColor:{rgb:'009B8D'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center'}};
+  var S_MLBL ={font:{name:'Calibri',sz:8,bold:true,color:{rgb:'006860'}}, fill:{fgColor:{rgb:'F5F9F9'},patternType:'solid'},alignment:{horizontal:'left',vertical:'center'}};
+  var S_MVAL ={font:{name:'Calibri',sz:8,color:{rgb:'336666'}},           fill:{fgColor:{rgb:'F5F9F9'},patternType:'solid'},alignment:{horizontal:'left',vertical:'center'}};
+  var S_HDR  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'009B8D'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true},
+               border:{top:{style:'thin',color:{rgb:'FFFFFF'}},bottom:{style:'thin',color:{rgb:'FFFFFF'}},left:{style:'thin',color:{rgb:'FFFFFF'}},right:{style:'thin',color:{rgb:'FFFFFF'}}}};
+  var bd={top:{style:'thin',color:{rgb:'C8DEDE'}},bottom:{style:'thin',color:{rgb:'C8DEDE'}},left:{style:'thin',color:{rgb:'C8DEDE'}},right:{style:'thin',color:{rgb:'C8DEDE'}}};
+  var S_CELL_W={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'FFFFFF'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_CELL_A={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'F0F4F3'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_VENC ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'856404'}},fill:{fgColor:{rgb:'FFF3CD'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_ID   ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'5B21B6'}},fill:{fgColor:{rgb:'EDE9FE'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_CAR  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'0369A1'}},fill:{fgColor:{rgb:'E0F2FE'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_NO   ={font:{name:'Calibri',sz:9,color:{rgb:'888888'}},          fill:{fgColor:{rgb:'FAFAFA'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+
+  // Columnas
+  var cols = [
+    {h:'Código Actual',              key:'codigoActual',      w:16},
+    {h:'Nombre del Documento',       key:'descripcion',       w:44},
+    {h:'Versión',                    key:'version',           w:9},
+    {h:'Tipo de Documento',          key:'tipoDocumento',     w:20},
+    {h:'Área Generadora',            key:'areaGeneradora',    w:24},
+    {h:'Proceso',                    key:'proceso',           w:22},
+    {h:'Administrador',              key:'administrador',     w:26},
+    {h:'Fecha Vigencia',             key:'fechaVigencia',     w:14},
+    {h:'Fecha Vencimiento',          key:'fechaVencimiento',  w:14},
+    {h:'Estado',                     key:'estado',            w:16},
+    {h:'Identidad Corporativa',      key:'cambioIdentidad',   w:20},
+    {h:'Cargos Gerente/Director',    key:'cambioCargos',      w:20}
+  ];
+  var NC = cols.length;
+
+  var aoa = [];
+
+  // Fila 0: Título
+  var r0 = [{v:'LISTADO DE CAMBIOS APLICADOS — '+tabLabels[tab].toUpperCase(),t:'s',s:S_TITLE}];
+  for(var ci=1;ci<NC;ci++) r0.push({v:'',t:'s',s:S_TITLE});
+  aoa.push(r0);
+
+  // Fila 1: Subtítulo
+  var r1 = [{v:'Listado Maestro LM-0019 — Filtro: '+tabLabels[tab]+' — '+fechaHoy,t:'s',s:S_SUB}];
+  for(var ci=1;ci<NC;ci++) r1.push({v:'',t:'s',s:S_SUB});
+  aoa.push(r1);
+
+  // Fila 2: Metadata
+  var r2=[]; for(var ci=0;ci<NC;ci++) r2.push({v:'',t:'s',s:S_MVAL});
+  var mPairs=[['Código:','LM-0019'],['Versión:','00'],['Fecha:',fechaHoy],['Documentos:',String(filtrados.length)]];
+  var mStep=Math.max(1,Math.floor(NC/mPairs.length));
+  mPairs.forEach(function(p,mi){var c0=mi*mStep;if(c0<NC)r2[c0]={v:p[0],t:'s',s:S_MLBL};if(c0+1<NC)r2[c0+1]={v:p[1],t:'s',s:S_MVAL};});
+  aoa.push(r2);
+
+  // Fila 3: Encabezados
+  aoa.push(cols.map(function(c){ return {v:c.h,t:'s',s:S_HDR}; }));
+
+  // Filas de datos
+  filtrados.forEach(function(d,ri){
+    var alt = ri%2===1;
+    var baseS = d.estado==='Vencido' ? S_VENC : alt ? S_CELL_A : S_CELL_W;
+    var row = cols.map(function(c){
+      if(c.key==='cambioIdentidad'){
+        var v = d.cambioIdentidad==='SI' ? 'SI' : 'NO';
+        return {v:v,t:'s',s:d.cambioIdentidad==='SI'?S_ID:S_NO};
+      }
+      if(c.key==='cambioCargos'){
+        var v = d.cambioCargos==='SI' ? 'SI' : 'NO';
+        return {v:v,t:'s',s:d.cambioCargos==='SI'?S_CAR:S_NO};
+      }
+      return {v:String(d[c.key]||''),t:'s',s:baseS};
+    });
+    aoa.push(row);
+  });
+
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:NC-1}},{s:{r:1,c:0},e:{r:1,c:NC-1}}];
+  ws['!cols']   = cols.map(function(c){ return {wch:c.w}; });
+  ws['!rows']   = [{hpt:34},{hpt:22},{hpt:18},{hpt:28}].concat(filtrados.map(function(){ return {hpt:16}; }));
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:3,c:0},e:{r:3,c:NC-1}})};
+  XLSX.utils.book_append_sheet(wb, ws, 'Cambios');
+
+  var fname = 'LM-0019_Cambios_'+tabLabels[tab].replace(/[^a-zA-Z0-9]/g,'_')+'_'+fechaHoy+'.xlsx';
+  try{
+    XLSX.writeFile(wb, fname, {cellStyles:true});
+    toast('✅ Excel descargado: '+fname,'ok');
+    logA(currentUser?currentUser.nombre:'Sistema','Descarga','Listado Cambios Docs ('+tab+'): '+filtrados.length+' docs');
+  }catch(e){
+    toast('Error al descargar: '+e.message,'er'); console.error(e);
+  }
+}
+
 /* ── Abrir palette ──────────────────────────────── */
 function dcpOpen(){
   var ov=document.getElementById('dcp-overlay');
@@ -20403,10 +20664,15 @@ function rbRenderCambiosTabla(tab){
   }).join('');
 }
 
-// ── Exportar CSV del listado de cambios ─────────────────────────────────────
+// ── Exportar Excel (formato Listado Maestro) — Ruta de Borrador ─────────────
 function rbExportarCambiosCSV(){
   var tab = _rbCambioTabActiva || 'identidad';
-  var labels = {identidad:'Identidad_Corporativa',cargos:'Cargos_Gerente_Director',ambos:'Ambos_Cambios',pendientes:'Sin_Marcar'};
+  var tabLabels = {
+    identidad: 'Identidad Corporativa',
+    cargos:    'Cargos Gerente-Director',
+    ambos:     'Ambos Cambios',
+    pendientes:'Sin Marcar'
+  };
 
   var lmDocs = (docs||[]).filter(function(d){
     return !(d.obsoleto&&String(d.obsoleto).trim().toLowerCase()==='si') &&
@@ -20419,37 +20685,110 @@ function rbExportarCambiosCSV(){
     if(!sols.length) return null;
     return sols.sort(function(a,b){return (parseInt(b.consecutivo)||0)-(parseInt(a.consecutivo)||0);})[0];
   }
-  var rows = lmDocs.map(function(d){
-    var sol=rbUltimaSol(d.codigoActual);
-    return {
-      codigo:    d.codigoActual||'',
-      nombre:    d.descripcion||'',
-      area:      d.areaGeneradora||'',
-      version:   d.version||'',
-      identidad: sol&&sol.cambioIdentidad==='SI' ? 'SI' : 'NO',
-      cargos:    sol&&sol.cambioCargos==='SI'    ? 'SI' : 'NO',
-      estadoRB:  sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : 'Sin solicitud'
-    };
+
+  // Obtener filas según tab activo
+  var filtrados;
+  if(tab==='identidad')
+    filtrados = lmDocs.filter(function(d){ var s=rbUltimaSol(d.codigoActual); return s&&s.cambioIdentidad==='SI'; });
+  else if(tab==='cargos')
+    filtrados = lmDocs.filter(function(d){ var s=rbUltimaSol(d.codigoActual); return s&&s.cambioCargos==='SI'; });
+  else if(tab==='ambos')
+    filtrados = lmDocs.filter(function(d){ var s=rbUltimaSol(d.codigoActual); return s&&s.cambioIdentidad==='SI'&&s.cambioCargos==='SI'; });
+  else
+    filtrados = lmDocs.filter(function(d){ var s=rbUltimaSol(d.codigoActual); return !s||(s.cambioIdentidad!=='SI'&&s.cambioCargos!=='SI'); });
+
+  filtrados.sort(function(a,b){ return (a.codigoActual||'').localeCompare(b.codigoActual||''); });
+
+  if(!filtrados.length){ toast('Sin documentos en esta categoría','er'); return; }
+
+  var today = new Date();
+  var fechaHoy = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  // Estilos idénticos al Listado Maestro
+  var S_TITLE={font:{name:'Calibri',sz:13,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'006860'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  var S_SUB  ={font:{name:'Calibri',sz:10,color:{rgb:'D0F0EC'}},          fill:{fgColor:{rgb:'009B8D'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center'}};
+  var S_MLBL ={font:{name:'Calibri',sz:8,bold:true,color:{rgb:'006860'}}, fill:{fgColor:{rgb:'F5F9F9'},patternType:'solid'},alignment:{horizontal:'left',vertical:'center'}};
+  var S_MVAL ={font:{name:'Calibri',sz:8,color:{rgb:'336666'}},           fill:{fgColor:{rgb:'F5F9F9'},patternType:'solid'},alignment:{horizontal:'left',vertical:'center'}};
+  var S_HDR  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'009B8D'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true},
+               border:{top:{style:'thin',color:{rgb:'FFFFFF'}},bottom:{style:'thin',color:{rgb:'FFFFFF'}},left:{style:'thin',color:{rgb:'FFFFFF'}},right:{style:'thin',color:{rgb:'FFFFFF'}}}};
+  var bd={top:{style:'thin',color:{rgb:'C8DEDE'}},bottom:{style:'thin',color:{rgb:'C8DEDE'}},left:{style:'thin',color:{rgb:'C8DEDE'}},right:{style:'thin',color:{rgb:'C8DEDE'}}};
+  var S_CELL_W={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'FFFFFF'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_CELL_A={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'F0F4F3'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_VENC ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'856404'}},fill:{fgColor:{rgb:'FFF3CD'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_ID   ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'5B21B6'}},fill:{fgColor:{rgb:'EDE9FE'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_CAR  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'0369A1'}},fill:{fgColor:{rgb:'E0F2FE'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_NO   ={font:{name:'Calibri',sz:9,color:{rgb:'888888'}},          fill:{fgColor:{rgb:'FAFAFA'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_RB   ={font:{name:'Calibri',sz:9,color:{rgb:'92400E'}},          fill:{fgColor:{rgb:'FEF3C7'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+
+  var cols = [
+    {h:'Código',                    w:16},
+    {h:'Nombre del Documento',      w:44},
+    {h:'Área Generadora',           w:24},
+    {h:'Versión LM',                w:10},
+    {h:'Estado LM',                 w:16},
+    {h:'Identidad Corporativa',     w:20},
+    {h:'Cargos Gerente/Director',   w:20},
+    {h:'Estado en Ruta de Borrador',w:24}
+  ];
+  var NC = cols.length;
+  var aoa = [];
+
+  // Título
+  var r0=[{v:'LISTADO DE CAMBIOS APLICADOS — '+tabLabels[tab].toUpperCase(),t:'s',s:S_TITLE}];
+  for(var ci=1;ci<NC;ci++) r0.push({v:'',t:'s',s:S_TITLE});
+  aoa.push(r0);
+
+  // Subtítulo
+  var r1=[{v:'Ruta de Borrador — Listado Maestro LM-0019 — Filtro: '+tabLabels[tab]+' — '+fechaHoy,t:'s',s:S_SUB}];
+  for(var ci=1;ci<NC;ci++) r1.push({v:'',t:'s',s:S_SUB});
+  aoa.push(r1);
+
+  // Metadata
+  var r2=[]; for(var ci=0;ci<NC;ci++) r2.push({v:'',t:'s',s:S_MVAL});
+  var mPairs=[['Código:','LM-0019'],['Versión:','00'],['Fecha:',fechaHoy],['Documentos:',String(filtrados.length)]];
+  var mStep=Math.max(1,Math.floor(NC/mPairs.length));
+  mPairs.forEach(function(p,mi){var c0=mi*mStep;if(c0<NC)r2[c0]={v:p[0],t:'s',s:S_MLBL};if(c0+1<NC)r2[c0+1]={v:p[1],t:'s',s:S_MVAL};});
+  aoa.push(r2);
+
+  // Encabezados
+  aoa.push(cols.map(function(c){ return {v:c.h,t:'s',s:S_HDR}; }));
+
+  // Datos
+  filtrados.forEach(function(d,ri){
+    var sol = rbUltimaSol(d.codigoActual);
+    var alt = ri%2===1;
+    var baseS = d.estado==='Vencido' ? S_VENC : alt ? S_CELL_A : S_CELL_W;
+    var idVal  = sol&&sol.cambioIdentidad==='SI' ? 'SI' : 'NO';
+    var carVal = sol&&sol.cambioCargos==='SI'    ? 'SI' : 'NO';
+    var rbEst  = sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : 'Sin solicitud';
+    aoa.push([
+      {v:d.codigoActual||'',   t:'s',s:baseS},
+      {v:d.descripcion||'',    t:'s',s:baseS},
+      {v:d.areaGeneradora||'', t:'s',s:baseS},
+      {v:d.version||'',        t:'s',s:baseS},
+      {v:d.estado||'',         t:'s',s:baseS},
+      {v:idVal,                t:'s',s:idVal==='SI'?S_ID:S_NO},
+      {v:carVal,               t:'s',s:carVal==='SI'?S_CAR:S_NO},
+      {v:rbEst,                t:'s',s:sol?S_RB:baseS}
+    ]);
   });
 
-  var filtrados;
-  if(tab==='identidad')   filtrados=rows.filter(function(r){return r.identidad==='SI';});
-  else if(tab==='cargos') filtrados=rows.filter(function(r){return r.cargos==='SI';});
-  else if(tab==='ambos')  filtrados=rows.filter(function(r){return r.identidad==='SI'&&r.cargos==='SI';});
-  else                    filtrados=rows.filter(function(r){return r.identidad==='NO'&&r.cargos==='NO';});
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges']     = [{s:{r:0,c:0},e:{r:0,c:NC-1}},{s:{r:1,c:0},e:{r:1,c:NC-1}}];
+  ws['!cols']       = cols.map(function(c){ return {wch:c.w}; });
+  ws['!rows']       = [{hpt:34},{hpt:22},{hpt:18},{hpt:28}].concat(filtrados.map(function(){ return {hpt:16}; }));
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:3,c:0},e:{r:3,c:NC-1}})};
+  XLSX.utils.book_append_sheet(wb, ws, 'Cambios RB');
 
-  var bom='\uFEFF';
-  var hdr='C\u00f3digo,Nombre del Documento,\u00c1rea,Versi\u00f3n LM,Identidad Corporativa,Cargos Gerente/Director,Estado RB\n';
-  var body=filtrados.map(function(r){
-    return [r.codigo,'"'+r.nombre.replace(/"/g,'""')+'"','"'+r.area.replace(/"/g,'""')+'"',r.version,r.identidad,r.cargos,r.estadoRB].join(',');
-  }).join('\n');
-  var blob=new Blob([bom+hdr+body],{type:'text/csv;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url; a.download='Cambios_'+labels[tab]+'_'+new Date().toISOString().slice(0,10)+'.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  toast('✅ CSV exportado','ok');
+  var fname = 'LM-0019_RB_Cambios_'+tabLabels[tab].replace(/[^a-zA-Z0-9]/g,'_')+'_'+fechaHoy+'.xlsx';
+  try{
+    XLSX.writeFile(wb, fname, {cellStyles:true});
+    toast('✅ Excel descargado: '+fname,'ok');
+    logA(currentUser?currentUser.nombre:'Sistema','Descarga','Listado Cambios RB ('+tab+'): '+filtrados.length+' docs');
+  }catch(e){
+    toast('Error al descargar: '+e.message,'er'); console.error(e);
+  }
 }
 
 function rbRenderList(filtrados){
