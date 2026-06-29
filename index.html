@@ -4319,6 +4319,8 @@ function dcpRenderDetailPanel(d){
             + '<span style="'+dcpBadgeStyle(d.estado)+';border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">'+(d.estado||'—')+'</span>'
             + (gxpSi ? '<span style="background:#e8f0fb;color:#1a5fa0;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">GxP</span>' : '')
             + '<span style="font-size:10px;color:var(--tx3);background:var(--bg4);padding:2px 8px;border-radius:99px">v'+(dcpFv(d.version)||'—')+'</span>'
+            + (d.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">\uD83C\uDFE2 Identidad</span>':'')
+            + (d.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">\uD83D\uDC54 Cargos</span>':'')
           + '</div>'
           // ── Barra de estado Ruta de Borrador ──
           + (function(){
@@ -4391,17 +4393,104 @@ function dcpRenderDetailPanel(d){
 
   panel.innerHTML = html;
 }
+// ── Fuente única de verdad: cambios sincronizados entre docs[] y solicitudes[] ─
+// Regla:
+//  • docs[].cambioIdentidad / docs[].cambioCargos  → fuente para Listado Maestro
+//  • solicitudes[].cambioIdentidad / cambioCargos  → reflejo (se lee para RB)
+//  • Al marcar en cualquier lado se actualiza AMBOS
+
+// ── Sincronización masiva al cargar: RB → docs[] ────────────────────────────
+// Si en RB hay marcas pero el doc en LM no las tiene, las hereda automáticamente.
+// Si el doc tiene marcas pero RB no, las propaga hacia RB.
+function _sincronizarCambiosDesdeSolicitudes(){
+  if(!solicitudes||!docs) return;
+  var changed = false;
+  // Para cada solicitud con alguna marca, buscar el doc correspondiente
+  (solicitudes||[]).forEach(function(s){
+    if(!s.codigo) return;
+    var cod = s.codigo.toUpperCase().trim();
+    var d = (docs||[]).find(function(x){
+      return (x.codigoActual||'').toUpperCase().trim()===cod;
+    });
+    if(!d) return;
+    // RB → doc (RB manda si doc no tiene la marca)
+    if(s.cambioIdentidad==='SI' && d.cambioIdentidad!=='SI'){
+      d.cambioIdentidad='SI'; changed=true;
+    }
+    if(s.cambioCargos==='SI' && d.cambioCargos!=='SI'){
+      d.cambioCargos='SI'; changed=true;
+    }
+    // doc → RB (doc manda si RB no tiene la marca)
+    if(d.cambioIdentidad==='SI' && s.cambioIdentidad!=='SI'){
+      s.cambioIdentidad='SI'; changed=true;
+    }
+    if(d.cambioCargos==='SI' && s.cambioCargos!=='SI'){
+      s.cambioCargos='SI'; changed=true;
+    }
+  });
+  if(changed){
+    saveDocs(docs);
+    saveArr('sol',solicitudes);
+    console.log('[CAMBIOS] Sincronización RB ↔ docs completada');
+  }
+}
+
+function _cambioSyncDoc(codigo, campo, valor){
+  // 1. Actualizar en docs[]
+  var d = (docs||[]).find(function(x){
+    return (x.codigoActual||'').toUpperCase().trim() === (codigo||'').toUpperCase().trim();
+  });
+  if(d){
+    d[campo] = valor;
+    saveDocs(docs);
+  }
+  // 2. Actualizar en TODAS las solicitudes de RB con ese código
+  var updated = false;
+  (solicitudes||[]).forEach(function(s){
+    if((s.codigo||'').toUpperCase().trim() === (codigo||'').toUpperCase().trim()){
+      s[campo] = valor;
+      updated = true;
+    }
+  });
+  if(updated) saveArr('sol', solicitudes);
+}
+
+function _cambioSyncSol(codigo, campo, valor){
+  // igual que _cambioSyncDoc pero en el otro sentido
+  _cambioSyncDoc(codigo, campo, valor);
+}
+
+// ── Al crear un nuevo doc: heredar flags de solicitudes[] existentes ──────────
+function _cambioHeredarDeSolicitudes(codigo){
+  if(!codigo) return {};
+  var cod = codigo.toUpperCase().trim();
+  // Buscar la solicitud más reciente con ese código
+  var sols = (solicitudes||[]).filter(function(s){
+    return (s.codigo||'').toUpperCase().trim() === cod;
+  });
+  if(!sols.length) return {};
+  sols.sort(function(a,b){ return (parseInt(b.consecutivo)||0)-(parseInt(a.consecutivo)||0); });
+  var s = sols[0];
+  return {
+    cambioIdentidad: s.cambioIdentidad==='SI' ? 'SI' : '',
+    cambioCargos:    s.cambioCargos==='SI'    ? 'SI' : ''
+  };
+}
+
 // ── Toggle cambio identidad/cargos en documento ─────────────────────────────
 function dcpToggleCambio(docId, tipo, checked){
   var d = docs.find(function(x){ return x.id===docId; });
   if(!d){ toast('Documento no encontrado','er'); return; }
   var campo = tipo==='identidad' ? 'cambioIdentidad' : 'cambioCargos';
-  d[campo] = checked ? 'SI' : '';
-  saveDocs(docs);
+  var valor = checked ? 'SI' : '';
   var etiqueta = tipo==='identidad' ? 'Cambio Identidad Corporativa' : 'Cambio Cargos (Gerente/Director)';
+  // Sincronizar en docs[] Y en solicitudes[] del mismo código
+  _cambioSyncDoc(d.codigoActual, campo, valor);
   logA(currentUser?currentUser.nombre:'Sistema','Cambio marcado',
     d.codigoActual+' — '+(checked?'✓ Marcado: ':'✗ Desmarcado: ')+etiqueta);
   toast((checked?'✓ Marcado: ':'✗ Desmarcado: ')+etiqueta,'ok');
+  // Re-renderizar el detalle para mostrar badges actualizados
+  if(d) dcpRenderDetailPanel(d);
 }
 
 // ── Abrir modal listado comparativo (Documentos) ─────────────────────────────
@@ -4659,6 +4748,12 @@ function dcpShowPaletteDoc(d){
       +(dcpFv(d.codigoAntiguo)?'<div style="font-size:9px;color:var(--tx3);margin-bottom:4px">Ant: '+d.codigoAntiguo+'</div>':'')
       +'<div class="dcp-det-name">'+d.descripcion+'</div>'
       +(dcpFv(d.descriptionEn)?'<div class="dcp-det-en">'+d.descriptionEn+'</div>':'')
+      +(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'
+        ?'<div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">'
+          +(d.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px">\uD83C\uDFE2 Identidad Corporativa</span>':'')
+          +(d.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px">\uD83D\uDC54 Cargos</span>':'')
+          +'</div>'
+        :'')
       +'<div class="dcp-status-row" style="margin-top:8px">'
         +'<span style="'+dcpBadgeStyle(d.estado)+';border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">'+(d.estado||'—')+'</span>'
         +(gxpSi?'<span style="background:#e8f0fb;color:#1a5fa0;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">GxP</span>':'')
@@ -4786,7 +4881,27 @@ function lmEsMbr(d){var v=String(d.mbr||'').toUpperCase().trim();return v==='X'|
 function lmEsGxp(d){var v=String(d.docGxP||'').toUpperCase().trim();return v==='X'||v==='GXP'||v==='SI'||v==='SÍ';}
 function lmPoblarAdministradores(){var sel=document.getElementById('lm-f-adm');if(!sel)return;var actual=sel.value,set={};(docsEmpresa()||[]).forEach(function(d){var a=(d.administrador||'').trim();if(a)set[a]=1;});var adms=Object.keys(set).sort();sel.innerHTML='<option value="">Administrador: Todos</option>';adms.forEach(function(a){var op=document.createElement('option');op.value=a;op.textContent=a;if(a===actual)op.selected=true;sel.appendChild(op);});}
 function lmFiltrar(){var q=((document.getElementById('lm-srch-nombre')||{}).value||'').toLowerCase().trim();var fMbr=((document.getElementById('lm-f-mbr')||{}).value||'');var fGxp=((document.getElementById('lm-f-gxp')||{}).value||'');var fAdm=((document.getElementById('lm-f-adm')||{}).value||'');var fEst=((document.getElementById('lm-f-est')||{}).value||'');var clr=document.getElementById('lm-srch-clear');if(clr)clr.style.display=q?'inline':'none';if(!q&&!fMbr&&!fGxp&&!fAdm&&!fEst){lmLimpiarResultados();return;}var hoy=new Date();hoy.setHours(0,0,0,0);var hMs=hoy.getTime();var res=(docsEmpresa()||[]).filter(function(d){if(q&&((d.codigoActual||'')+(d.descripcion||'')+(d.codigoAntiguo||'')).toLowerCase().indexOf(q)<0)return false;if(fMbr==='si'&&!lmEsMbr(d))return false;if(fMbr==='no'&&lmEsMbr(d))return false;if(fGxp==='si'&&!lmEsGxp(d))return false;if(fGxp==='no'&&lmEsGxp(d))return false;if(fAdm&&(d.administrador||'').trim()!==fAdm)return false;if(fEst){var di=d.fechaVencimiento?Math.round((new Date(d.fechaVencimiento+'T00:00:00').getTime()-hMs)/86400000):9999;var est=d.estado==='Obsoleto'?'Obsoleto':di<0?'Vencido':di<=30?'Por vencer':'Vigente';if(est!==fEst)return false;}return true;});res.sort(function(a,b){return(a.codigoActual||'').localeCompare(b.codigoActual||'');});var cnt=document.getElementById('lm-result-count');if(cnt)cnt.textContent=res.length+' resultado'+(res.length!==1?'s':'');lmRenderResultados(res);}
-function lmRenderResultados(lista){var cont=document.getElementById('lm-resultados');if(!cont)return;cont.style.display='block';if(!lista.length){cont.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">Sin documentos que coincidan</div>';return;}var hoy=new Date();hoy.setHours(0,0,0,0);var hMs=hoy.getTime();var frag=document.createDocumentFragment();lista.slice(0,200).forEach(function(d){var di=d.fechaVencimiento?Math.round((new Date(d.fechaVencimiento+'T00:00:00').getTime()-hMs)/86400000):null;var estC=d.estado==='Obsoleto'?'#A32D2D':di===null?'var(--tx3)':di<0?'#A32D2D':di<=30?'#854F0B':'#0F6E56';var estL=d.estado==='Obsoleto'?'Obsoleto':di===null?'—':di<0?'Vencido':di<=30?'Por vencer':'Vigente';var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border-bottom:1px solid var(--brd)';row.onmouseover=function(){this.style.background='var(--bg3)';};row.onmouseout=function(){this.style.background='';};row.onclick=function(){lmSeleccionar(d.id);};var cd=document.createElement('div');cd.style.cssText='min-width:110px;font-family:monospace;font-size:11px;font-weight:700;color:var(--T3)';cd.textContent=d.codigoActual;var nd=document.createElement('div');nd.style.cssText='flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nd.title=d.descripcion;nd.textContent=d.descripcion;var st=document.createElement('span');st.style.cssText='font-size:10px;color:'+estC+';font-weight:600;white-space:nowrap;flex-shrink:0';st.textContent=estL;var bd=document.createElement('div');bd.style.cssText='display:flex;gap:5px;flex-shrink:0';var bE=document.createElement('button');bE.className='btn gh sm';bE.style.cssText='font-size:10px;padding:3px 9px';bE.textContent='Editar';bE.onclick=function(e){e.stopPropagation();editDoc(d.id);};var bV=document.createElement('button');bV.className='btn sm';bV.style.cssText='font-size:10px;padding:3px 9px';bV.textContent='Ver';bV.onclick=function(e){e.stopPropagation();lmSeleccionar(d.id);};bd.appendChild(bE);bd.appendChild(bV);row.appendChild(cd);row.appendChild(nd);row.appendChild(st);row.appendChild(bd);frag.appendChild(row);});cont.innerHTML='';cont.appendChild(frag);}
+function lmRenderResultados(lista){var cont=document.getElementById('lm-resultados');if(!cont)return;cont.style.display='block';if(!lista.length){cont.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">Sin documentos que coincidan</div>';return;}var hoy=new Date();hoy.setHours(0,0,0,0);var hMs=hoy.getTime();var frag=document.createDocumentFragment();lista.slice(0,200).forEach(function(d){var di=d.fechaVencimiento?Math.round((new Date(d.fechaVencimiento+'T00:00:00').getTime()-hMs)/86400000):null;var estC=d.estado==='Obsoleto'?'#A32D2D':di===null?'var(--tx3)':di<0?'#A32D2D':di<=30?'#854F0B':'#0F6E56';var estL=d.estado==='Obsoleto'?'Obsoleto':di===null?'—':di<0?'Vencido':di<=30?'Por vencer':'Vigente';var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border-bottom:1px solid var(--brd)';row.onmouseover=function(){this.style.background='var(--bg3)';};row.onmouseout=function(){this.style.background='';};row.onclick=function(){lmSeleccionar(d.id);};var cd=document.createElement('div');cd.style.cssText='min-width:110px;font-family:monospace;font-size:11px;font-weight:700;color:var(--T3)';cd.textContent=d.codigoActual;var nd=document.createElement('div');nd.style.cssText='flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nd.title=d.descripcion;nd.textContent=d.descripcion;var st=document.createElement('span');st.style.cssText='font-size:10px;color:'+estC+';font-weight:600;white-space:nowrap;flex-shrink:0';st.textContent=estL;var bd=document.createElement('div');bd.style.cssText='display:flex;gap:5px;flex-shrink:0';var bE=document.createElement('button');bE.className='btn gh sm';bE.style.cssText='font-size:10px;padding:3px 9px';bE.textContent='Editar';bE.onclick=function(e){e.stopPropagation();editDoc(d.id);};var bV=document.createElement('button');bV.className='btn sm';bV.style.cssText='font-size:10px;padding:3px 9px';bV.textContent='Ver';bV.onclick=function(e){e.stopPropagation();lmSeleccionar(d.id);};bd.appendChild(bE);bd.appendChild(bV);// Badges de cambios aplicados
+if(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'){
+  var bgs=document.createElement('div');
+  bgs.style.cssText='display:flex;gap:3px;flex-shrink:0';
+  if(d.cambioIdentidad==='SI'){
+    var bId=document.createElement('span');
+    bId.style.cssText='background:#ede9fe;color:#7c3aed;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap';
+    bId.textContent='🏢 Identidad';
+    bgs.appendChild(bId);
+  }
+  if(d.cambioCargos==='SI'){
+    var bCar=document.createElement('span');
+    bCar.style.cssText='background:#e0f2fe;color:#0284c7;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap';
+    bCar.textContent='👔 Cargos';
+    bgs.appendChild(bCar);
+  }
+  row.appendChild(cd);row.appendChild(nd);row.appendChild(bgs);row.appendChild(st);row.appendChild(bd);
+} else {
+  row.appendChild(cd);row.appendChild(nd);row.appendChild(st);row.appendChild(bd);
+}
+frag.appendChild(row);});cont.innerHTML='';cont.appendChild(frag);}
 function lmSeleccionar(id){var d=docs.find(function(x){return x.id===id;});if(d)dcpSelectByCod(d.codigoActual);}
 function lmLimpiarResultados(){var c=document.getElementById('lm-resultados');if(c){c.style.display='none';c.innerHTML='';}var n=document.getElementById('lm-result-count');if(n)n.textContent='';}
 function lmLimpiarFiltros(){['lm-srch-nombre','lm-f-mbr','lm-f-gxp','lm-f-adm','lm-f-est'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var c=document.getElementById('lm-srch-clear');if(c)c.style.display='none';lmLimpiarResultados();}
@@ -5253,9 +5368,20 @@ function _saveDocOriginal() {
   } else {
     var _cUsr = currentUser?currentUser.nombre||currentUser.login:'Sistema';
     var _cHistorial = [{f:fTS(new Date()), c:'Creación del documento v'+data.version, u:_cUsr}];
+    // Heredar cambioIdentidad / cambioCargos de solicitudes de Ruta de Borrador
+    // para que el doc nazca ya marcado si RB lo tenía registrado
+    var _cambiosHeredados = _cambioHeredarDeSolicitudes(cod);
+    if(_cambiosHeredados.cambioIdentidad==='SI')
+      data.cambioIdentidad='SI';
+    if(_cambiosHeredados.cambioCargos==='SI')
+      data.cambioCargos='SI';
     docs.push(Object.assign({id:Date.now()}, data, {historial:_cHistorial, flujo:null}));
-    logA(_cUsr,'Creacion',cod+' - '+desc);
-    toast('Documento creado');
+    logA(_cUsr,'Creacion',cod+' - '+desc
+      +(_cambiosHeredados.cambioIdentidad==='SI'?' [↓ Identidad Corporativa heredado de RB]':'')
+      +(_cambiosHeredados.cambioCargos==='SI'?' [↓ Cargos heredado de RB]':''));
+    toast('Documento creado'
+      +(_cambiosHeredados.cambioIdentidad==='SI'||_cambiosHeredados.cambioCargos==='SI'
+        ?' — cambios de RB heredados automáticamente':''));
     window._docEmailCtx={accion:'creacion', verAnterior:'', verNueva: data.version};
   }
   rbActualizarOficializacion(cod); // auto-oficializar si estaba En proceso
@@ -16880,6 +17006,11 @@ async function odCargarListado(){
     setTimeout(function(){ window._odRecienCargado=false; }, 30000);
     recalcLC(); recalcEstados(); renderDash(); updBadges(); populateFiltros();
     if(typeof renderDocs==='function') renderDocs();
+    // Sincronizar cambioIdentidad/cambioCargos desde solicitudes[] hacia docs[]
+    // para que al recargar, los docs reflejen lo marcado en RB aunque no se haya editado el doc
+    setTimeout(function(){
+      try{ _sincronizarCambiosDesdeSolicitudes(); }catch(e){}
+    }, 500);
     if(typeof renderCopias==='function') renderCopias();
     if(typeof renderTablaProg==='function') renderTablaProg();
     if(typeof checkInspAlerts==='function') checkInspAlerts();
@@ -20540,10 +20671,11 @@ function rbRender(){
 function rbToggleCambio(consecutivo, tipo, checked){
   var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
   if(!s){toast('Solicitud no encontrada','er');return;}
-  var campo = tipo==='identidad' ? 'cambioIdentidad' : 'cambioCargos';
-  s[campo] = checked ? 'SI' : '';
-  saveArr('sol', solicitudes);
-  var etiqueta = tipo==='identidad' ? 'Cambio Identidad Corporativa' : 'Cambio Cargos (Gerente/Director)';
+  var campo   = tipo==='identidad' ? 'cambioIdentidad' : 'cambioCargos';
+  var valor   = checked ? 'SI' : '';
+  var etiqueta= tipo==='identidad' ? 'Cambio Identidad Corporativa' : 'Cambio Cargos (Gerente/Director)';
+  // Sincronizar en solicitudes[] Y en docs[] del mismo código
+  _cambioSyncSol(s.codigo, campo, valor);
   logA(currentUser?currentUser.nombre:'Sistema',
     'Cambio marcado',
     '#'+consecutivo+' — '+s.codigo+' — '+(checked?'✓ Marcado: ':'✗ Desmarcado: ')+etiqueta);
