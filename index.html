@@ -21049,6 +21049,9 @@ function rbRenderDetail(s){
       +(!info.esOfic&&!info.esFirma&&!info.esRechazo
         ?'<button class="btn sm" style="background:var(--A);color:#fff;border-color:var(--A)" onclick="rbAprobar(\''+s.consecutivo+'\')">✏️ Aprobar → Proceso de firma</button>'
         :'')
+      +(info.esFirma&&!info.esOfic
+        ?'<button class="btn sm" style="background:#ea580c;color:#fff;border-color:#ea580c" onclick="rbRevertirARevision(\''+s.consecutivo+'\')" title="Quitar de proceso de firma y volver a En revisión">↩ Revertir a En revisión</button>'
+        :'')
       +(!info.esOfic
         ?'<button class="btn sm" style="background:var(--T);color:#fff" onclick="rbAbrirOficializar('+s.consecutivo+')">✅ Oficializar</button>'
         :'')
@@ -21207,6 +21210,28 @@ function rbAprobar(consecutivo){
   toast('Solicitud #'+consecutivo+' marcada como En proceso de firma','ok');
   rbRender();
   if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);}
+}
+
+function rbRevertirARevision(consecutivo){
+  var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s) return;
+  var info=rbEstadoInfo(s);
+  if(!info.esFirma){toast('La solicitud no está en proceso de firma','er');return;}
+  if(!confirm('¿Revertir la solicitud #'+consecutivo+' a "En revisión"?\nPodrá volver a marcarla como En proceso de firma cuando sea necesario.')) return;
+  s.estatus='En revisión';
+  s.estadoOficializacion='En revisión';
+  s.fechaEntregaFirma=''; // limpiar fecha de entrega a firma
+  saveArr('sol',solicitudes);
+  logA(currentUser?currentUser.nombre:'Usuario','Reversión estado',
+    'Solicitud #'+consecutivo+' — '+s.codigo+' | '+s.nombreDoc+' → Revertida a En revisión',
+    'Estaba en: En proceso de firma',
+    'Ruta de Borrador');
+  toast('↩ Solicitud #'+consecutivo+' revertida a En revisión','ok');
+  rbRender();
+  if(window.OD&&OD.fileHandle&&OD.syncActivo){
+    if(OD.saveTimer)clearTimeout(OD.saveTimer);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+  }
 }
 
 function rbToggleAcc(id){var el=document.getElementById(id);if(el)el.classList.toggle('rb-open');}
