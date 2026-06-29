@@ -2053,8 +2053,9 @@ tbody tr:last-child td{border-bottom:none}
           <div style="font-size:15px;font-weight:700;color:var(--tx)">📋 Ruta de Borrador</div>
           <div style="font-size:11px;color:var(--tx3);margin-top:1px">Consulta y gestión de solicitudes de documentos en proceso</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span id="rb-contador" style="font-size:11px;color:var(--tx3);font-weight:600"></span>
+          <button class="btn sm" style="background:#7c3aed;color:#fff;white-space:nowrap" onclick="rbAbrirListadoCambios()" title="Ver listado comparativo de cambios vs Listado Maestro">📊 Listado de Cambios</button>
           <button class="btn gh sm" onclick="rbLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
         </div>
       </div>
@@ -2092,6 +2093,53 @@ tbody tr:last-child td{border-bottom:none}
     <input type="hidden" id="rb-pg-num" value="1">
     <!-- hidden compat -->
     <div style="display:none"><div class="rb-accordion" id="rb-accordion"></div></div>
+
+    <!-- Modal: Listado Comparativo de Cambios -->
+    <div id="rb-mo-cambios" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:12px;padding:0;width:900px;max-width:97vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.28)">
+        <!-- Header -->
+        <div style="padding:18px 22px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--tx)">📊 Listado Comparativo de Cambios Aplicados</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">Documentos marcados con cambio de Identidad Corporativa y/o Cargos vs Listado Maestro (sin obsoletos)</div>
+          </div>
+          <button class="btn gh sm" onclick="document.getElementById('rb-mo-cambios').style.display='none'">✕ Cerrar</button>
+        </div>
+        <!-- Tabs + Stats -->
+        <div style="padding:12px 22px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button id="rb-tab-identidad" class="btn sm" style="background:#7c3aed;color:#fff" onclick="rbCambioTab('identidad')">🏢 Identidad Corporativa</button>
+          <button id="rb-tab-cargos" class="btn gh sm" onclick="rbCambioTab('cargos')">👔 Cargos Gerente/Director</button>
+          <button id="rb-tab-ambos" class="btn gh sm" onclick="rbCambioTab('ambos')">🔀 Ambos cambios</button>
+          <button id="rb-tab-pendientes" class="btn gh sm" onclick="rbCambioTab('pendientes')">⏳ Sin marcar (pendientes)</button>
+          <span id="rb-cambios-stats" style="margin-left:auto;font-size:11px;color:var(--tx3);font-weight:600"></span>
+        </div>
+        <!-- Table -->
+        <div style="overflow-y:auto;flex:1;padding:0 22px 16px">
+          <table id="rb-cambios-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:12px">
+            <thead>
+              <tr style="background:var(--bg3);position:sticky;top:0;z-index:1">
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Código</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Nombre del Documento</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Área</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Versión LM</th>
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#7c3aed">🏢 Identidad</th>
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#0284c7">👔 Cargos</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Estado RB</th>
+              </tr>
+            </thead>
+            <tbody id="rb-cambios-body"></tbody>
+          </table>
+          <div id="rb-cambios-empty" style="display:none;padding:32px;text-align:center;color:var(--tx3);font-size:12px">
+            Sin documentos en esta categoría.
+          </div>
+        </div>
+        <!-- Footer -->
+        <div style="padding:12px 22px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn sm" style="background:#059669;color:#fff" onclick="rbExportarCambiosCSV()">⬇️ Exportar CSV</button>
+          <button class="btn gh sm" onclick="document.getElementById('rb-mo-cambios').style.display='none'">Cerrar</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal Oficializar -->
     <div id="rb-mo-ofic" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
@@ -20037,7 +20085,8 @@ var RB_COLS = [
   'descripcionModif','criticidadResultado','criticidadConclusion',
   'estatus','fechaRevIni','fechaRevFin','fechaEntregaFirma',
   'fechaOficializacion','fechaActListado','fechaIntranet',
-  'estadoOficializacion','correoUsuario','retiroRuta'
+  'estadoOficializacion','correoUsuario','retiroRuta',
+  'cambioIdentidad','cambioCargos'   // Nuevas columnas de seguimiento de cambios
 ];
 
 // Leer hoja Solicitudes_de_Usuarios del Excel
@@ -20096,7 +20145,8 @@ function rbEscribirHoja(wb){
      'Estatus de la solicitud','Fecha De Revisión Inicial Del Doc','Fecha De Revisión Final Del Doc',
      'Fecha De Entrega Del Documento En Firma Fisica o por Adobe Singn','Fecha De Oficialización',
      'Fecha De Actualización En Listado Maestro','Fecha De Colocación Del Documento En Intranet',
-     'Estado De oficialización','Correo De Usuarios','Retiro De Ruta']
+     'Estado De oficialización','Correo De Usuarios','Retiro De Ruta',
+     'Cambio Identidad Corporativa','Cambio Cargos (Gerente/Director)']
   )];
   solicitudes.forEach(function(s,i){
     var row=[i+2];
@@ -20225,6 +20275,183 @@ function rbRender(){
   }
 }
 
+// ── Toggle cambio identidad/cargos desde checkbox ──────────────────────────
+function rbToggleCambio(consecutivo, tipo, checked){
+  var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s){toast('Solicitud no encontrada','er');return;}
+  var campo = tipo==='identidad' ? 'cambioIdentidad' : 'cambioCargos';
+  s[campo] = checked ? 'SI' : '';
+  saveArr('sol', solicitudes);
+  var etiqueta = tipo==='identidad' ? 'Cambio Identidad Corporativa' : 'Cambio Cargos (Gerente/Director)';
+  logA(currentUser?currentUser.nombre:'Sistema',
+    'Cambio marcado',
+    '#'+consecutivo+' — '+s.codigo+' — '+(checked?'✓ Marcado: ':'✗ Desmarcado: ')+etiqueta);
+  toast((checked?'✓ Marcado: ':'✗ Desmarcado: ')+etiqueta, 'ok');
+  rbRender();
+}
+
+// ── Abrir modal listado comparativo ─────────────────────────────────────────
+var _rbCambioTabActiva = 'identidad';
+
+function rbAbrirListadoCambios(){
+  _rbCambioTabActiva = 'identidad';
+  document.getElementById('rb-mo-cambios').style.display='flex';
+  rbCambioTab('identidad');
+}
+
+function rbCambioTab(tab){
+  _rbCambioTabActiva = tab;
+  // Reset tab buttons
+  ['identidad','cargos','ambos','pendientes'].forEach(function(t){
+    var btn=document.getElementById('rb-tab-'+t);
+    if(!btn) return;
+    btn.style.background = t===tab ? (t==='identidad'?'#7c3aed':t==='cargos'?'#0284c7':t==='ambos'?'#059669':'#92400e') : '';
+    btn.style.color = t===tab ? '#fff' : '';
+    btn.className = t===tab ? 'btn sm' : 'btn gh sm';
+  });
+  rbRenderCambiosTabla(tab);
+}
+
+function rbRenderCambiosTabla(tab){
+  // Obtener docs del Listado Maestro sin obsoletos
+  var lmDocs = (docs||[]).filter(function(d){
+    return !(d.obsoleto&&String(d.obsoleto).trim().toLowerCase()==='si') &&
+           (d.estado||'').toLowerCase()!=='obsoleto';
+  });
+
+  // Obtener el último consecutivo de solicitud por código (para saber estado RB)
+  function rbUltimaSol(codigo){
+    var sols = (solicitudes||[]).filter(function(s){
+      return (s.codigo||'').toUpperCase().trim()===(codigo||'').toUpperCase().trim();
+    });
+    if(!sols.length) return null;
+    return sols.sort(function(a,b){
+      return (parseInt(b.consecutivo)||0)-(parseInt(a.consecutivo)||0);
+    })[0];
+  }
+
+  // Marcar cada doc LM con sus flags de cambio
+  var rows = lmDocs.map(function(d){
+    var sol = rbUltimaSol(d.codigoActual);
+    return {
+      codigo:       d.codigoActual||'',
+      nombre:       d.descripcion||d.nombreDoc||'',
+      area:         d.areaGeneradora||'',
+      version:      d.version||'',
+      identidad:    sol && sol.cambioIdentidad==='SI',
+      cargos:       sol && sol.cambioCargos==='SI',
+      estadoRB:     sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : '—',
+      esOfic:       sol && (sol.estadoOficializacion||'').toLowerCase().indexOf('oficial')>=0
+    };
+  });
+
+  // Filtrar según tab
+  var filtrados;
+  if(tab==='identidad')   filtrados = rows.filter(function(r){return r.identidad;});
+  else if(tab==='cargos') filtrados = rows.filter(function(r){return r.cargos;});
+  else if(tab==='ambos')  filtrados = rows.filter(function(r){return r.identidad && r.cargos;});
+  else                    filtrados = rows.filter(function(r){return !r.identidad && !r.cargos;});
+
+  // Ordenar por código
+  filtrados.sort(function(a,b){return a.codigo.localeCompare(b.codigo);});
+
+  // Stats
+  var totalLM = lmDocs.length;
+  var cntId   = rows.filter(function(r){return r.identidad;}).length;
+  var cntCar  = rows.filter(function(r){return r.cargos;}).length;
+  var cntAmb  = rows.filter(function(r){return r.identidad&&r.cargos;}).length;
+  var cntPend = rows.filter(function(r){return !r.identidad&&!r.cargos;}).length;
+  var statsEl = document.getElementById('rb-cambios-stats');
+  if(statsEl) statsEl.innerHTML =
+    'LM total: <strong>'+totalLM+'</strong> &nbsp;|&nbsp; '+
+    '🏢 Identidad: <strong style="color:#7c3aed">'+cntId+'</strong> &nbsp;|&nbsp; '+
+    '👔 Cargos: <strong style="color:#0284c7">'+cntCar+'</strong> &nbsp;|&nbsp; '+
+    '🔀 Ambos: <strong style="color:#059669">'+cntAmb+'</strong> &nbsp;|&nbsp; '+
+    '⏳ Pendientes: <strong style="color:#92400e">'+cntPend+'</strong>';
+
+  var tbody = document.getElementById('rb-cambios-body');
+  var empty = document.getElementById('rb-cambios-empty');
+  if(!tbody) return;
+
+  if(!filtrados.length){
+    tbody.innerHTML='';
+    if(empty) empty.style.display='block';
+    return;
+  }
+  if(empty) empty.style.display='none';
+
+  tbody.innerHTML = filtrados.map(function(r, i){
+    var bg = i%2===0 ? '' : 'background:var(--bg3)';
+    var idBadge = r.identidad
+      ? '<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">✓ Sí</span>'
+      : '<span style="color:var(--tx3);font-size:10px">—</span>';
+    var carBadge = r.cargos
+      ? '<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">✓ Sí</span>'
+      : '<span style="color:var(--tx3);font-size:10px">—</span>';
+    var estadoBadge = r.estadoRB==='—'
+      ? '<span style="color:var(--tx3);font-size:10px">Sin solicitud</span>'
+      : '<span style="background:'+(r.esOfic?'#d1fae5':'#fef3c7')+';color:'+(r.esOfic?'#065f46':'#92400e')+';border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">'+(r.esOfic?'✅ ':'📋 ')+r.estadoRB+'</span>';
+    return '<tr style="'+bg+'">'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);font-family:monospace;font-weight:700;color:var(--T3);font-size:10px">'+r.codigo+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx);max-width:280px">'+r.nombre+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx2);font-size:10px">'+r.area+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx3);text-align:center">'+r.version+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+idBadge+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+carBadge+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd)">'+estadoBadge+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ── Exportar CSV del listado de cambios ─────────────────────────────────────
+function rbExportarCambiosCSV(){
+  var tab = _rbCambioTabActiva || 'identidad';
+  var labels = {identidad:'Identidad_Corporativa',cargos:'Cargos_Gerente_Director',ambos:'Ambos_Cambios',pendientes:'Sin_Marcar'};
+
+  var lmDocs = (docs||[]).filter(function(d){
+    return !(d.obsoleto&&String(d.obsoleto).trim().toLowerCase()==='si') &&
+           (d.estado||'').toLowerCase()!=='obsoleto';
+  });
+  function rbUltimaSol(codigo){
+    var sols=(solicitudes||[]).filter(function(s){
+      return (s.codigo||'').toUpperCase().trim()===(codigo||'').toUpperCase().trim();
+    });
+    if(!sols.length) return null;
+    return sols.sort(function(a,b){return (parseInt(b.consecutivo)||0)-(parseInt(a.consecutivo)||0);})[0];
+  }
+  var rows = lmDocs.map(function(d){
+    var sol=rbUltimaSol(d.codigoActual);
+    return {
+      codigo:    d.codigoActual||'',
+      nombre:    d.descripcion||'',
+      area:      d.areaGeneradora||'',
+      version:   d.version||'',
+      identidad: sol&&sol.cambioIdentidad==='SI' ? 'SI' : 'NO',
+      cargos:    sol&&sol.cambioCargos==='SI'    ? 'SI' : 'NO',
+      estadoRB:  sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : 'Sin solicitud'
+    };
+  });
+
+  var filtrados;
+  if(tab==='identidad')   filtrados=rows.filter(function(r){return r.identidad==='SI';});
+  else if(tab==='cargos') filtrados=rows.filter(function(r){return r.cargos==='SI';});
+  else if(tab==='ambos')  filtrados=rows.filter(function(r){return r.identidad==='SI'&&r.cargos==='SI';});
+  else                    filtrados=rows.filter(function(r){return r.identidad==='NO'&&r.cargos==='NO';});
+
+  var bom='\uFEFF';
+  var hdr='C\u00f3digo,Nombre del Documento,\u00c1rea,Versi\u00f3n LM,Identidad Corporativa,Cargos Gerente/Director,Estado RB\n';
+  var body=filtrados.map(function(r){
+    return [r.codigo,'"'+r.nombre.replace(/"/g,'""')+'"','"'+r.area.replace(/"/g,'""')+'"',r.version,r.identidad,r.cargos,r.estadoRB].join(',');
+  }).join('\n');
+  var blob=new Blob([bom+hdr+body],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='Cambios_'+labels[tab]+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✅ CSV exportado','ok');
+}
+
 function rbRenderList(filtrados){
   var listEl=document.getElementById('rb-split-list-body');
   if(!listEl) return;
@@ -20344,7 +20571,8 @@ function rbRenderDetail(s){
         +fi('Retiro de ruta',s.retiroRuta)
       +'</div>'
     +'</div>'
-    // ── ACTIONS ──
+    // ── CAMBIOS DE IDENTIDAD / CARGOS ──
+    +'<div class="rb-det-sec" style="margin:0 0 12px 0;padding:12px 14px;border:1px solid var(--brd);border-radius:8px;background:#f8fafc">'      +'<div class="rb-det-sec-title" style="margin-bottom:8px">🏷️ Seguimiento de Cambios Aplicados</div>'      +'<div style="display:flex;gap:24px;flex-wrap:wrap">'        +'<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          +'<input type="checkbox" id="rb-chk-identidad" '+(s.cambioIdentidad==='SI'?'checked':'')+' onchange="rbToggleCambio(\''+s.consecutivo+'\',\'identidad\',this.checked)" style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer">'          +'<span>🏢 Cambio Identidad Corporativa</span>'        +'</label>'        +'<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          +'<input type="checkbox" id="rb-chk-cargos" '+(s.cambioCargos==='SI'?'checked':'')+' onchange="rbToggleCambio(\''+s.consecutivo+'\',\'cargos\',this.checked)" style="width:16px;height:16px;accent-color:#0284c7;cursor:pointer">'          +'<span>👔 Cambio Cargos (Gerente/Director)</span>'        +'</label>'      +'</div>'      +(s.cambioIdentidad==='SI'||s.cambioCargos==='SI'        ?'<div style="margin-top:8px;font-size:10px;color:var(--tx3)">'          +(s.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:2px 7px;margin-right:5px;font-weight:700">✓ Identidad Corporativa</span>':'')          +(s.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:2px 7px;font-weight:700">✓ Cargos Gerente/Director</span>':'')        +'</div>'        :'')    +'</div>'    // ── ACTIONS ──
     +'<div class="rb-det-actions">'
       +'<button class="btn gh sm" onclick="rbVerDetalle('+s.consecutivo+')">👁 Ver detalle completo</button>'
       +(!info.esOfic&&!info.esFirma&&!info.esRechazo
