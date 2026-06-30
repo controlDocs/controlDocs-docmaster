@@ -903,6 +903,7 @@ tbody tr:last-child td{border-bottom:none}
           <button id="dcp-tab-identidad" class="btn sm" style="background:#7c3aed;color:#fff" onclick="dcpCambioTab('identidad')">🏢 Identidad Corporativa</button>
           <button id="dcp-tab-cargos"    class="btn gh sm" onclick="dcpCambioTab('cargos')">👔 Cargos Gerente/Director</button>
           <button id="dcp-tab-ambos"     class="btn gh sm" onclick="dcpCambioTab('ambos')">🔀 Ambos cambios</button>
+          <button id="dcp-tab-multisoc" class="btn gh sm" onclick="dcpCambioTab('multisoc')">🏬 Multi-Sociedad</button>
           <button id="dcp-tab-pendientes" class="btn gh sm" onclick="dcpCambioTab('pendientes')">⏳ Sin marcar (pendientes)</button>
           <span id="dcp-cambios-stats" style="margin-left:auto;font-size:11px;color:var(--tx3);font-weight:600"></span>
         </div>
@@ -917,6 +918,7 @@ tbody tr:last-child td{border-bottom:none}
                 <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Estado</th>
                 <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#7c3aed">🏢 Identidad</th>
                 <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#0284c7">👔 Cargos</th>
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#059669">🏬 Multi-Sociedad</th>
               </tr>
             </thead>
             <tbody id="dcp-cambios-body"></tbody>
@@ -2152,6 +2154,7 @@ tbody tr:last-child td{border-bottom:none}
           <button id="rb-tab-identidad" class="btn sm" style="background:#7c3aed;color:#fff" onclick="rbCambioTab('identidad')">🏢 Identidad Corporativa</button>
           <button id="rb-tab-cargos" class="btn gh sm" onclick="rbCambioTab('cargos')">👔 Cargos Gerente/Director</button>
           <button id="rb-tab-ambos" class="btn gh sm" onclick="rbCambioTab('ambos')">🔀 Ambos cambios</button>
+          <button id="rb-tab-multisoc" class="btn gh sm" onclick="rbCambioTab('multisoc')">🏬 Multi-Sociedad</button>
           <button id="rb-tab-pendientes" class="btn gh sm" onclick="rbCambioTab('pendientes')">⏳ Sin marcar (pendientes)</button>
           <span id="rb-cambios-stats" style="margin-left:auto;font-size:11px;color:var(--tx3);font-weight:600"></span>
         </div>
@@ -2166,6 +2169,7 @@ tbody tr:last-child td{border-bottom:none}
                 <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Versión LM</th>
                 <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#7c3aed">🏢 Identidad</th>
                 <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#0284c7">👔 Cargos</th>
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:#059669">🏬 Multi-Soc.</th>
                 <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Estado RB</th>
               </tr>
             </thead>
@@ -4321,6 +4325,7 @@ function dcpRenderDetailPanel(d){
             + '<span style="font-size:10px;color:var(--tx3);background:var(--bg4);padding:2px 8px;border-radius:99px">v'+(dcpFv(d.version)||'—')+'</span>'
             + (d.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">\uD83C\uDFE2 Identidad</span>':'')
             + (d.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">\uD83D\uDC54 Cargos</span>':'')
+            + (d.cambioMultiSociedad==='SI'?'<span style="background:#d1fae5;color:#059669;border-radius:4px;padding:3px 9px;font-size:10px;font-weight:700">\uD83C\uDFEC Multi-Soc.</span>':'')
           + '</div>'
           // ── Barra de estado Ruta de Borrador ──
           + (function(){
@@ -4388,7 +4393,7 @@ function dcpRenderDetailPanel(d){
       + '</div>'
     + '</div>'
     // ── CAMBIOS IDENTIDAD / CARGOS ──
-    + '<div style="padding:12px 18px;border-bottom:1px solid var(--brd);background:#f8fafc">'      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:10px">🏷️ Seguimiento de Cambios Aplicados</div>'      + '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:'+(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'?'8px':'0')+';">'        + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          + '<input type="checkbox" '+(d.cambioIdentidad==='SI'?'checked':'')+' onchange="dcpToggleCambio('+d.id+',\'identidad\',this.checked)" style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer">'          + '<span>🏢 Cambio Identidad Corporativa</span>'        + '</label>'        + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          + '<input type="checkbox" '+(d.cambioCargos==='SI'?'checked':'')+' onchange="dcpToggleCambio('+d.id+',\'cargos\',this.checked)" style="width:16px;height:16px;accent-color:#0284c7;cursor:pointer">'          + '<span>👔 Cambio Cargos (Gerente/Director)</span>'        + '</label>'      + '</div>'      + (d.cambioIdentidad==='SI'||d.cambioCargos==='SI' ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'        + (d.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">✓ Identidad Corporativa</span>':'')        + (d.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">✓ Cargos Gerente/Director</span>':'')        + '</div>' : '')    + '</div>'    // ── HISTORIAL ──
+    + '<div style="padding:12px 18px;border-bottom:1px solid var(--brd);background:#f8fafc">'      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:10px">🏷️ Seguimiento de Cambios Aplicados</div>'      + '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:'+(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'||d.cambioMultiSociedad==='SI'?'8px':'0')+';">'        + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          + '<input type="checkbox" '+(d.cambioIdentidad==='SI'?'checked':'')+' onchange="dcpToggleCambio('+d.id+',\'identidad\',this.checked)" style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer">'          + '<span>🏢 Cambio Identidad Corporativa</span>'        + '</label>'        + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          + '<input type="checkbox" '+(d.cambioCargos==='SI'?'checked':'')+' onchange="dcpToggleCambio('+d.id+',\'cargos\',this.checked)" style="width:16px;height:16px;accent-color:#0284c7;cursor:pointer">'          + '<span>👔 Cambio Cargos (Gerente/Director)</span>'        + '</label>'        + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          + '<input type="checkbox" '+(d.cambioMultiSociedad==='SI'?'checked':'')+' onchange="dcpToggleCambio('+d.id+',\'multisoc\',this.checked)" style="width:16px;height:16px;accent-color:#059669;cursor:pointer">'          + '<span>🏬 Aplica Multi-Sociedad</span>'        + '</label>'      + '</div>'      + (d.cambioIdentidad==='SI'||d.cambioCargos==='SI'||d.cambioMultiSociedad==='SI' ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'        + (d.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">✓ Identidad Corporativa</span>':'')        + (d.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">✓ Cargos Gerente/Director</span>':'')        + (d.cambioMultiSociedad==='SI'?'<span style="background:#d1fae5;color:#059669;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">✓ Multi-Sociedad</span>':'')        + '</div>' : '')    + '</div>'    // ── HISTORIAL ──
     + '<div style="padding:14px 18px">'      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--T);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--tl)">🕐 Historial de cambios</div>'      + histHtml    + '</div>';
 
   panel.innerHTML = html;
@@ -4420,12 +4425,18 @@ function _sincronizarCambiosDesdeSolicitudes(){
     if(s.cambioCargos==='SI' && d.cambioCargos!=='SI'){
       d.cambioCargos='SI'; changed=true;
     }
+    if(s.cambioMultiSociedad==='SI' && d.cambioMultiSociedad!=='SI'){
+      d.cambioMultiSociedad='SI'; changed=true;
+    }
     // doc → RB (doc manda si RB no tiene la marca)
     if(d.cambioIdentidad==='SI' && s.cambioIdentidad!=='SI'){
       s.cambioIdentidad='SI'; changed=true;
     }
     if(d.cambioCargos==='SI' && s.cambioCargos!=='SI'){
       s.cambioCargos='SI'; changed=true;
+    }
+    if(d.cambioMultiSociedad==='SI' && s.cambioMultiSociedad!=='SI'){
+      s.cambioMultiSociedad='SI'; changed=true;
     }
   });
   if(changed){
@@ -4473,7 +4484,8 @@ function _cambioHeredarDeSolicitudes(codigo){
   var s = sols[0];
   return {
     cambioIdentidad: s.cambioIdentidad==='SI' ? 'SI' : '',
-    cambioCargos:    s.cambioCargos==='SI'    ? 'SI' : ''
+    cambioCargos:    s.cambioCargos==='SI'    ? 'SI' : '',
+    cambioMultiSociedad: s.cambioMultiSociedad==='SI' ? 'SI' : ''
   };
 }
 
@@ -4481,9 +4493,9 @@ function _cambioHeredarDeSolicitudes(codigo){
 function dcpToggleCambio(docId, tipo, checked){
   var d = docs.find(function(x){ return x.id===docId; });
   if(!d){ toast('Documento no encontrado','er'); return; }
-  var campo = tipo==='identidad' ? 'cambioIdentidad' : 'cambioCargos';
+  var campo = tipo==='identidad' ? 'cambioIdentidad' : tipo==='cargos' ? 'cambioCargos' : 'cambioMultiSociedad';
   var valor = checked ? 'SI' : '';
-  var etiqueta = tipo==='identidad' ? 'Cambio Identidad Corporativa' : 'Cambio Cargos (Gerente/Director)';
+  var etiqueta = tipo==='identidad' ? 'Cambio Identidad Corporativa' : tipo==='cargos' ? 'Cambio Cargos (Gerente/Director)' : 'Aplica Multi-Sociedad';
   // Sincronizar en docs[] Y en solicitudes[] del mismo código
   _cambioSyncDoc(d.codigoActual, campo, valor);
   logA(currentUser?currentUser.nombre:'Sistema','Cambio marcado',
@@ -4504,8 +4516,8 @@ function dcpAbrirListadoCambios(){
 
 function dcpCambioTab(tab){
   _dcpCambioTabActiva = tab;
-  var colores = {identidad:'#7c3aed', cargos:'#0284c7', ambos:'#059669', pendientes:'#92400e'};
-  ['identidad','cargos','ambos','pendientes'].forEach(function(t){
+  var colores = {identidad:'#7c3aed', cargos:'#0284c7', ambos:'#059669', multisoc:'#059669', pendientes:'#92400e'};
+  ['identidad','cargos','ambos','multisoc','pendientes'].forEach(function(t){
     var btn = document.getElementById('dcp-tab-'+t);
     if(!btn) return;
     btn.style.background = t===tab ? colores[t] : '';
@@ -4522,8 +4534,9 @@ function _dcpGetFiltered(tab){
   });
   if(tab==='identidad')   return lmDocs.filter(function(d){ return d.cambioIdentidad==='SI'; });
   if(tab==='cargos')      return lmDocs.filter(function(d){ return d.cambioCargos==='SI'; });
+  if(tab==='multisoc')    return lmDocs.filter(function(d){ return d.cambioMultiSociedad==='SI'; });
   if(tab==='ambos')       return lmDocs.filter(function(d){ return d.cambioIdentidad==='SI' && d.cambioCargos==='SI'; });
-  return lmDocs.filter(function(d){ return d.cambioIdentidad!=='SI' && d.cambioCargos!=='SI'; });
+  return lmDocs.filter(function(d){ return d.cambioIdentidad!=='SI' && d.cambioCargos!=='SI' && d.cambioMultiSociedad!=='SI'; });
 }
 
 function dcpRenderCambiosTabla(tab){
@@ -4533,14 +4546,16 @@ function dcpRenderCambiosTabla(tab){
   });
   var cntId   = lmDocs.filter(function(d){ return d.cambioIdentidad==='SI'; }).length;
   var cntCar  = lmDocs.filter(function(d){ return d.cambioCargos==='SI'; }).length;
+  var cntMs   = lmDocs.filter(function(d){ return d.cambioMultiSociedad==='SI'; }).length;
   var cntAmb  = lmDocs.filter(function(d){ return d.cambioIdentidad==='SI'&&d.cambioCargos==='SI'; }).length;
-  var cntPend = lmDocs.filter(function(d){ return d.cambioIdentidad!=='SI'&&d.cambioCargos!=='SI'; }).length;
+  var cntPend = lmDocs.filter(function(d){ return d.cambioIdentidad!=='SI'&&d.cambioCargos!=='SI'&&d.cambioMultiSociedad!=='SI'; }).length;
 
   var statsEl = document.getElementById('dcp-cambios-stats');
   if(statsEl) statsEl.innerHTML =
     'LM total: <strong>'+lmDocs.length+'</strong> &nbsp;|&nbsp; '+
     '🏢 Identidad: <strong style="color:#7c3aed">'+cntId+'</strong> &nbsp;|&nbsp; '+
     '👔 Cargos: <strong style="color:#0284c7">'+cntCar+'</strong> &nbsp;|&nbsp; '+
+    '🏬 Multi-Sociedad: <strong style="color:#059669">'+cntMs+'</strong> &nbsp;|&nbsp; '+
     '🔀 Ambos: <strong style="color:#059669">'+cntAmb+'</strong> &nbsp;|&nbsp; '+
     '⏳ Pendientes: <strong style="color:#92400e">'+cntPend+'</strong>';
 
@@ -4582,6 +4597,9 @@ function dcpRenderCambiosTabla(tab){
     var carBadge = d.cambioCargos==='SI'
       ? '<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">✓ Sí</span>'
       : '<span style="color:var(--tx3);font-size:10px">—</span>';
+    var msBadge  = d.cambioMultiSociedad==='SI'
+      ? '<span style="background:#d1fae5;color:#059669;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">✓ Sí</span>'
+      : '<span style="color:var(--tx3);font-size:10px">—</span>';
     return '<tr style="'+bg+'">'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);font-family:monospace;font-weight:700;color:var(--T3);font-size:10px">'+( d.codigoActual||'')+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx);max-width:280px">'+( d.descripcion||'')+'</td>'
@@ -4590,6 +4608,7 @@ function dcpRenderCambiosTabla(tab){
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd)">'+estBadge+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+idBadge+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+carBadge+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+msBadge+'</td>'
       +'</tr>';
   }).join('');
 }
@@ -4600,6 +4619,7 @@ function dcpExportarCambiosXLSX(){
   var tabLabels = {
     identidad: 'Identidad Corporativa',
     cargos:    'Cargos Gerente-Director',
+    multisoc:  'Multi-Sociedad',
     ambos:     'Ambos Cambios',
     pendientes:'Sin Marcar'
   };
@@ -4625,6 +4645,7 @@ function dcpExportarCambiosXLSX(){
   var S_ID   ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'5B21B6'}},fill:{fgColor:{rgb:'EDE9FE'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
   var S_CAR  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'0369A1'}},fill:{fgColor:{rgb:'E0F2FE'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
   var S_NO   ={font:{name:'Calibri',sz:9,color:{rgb:'888888'}},          fill:{fgColor:{rgb:'FAFAFA'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_MS   ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'047857'}},fill:{fgColor:{rgb:'D1FAE5'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
 
   // Columnas
   var cols = [
@@ -4639,7 +4660,8 @@ function dcpExportarCambiosXLSX(){
     {h:'Fecha Vencimiento',          key:'fechaVencimiento',  w:14},
     {h:'Estado',                     key:'estado',            w:16},
     {h:'Identidad Corporativa',      key:'cambioIdentidad',   w:20},
-    {h:'Cargos Gerente/Director',    key:'cambioCargos',      w:20}
+    {h:'Cargos Gerente/Director',    key:'cambioCargos',      w:20},
+    {h:'Aplica Multi-Sociedad',      key:'cambioMultiSociedad',w:20}
   ];
   var NC = cols.length;
 
@@ -4657,7 +4679,7 @@ function dcpExportarCambiosXLSX(){
 
   // Fila 2: Metadata
   var r2=[]; for(var ci=0;ci<NC;ci++) r2.push({v:'',t:'s',s:S_MVAL});
-  var mPairs=[['Código:','LM-0019'],['Versión:','00'],['Fecha:',fechaHoy],['Documentos:',String(filtrados.length)+' (inc. '+filtrados.filter(function(r){return r.esNuevo;}).length+' nuevos)']];
+  var mPairs=[['Código:','LM-0019'],['Versión:','00'],['Fecha:',fechaHoy],['Documentos:',String(filtrados.length)]];
   var mStep=Math.max(1,Math.floor(NC/mPairs.length));
   mPairs.forEach(function(p,mi){var c0=mi*mStep;if(c0<NC)r2[c0]={v:p[0],t:'s',s:S_MLBL};if(c0+1<NC)r2[c0+1]={v:p[1],t:'s',s:S_MVAL};});
   aoa.push(r2);
@@ -4677,6 +4699,10 @@ function dcpExportarCambiosXLSX(){
       if(c.key==='cambioCargos'){
         var v = d.cambioCargos==='SI' ? 'SI' : 'NO';
         return {v:v,t:'s',s:d.cambioCargos==='SI'?S_CAR:S_NO};
+      }
+      if(c.key==='cambioMultiSociedad'){
+        var v = d.cambioMultiSociedad==='SI' ? 'SI' : 'NO';
+        return {v:v,t:'s',s:d.cambioMultiSociedad==='SI'?S_MS:S_NO};
       }
       return {v:String(d[c.key]||''),t:'s',s:baseS};
     });
@@ -4748,10 +4774,11 @@ function dcpShowPaletteDoc(d){
       +(dcpFv(d.codigoAntiguo)?'<div style="font-size:9px;color:var(--tx3);margin-bottom:4px">Ant: '+d.codigoAntiguo+'</div>':'')
       +'<div class="dcp-det-name">'+d.descripcion+'</div>'
       +(dcpFv(d.descriptionEn)?'<div class="dcp-det-en">'+d.descriptionEn+'</div>':'')
-      +(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'
+      +(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'||d.cambioMultiSociedad==='SI'
         ?'<div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">'
           +(d.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px">\uD83C\uDFE2 Identidad Corporativa</span>':'')
           +(d.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px">\uD83D\uDC54 Cargos</span>':'')
+          +(d.cambioMultiSociedad==='SI'?'<span style="background:#d1fae5;color:#059669;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px">\uD83C\uDFEC Multi-Sociedad</span>':'')
           +'</div>'
         :'')
       +'<div class="dcp-status-row" style="margin-top:8px">'
@@ -4882,7 +4909,7 @@ function lmEsGxp(d){var v=String(d.docGxP||'').toUpperCase().trim();return v==='
 function lmPoblarAdministradores(){var sel=document.getElementById('lm-f-adm');if(!sel)return;var actual=sel.value,set={};(docsEmpresa()||[]).forEach(function(d){var a=(d.administrador||'').trim();if(a)set[a]=1;});var adms=Object.keys(set).sort();sel.innerHTML='<option value="">Administrador: Todos</option>';adms.forEach(function(a){var op=document.createElement('option');op.value=a;op.textContent=a;if(a===actual)op.selected=true;sel.appendChild(op);});}
 function lmFiltrar(){var q=((document.getElementById('lm-srch-nombre')||{}).value||'').toLowerCase().trim();var fMbr=((document.getElementById('lm-f-mbr')||{}).value||'');var fGxp=((document.getElementById('lm-f-gxp')||{}).value||'');var fAdm=((document.getElementById('lm-f-adm')||{}).value||'');var fEst=((document.getElementById('lm-f-est')||{}).value||'');var clr=document.getElementById('lm-srch-clear');if(clr)clr.style.display=q?'inline':'none';if(!q&&!fMbr&&!fGxp&&!fAdm&&!fEst){lmLimpiarResultados();return;}var hoy=new Date();hoy.setHours(0,0,0,0);var hMs=hoy.getTime();var res=(docsEmpresa()||[]).filter(function(d){if(q&&((d.codigoActual||'')+(d.descripcion||'')+(d.codigoAntiguo||'')).toLowerCase().indexOf(q)<0)return false;if(fMbr==='si'&&!lmEsMbr(d))return false;if(fMbr==='no'&&lmEsMbr(d))return false;if(fGxp==='si'&&!lmEsGxp(d))return false;if(fGxp==='no'&&lmEsGxp(d))return false;if(fAdm&&(d.administrador||'').trim()!==fAdm)return false;if(fEst){var di=d.fechaVencimiento?Math.round((new Date(d.fechaVencimiento+'T00:00:00').getTime()-hMs)/86400000):9999;var est=d.estado==='Obsoleto'?'Obsoleto':di<0?'Vencido':di<=30?'Por vencer':'Vigente';if(est!==fEst)return false;}return true;});res.sort(function(a,b){return(a.codigoActual||'').localeCompare(b.codigoActual||'');});var cnt=document.getElementById('lm-result-count');if(cnt)cnt.textContent=res.length+' resultado'+(res.length!==1?'s':'');lmRenderResultados(res);}
 function lmRenderResultados(lista){var cont=document.getElementById('lm-resultados');if(!cont)return;cont.style.display='block';if(!lista.length){cont.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px">Sin documentos que coincidan</div>';return;}var hoy=new Date();hoy.setHours(0,0,0,0);var hMs=hoy.getTime();var frag=document.createDocumentFragment();lista.slice(0,200).forEach(function(d){var di=d.fechaVencimiento?Math.round((new Date(d.fechaVencimiento+'T00:00:00').getTime()-hMs)/86400000):null;var estC=d.estado==='Obsoleto'?'#A32D2D':di===null?'var(--tx3)':di<0?'#A32D2D':di<=30?'#854F0B':'#0F6E56';var estL=d.estado==='Obsoleto'?'Obsoleto':di===null?'—':di<0?'Vencido':di<=30?'Por vencer':'Vigente';var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border-bottom:1px solid var(--brd)';row.onmouseover=function(){this.style.background='var(--bg3)';};row.onmouseout=function(){this.style.background='';};row.onclick=function(){lmSeleccionar(d.id);};var cd=document.createElement('div');cd.style.cssText='min-width:110px;font-family:monospace;font-size:11px;font-weight:700;color:var(--T3)';cd.textContent=d.codigoActual;var nd=document.createElement('div');nd.style.cssText='flex:1;font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';nd.title=d.descripcion;nd.textContent=d.descripcion;var st=document.createElement('span');st.style.cssText='font-size:10px;color:'+estC+';font-weight:600;white-space:nowrap;flex-shrink:0';st.textContent=estL;var bd=document.createElement('div');bd.style.cssText='display:flex;gap:5px;flex-shrink:0';var bE=document.createElement('button');bE.className='btn gh sm';bE.style.cssText='font-size:10px;padding:3px 9px';bE.textContent='Editar';bE.onclick=function(e){e.stopPropagation();editDoc(d.id);};var bV=document.createElement('button');bV.className='btn sm';bV.style.cssText='font-size:10px;padding:3px 9px';bV.textContent='Ver';bV.onclick=function(e){e.stopPropagation();lmSeleccionar(d.id);};bd.appendChild(bE);bd.appendChild(bV);// Badges de cambios aplicados
-if(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'){
+if(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'||d.cambioMultiSociedad==='SI'){
   var bgs=document.createElement('div');
   bgs.style.cssText='display:flex;gap:3px;flex-shrink:0';
   if(d.cambioIdentidad==='SI'){
@@ -4896,6 +4923,12 @@ if(d.cambioIdentidad==='SI'||d.cambioCargos==='SI'){
     bCar.style.cssText='background:#e0f2fe;color:#0284c7;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap';
     bCar.textContent='👔 Cargos';
     bgs.appendChild(bCar);
+  }
+  if(d.cambioMultiSociedad==='SI'){
+    var bMs=document.createElement('span');
+    bMs.style.cssText='background:#d1fae5;color:#059669;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap';
+    bMs.textContent='🏬 Multi-Soc.';
+    bgs.appendChild(bMs);
   }
   row.appendChild(cd);row.appendChild(nd);row.appendChild(bgs);row.appendChild(st);row.appendChild(bd);
 } else {
@@ -5368,19 +5401,22 @@ function _saveDocOriginal() {
   } else {
     var _cUsr = currentUser?currentUser.nombre||currentUser.login:'Sistema';
     var _cHistorial = [{f:fTS(new Date()), c:'Creación del documento v'+data.version, u:_cUsr}];
-    // Heredar cambioIdentidad / cambioCargos de solicitudes de Ruta de Borrador
+    // Heredar cambioIdentidad / cambioCargos / cambioMultiSociedad de solicitudes de RB
     // para que el doc nazca ya marcado si RB lo tenía registrado
     var _cambiosHeredados = _cambioHeredarDeSolicitudes(cod);
     if(_cambiosHeredados.cambioIdentidad==='SI')
       data.cambioIdentidad='SI';
     if(_cambiosHeredados.cambioCargos==='SI')
       data.cambioCargos='SI';
+    if(_cambiosHeredados.cambioMultiSociedad==='SI')
+      data.cambioMultiSociedad='SI';
     docs.push(Object.assign({id:Date.now()}, data, {historial:_cHistorial, flujo:null}));
     logA(_cUsr,'Creacion',cod+' - '+desc
       +(_cambiosHeredados.cambioIdentidad==='SI'?' [↓ Identidad Corporativa heredado de RB]':'')
-      +(_cambiosHeredados.cambioCargos==='SI'?' [↓ Cargos heredado de RB]':''));
+      +(_cambiosHeredados.cambioCargos==='SI'?' [↓ Cargos heredado de RB]':'')
+      +(_cambiosHeredados.cambioMultiSociedad==='SI'?' [↓ Multi-Sociedad heredado de RB]':''));
     toast('Documento creado'
-      +(_cambiosHeredados.cambioIdentidad==='SI'||_cambiosHeredados.cambioCargos==='SI'
+      +(_cambiosHeredados.cambioIdentidad==='SI'||_cambiosHeredados.cambioCargos==='SI'||_cambiosHeredados.cambioMultiSociedad==='SI'
         ?' — cambios de RB heredados automáticamente':''));
     window._docEmailCtx={accion:'creacion', verAnterior:'', verNueva: data.version};
   }
@@ -20478,7 +20514,7 @@ var RB_COLS = [
   'estatus','fechaRevIni','fechaRevFin','fechaEntregaFirma',
   'fechaOficializacion','fechaActListado','fechaIntranet',
   'estadoOficializacion','correoUsuario','retiroRuta',
-  'cambioIdentidad','cambioCargos'   // Nuevas columnas de seguimiento de cambios
+  'cambioIdentidad','cambioCargos','cambioMultiSociedad'   // Columnas de seguimiento de cambios
 ];
 
 // Leer hoja Solicitudes_de_Usuarios del Excel
@@ -20538,7 +20574,7 @@ function rbEscribirHoja(wb){
      'Fecha De Entrega Del Documento En Firma Fisica o por Adobe Singn','Fecha De Oficialización',
      'Fecha De Actualización En Listado Maestro','Fecha De Colocación Del Documento En Intranet',
      'Estado De oficialización','Correo De Usuarios','Retiro De Ruta',
-     'Cambio Identidad Corporativa','Cambio Cargos (Gerente/Director)']
+     'Cambio Identidad Corporativa','Cambio Cargos (Gerente/Director)','Aplica Multi-Sociedad']
   )];
   solicitudes.forEach(function(s,i){
     var row=[i+2];
@@ -20671,9 +20707,9 @@ function rbRender(){
 function rbToggleCambio(consecutivo, tipo, checked){
   var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
   if(!s){toast('Solicitud no encontrada','er');return;}
-  var campo   = tipo==='identidad' ? 'cambioIdentidad' : 'cambioCargos';
+  var campo   = tipo==='identidad' ? 'cambioIdentidad' : tipo==='cargos' ? 'cambioCargos' : 'cambioMultiSociedad';
   var valor   = checked ? 'SI' : '';
-  var etiqueta= tipo==='identidad' ? 'Cambio Identidad Corporativa' : 'Cambio Cargos (Gerente/Director)';
+  var etiqueta= tipo==='identidad' ? 'Cambio Identidad Corporativa' : tipo==='cargos' ? 'Cambio Cargos (Gerente/Director)' : 'Aplica Multi-Sociedad';
   // Sincronizar en solicitudes[] Y en docs[] del mismo código
   _cambioSyncSol(s.codigo, campo, valor);
   logA(currentUser?currentUser.nombre:'Sistema',
@@ -20735,10 +20771,11 @@ function _rbDocsUnificados(){
 function rbCambioTab(tab){
   _rbCambioTabActiva = tab;
   // Reset tab buttons
-  ['identidad','cargos','ambos','pendientes'].forEach(function(t){
+  var colores={identidad:'#7c3aed',cargos:'#0284c7',ambos:'#059669',multisoc:'#059669',pendientes:'#92400e'};
+  ['identidad','cargos','ambos','multisoc','pendientes'].forEach(function(t){
     var btn=document.getElementById('rb-tab-'+t);
     if(!btn) return;
-    btn.style.background = t===tab ? (t==='identidad'?'#7c3aed':t==='cargos'?'#0284c7':t==='ambos'?'#059669':'#92400e') : '';
+    btn.style.background = t===tab ? colores[t] : '';
     btn.style.color = t===tab ? '#fff' : '';
     btn.className = t===tab ? 'btn sm' : 'btn gh sm';
   });
@@ -20771,6 +20808,9 @@ function rbRenderCambiosTabla(tab){
     var cargos = d._deSolicitud
       ? d.cambioCargos==='SI'
       : (sol && sol.cambioCargos==='SI') || d.cambioCargos==='SI';
+    var multisoc = d._deSolicitud
+      ? d.cambioMultiSociedad==='SI'
+      : (sol && sol.cambioMultiSociedad==='SI') || d.cambioMultiSociedad==='SI';
     return {
       codigo:    d.codigoActual||'',
       nombre:    d.descripcion||'',
@@ -20778,6 +20818,7 @@ function rbRenderCambiosTabla(tab){
       version:   d.version||'',
       identidad: identidad,
       cargos:    cargos,
+      multisoc:  multisoc,
       estadoRB:  sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : '—',
       esOfic:    sol && (sol.estadoOficializacion||'').toLowerCase().indexOf('oficial')>=0,
       esNuevo:   !!d._deSolicitud
@@ -20788,8 +20829,9 @@ function rbRenderCambiosTabla(tab){
   var filtrados;
   if(tab==='identidad')   filtrados = rows.filter(function(r){return r.identidad;});
   else if(tab==='cargos') filtrados = rows.filter(function(r){return r.cargos;});
+  else if(tab==='multisoc') filtrados = rows.filter(function(r){return r.multisoc;});
   else if(tab==='ambos')  filtrados = rows.filter(function(r){return r.identidad && r.cargos;});
-  else                    filtrados = rows.filter(function(r){return !r.identidad && !r.cargos;});
+  else                    filtrados = rows.filter(function(r){return !r.identidad && !r.cargos && !r.multisoc;});
 
   filtrados.sort(function(a,b){return a.codigo.localeCompare(b.codigo);});
 
@@ -20797,13 +20839,15 @@ function rbRenderCambiosTabla(tab){
   var totalLM = unificados.length;
   var cntId   = rows.filter(function(r){return r.identidad;}).length;
   var cntCar  = rows.filter(function(r){return r.cargos;}).length;
+  var cntMs   = rows.filter(function(r){return r.multisoc;}).length;
   var cntAmb  = rows.filter(function(r){return r.identidad&&r.cargos;}).length;
-  var cntPend = rows.filter(function(r){return !r.identidad&&!r.cargos;}).length;
+  var cntPend = rows.filter(function(r){return !r.identidad&&!r.cargos&&!r.multisoc;}).length;
   var statsEl = document.getElementById('rb-cambios-stats');
   if(statsEl) statsEl.innerHTML =
     'LM total: <strong>'+totalLM+'</strong> &nbsp;|&nbsp; '+
     '🏢 Identidad: <strong style="color:#7c3aed">'+cntId+'</strong> &nbsp;|&nbsp; '+
     '👔 Cargos: <strong style="color:#0284c7">'+cntCar+'</strong> &nbsp;|&nbsp; '+
+    '🏬 Multi-Sociedad: <strong style="color:#059669">'+cntMs+'</strong> &nbsp;|&nbsp; '+
     '🔀 Ambos: <strong style="color:#059669">'+cntAmb+'</strong> &nbsp;|&nbsp; '+
     '⏳ Pendientes: <strong style="color:#92400e">'+cntPend+'</strong>';
 
@@ -20826,6 +20870,9 @@ function rbRenderCambiosTabla(tab){
     var carBadge = r.cargos
       ? '<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">✓ Sí</span>'
       : '<span style="color:var(--tx3);font-size:10px">—</span>';
+    var msBadge = r.multisoc
+      ? '<span style="background:#d1fae5;color:#059669;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700">✓ Sí</span>'
+      : '<span style="color:var(--tx3);font-size:10px">—</span>';
     var estadoBadge = r.estadoRB==='—'
       ? '<span style="color:var(--tx3);font-size:10px">Sin solicitud</span>'
       : '<span style="background:'+(r.esOfic?'#d1fae5':'#fef3c7')+';color:'+(r.esOfic?'#065f46':'#92400e')+';border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">'+(r.esOfic?'✅ ':'📋 ')+r.estadoRB+'</span>';
@@ -20839,6 +20886,7 @@ function rbRenderCambiosTabla(tab){
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx3);text-align:center">'+r.version+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+idBadge+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+carBadge+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+msBadge+'</td>'
       +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd)">'+estadoBadge+'</td>'
       +'</tr>';
   }).join('');
@@ -20850,6 +20898,7 @@ function rbExportarCambiosCSV(){
   var tabLabels = {
     identidad: 'Identidad Corporativa',
     cargos:    'Cargos Gerente-Director',
+    multisoc:  'Multi-Sociedad',
     ambos:     'Ambos Cambios',
     pendientes:'Sin Marcar'
   };
@@ -20874,9 +20923,12 @@ function rbExportarCambiosCSV(){
     var cargos = d._deSolicitud
       ? d.cambioCargos==='SI'
       : (sol&&sol.cambioCargos==='SI') || d.cambioCargos==='SI';
+    var multisoc = d._deSolicitud
+      ? d.cambioMultiSociedad==='SI'
+      : (sol&&sol.cambioMultiSociedad==='SI') || d.cambioMultiSociedad==='SI';
     return {
       d: d, sol: sol,
-      identidad: identidad, cargos: cargos,
+      identidad: identidad, cargos: cargos, multisoc: multisoc,
       esNuevo: !!d._deSolicitud
     };
   });
@@ -20885,8 +20937,9 @@ function rbExportarCambiosCSV(){
   var filtRows;
   if(tab==='identidad')   filtRows = rows.filter(function(r){return r.identidad;});
   else if(tab==='cargos') filtRows = rows.filter(function(r){return r.cargos;});
+  else if(tab==='multisoc') filtRows = rows.filter(function(r){return r.multisoc;});
   else if(tab==='ambos')  filtRows = rows.filter(function(r){return r.identidad&&r.cargos;});
-  else                    filtRows = rows.filter(function(r){return !r.identidad&&!r.cargos;});
+  else                    filtRows = rows.filter(function(r){return !r.identidad&&!r.cargos&&!r.multisoc;});
 
   filtRows.sort(function(a,b){ return (a.d.codigoActual||'').localeCompare(b.d.codigoActual||''); });
   var filtrados = filtRows; // alias para el bloque de escritura
@@ -20911,6 +20964,7 @@ function rbExportarCambiosCSV(){
   var S_CAR  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'0369A1'}},fill:{fgColor:{rgb:'E0F2FE'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
   var S_NO   ={font:{name:'Calibri',sz:9,color:{rgb:'888888'}},          fill:{fgColor:{rgb:'FAFAFA'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
   var S_RB   ={font:{name:'Calibri',sz:9,color:{rgb:'92400E'}},          fill:{fgColor:{rgb:'FEF3C7'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_MS   ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'047857'}},fill:{fgColor:{rgb:'D1FAE5'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
 
   var cols = [
     {h:'Código',                    w:16},
@@ -20920,6 +20974,7 @@ function rbExportarCambiosCSV(){
     {h:'Estado LM',                 w:16},
     {h:'Identidad Corporativa',     w:20},
     {h:'Cargos Gerente/Director',   w:20},
+    {h:'Aplica Multi-Sociedad',     w:20},
     {h:'Estado en Ruta de Borrador',w:24}
   ];
   var NC = cols.length;
@@ -20955,6 +21010,7 @@ function rbExportarCambiosCSV(){
     if(row.esNuevo) baseS = {font:{name:'Calibri',sz:9,color:{rgb:'78350F'}},fill:{fgColor:{rgb:'FFFBEB'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
     var idVal  = row.identidad ? 'SI' : 'NO';
     var carVal = row.cargos    ? 'SI' : 'NO';
+    var msVal  = row.multisoc  ? 'SI' : 'NO';
     var rbEst  = sol ? (sol.estadoOficializacion||sol.estatus||'En proceso') : 'Sin solicitud';
     var estadoVal = row.esNuevo ? 'Nuevo (en RB)' : (d.estado||'');
     aoa.push([
@@ -20965,6 +21021,7 @@ function rbExportarCambiosCSV(){
       {v:estadoVal,            t:'s',s:baseS},
       {v:idVal,                t:'s',s:idVal==='SI'?S_ID:S_NO},
       {v:carVal,               t:'s',s:carVal==='SI'?S_CAR:S_NO},
+      {v:msVal,                t:'s',s:msVal==='SI'?S_MS:S_NO},
       {v:rbEst,                t:'s',s:sol?S_RB:baseS}
     ]);
   });
@@ -21107,7 +21164,7 @@ function rbRenderDetail(s){
       +'</div>'
     +'</div>'
     // ── CAMBIOS DE IDENTIDAD / CARGOS ──
-    +'<div class="rb-det-sec" style="margin:0 0 12px 0;padding:12px 14px;border:1px solid var(--brd);border-radius:8px;background:#f8fafc">'      +'<div class="rb-det-sec-title" style="margin-bottom:8px">🏷️ Seguimiento de Cambios Aplicados</div>'      +'<div style="display:flex;gap:24px;flex-wrap:wrap">'        +'<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          +'<input type="checkbox" id="rb-chk-identidad" '+(s.cambioIdentidad==='SI'?'checked':'')+' onchange="rbToggleCambio(\''+s.consecutivo+'\',\'identidad\',this.checked)" style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer">'          +'<span>🏢 Cambio Identidad Corporativa</span>'        +'</label>'        +'<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          +'<input type="checkbox" id="rb-chk-cargos" '+(s.cambioCargos==='SI'?'checked':'')+' onchange="rbToggleCambio(\''+s.consecutivo+'\',\'cargos\',this.checked)" style="width:16px;height:16px;accent-color:#0284c7;cursor:pointer">'          +'<span>👔 Cambio Cargos (Gerente/Director)</span>'        +'</label>'      +'</div>'      +(s.cambioIdentidad==='SI'||s.cambioCargos==='SI'        ?'<div style="margin-top:8px;font-size:10px;color:var(--tx3)">'          +(s.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:2px 7px;margin-right:5px;font-weight:700">✓ Identidad Corporativa</span>':'')          +(s.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:2px 7px;font-weight:700">✓ Cargos Gerente/Director</span>':'')        +'</div>'        :'')    +'</div>'    // ── ACTIONS ──
+    +'<div class="rb-det-sec" style="margin:0 0 12px 0;padding:12px 14px;border:1px solid var(--brd);border-radius:8px;background:#f8fafc">'      +'<div class="rb-det-sec-title" style="margin-bottom:8px">🏷️ Seguimiento de Cambios Aplicados</div>'      +'<div style="display:flex;gap:24px;flex-wrap:wrap">'        +'<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          +'<input type="checkbox" id="rb-chk-identidad" '+(s.cambioIdentidad==='SI'?'checked':'')+' onchange="rbToggleCambio(\''+s.consecutivo+'\',\'identidad\',this.checked)" style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer">'          +'<span>🏢 Cambio Identidad Corporativa</span>'        +'</label>'        +'<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          +'<input type="checkbox" id="rb-chk-cargos" '+(s.cambioCargos==='SI'?'checked':'')+' onchange="rbToggleCambio(\''+s.consecutivo+'\',\'cargos\',this.checked)" style="width:16px;height:16px;accent-color:#0284c7;cursor:pointer">'          +'<span>👔 Cambio Cargos (Gerente/Director)</span>'        +'</label>'        +'<label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--tx)">'          +'<input type="checkbox" id="rb-chk-multisoc" '+(s.cambioMultiSociedad==='SI'?'checked':'')+' onchange="rbToggleCambio(\''+s.consecutivo+'\',\'multisoc\',this.checked)" style="width:16px;height:16px;accent-color:#059669;cursor:pointer">'          +'<span>🏬 Aplica Multi-Sociedad</span>'        +'</label>'      +'</div>'      +(s.cambioIdentidad==='SI'||s.cambioCargos==='SI'||s.cambioMultiSociedad==='SI'        ?'<div style="margin-top:8px;font-size:10px;color:var(--tx3)">'          +(s.cambioIdentidad==='SI'?'<span style="background:#ede9fe;color:#7c3aed;border-radius:4px;padding:2px 7px;margin-right:5px;font-weight:700">✓ Identidad Corporativa</span>':'')          +(s.cambioCargos==='SI'?'<span style="background:#e0f2fe;color:#0284c7;border-radius:4px;padding:2px 7px;margin-right:5px;font-weight:700">✓ Cargos Gerente/Director</span>':'')          +(s.cambioMultiSociedad==='SI'?'<span style="background:#d1fae5;color:#059669;border-radius:4px;padding:2px 7px;font-weight:700">✓ Multi-Sociedad</span>':'')        +'</div>'        :'')    +'</div>'    // ── ACTIONS ──
     +'<div class="rb-det-actions">'
       +'<button class="btn gh sm" onclick="rbVerDetalle('+s.consecutivo+')">👁 Ver detalle completo</button>'
       +(!info.esOfic&&!info.esFirma&&!info.esRechazo
