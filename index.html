@@ -2100,6 +2100,7 @@ tbody tr:last-child td{border-bottom:none}
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span id="rb-contador" style="font-size:11px;color:var(--tx3);font-weight:600"></span>
           <button class="btn sm" style="background:#7c3aed;color:#fff;white-space:nowrap" onclick="rbAbrirListadoCambios()" title="Ver listado comparativo de cambios vs Listado Maestro">📊 Listado de Cambios</button>
+          <button id="rb-btn-antiguedad" class="btn sm" style="background:#dc2626;color:#fff;white-space:nowrap;position:relative" onclick="rbAbrirAlertaAntiguedad()" title="Solicitudes con 1, 2 o 3 meses sin oficializar">⏰ Alerta Antigüedad <span id="rb-antiguedad-badge" style="display:none;background:#fff;color:#dc2626;border-radius:99px;padding:0 6px;font-size:10px;font-weight:800;margin-left:4px"></span></button>
           <button class="btn gh sm" onclick="rbLimpiarFiltros()" style="white-space:nowrap">✕ Limpiar</button>
         </div>
       </div>
@@ -2183,6 +2184,55 @@ tbody tr:last-child td{border-bottom:none}
         <div style="padding:12px 22px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end">
           <button class="btn sm" style="background:#1e7145;color:#fff" onclick="rbExportarCambiosCSV()">📥 Descargar Excel</button>
           <button class="btn gh sm" onclick="document.getElementById('rb-mo-cambios').style.display='none'">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Alerta de Antigüedad sin Oficializar -->
+    <div id="rb-mo-antiguedad" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:12px;padding:0;width:980px;max-width:97vw;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.28)">
+        <!-- Header -->
+        <div style="padding:18px 22px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--tx)">⏰ Alerta de Antigüedad — Solicitudes sin Oficializar</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">Solicitudes activas (no oficializadas, no anuladas, no rechazadas) agrupadas por tiempo transcurrido desde la fecha de solicitud</div>
+          </div>
+          <button class="btn gh sm" onclick="document.getElementById('rb-mo-antiguedad').style.display='none'">✕ Cerrar</button>
+        </div>
+        <!-- Tabs + Stats -->
+        <div style="padding:12px 22px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button id="rb-ant-tab-1m" class="btn sm" style="background:#d97706;color:#fff" onclick="rbAntiguedadTab('1m')">🟡 1 Mes</button>
+          <button id="rb-ant-tab-2m" class="btn gh sm" onclick="rbAntiguedadTab('2m')">🟠 2 Meses</button>
+          <button id="rb-ant-tab-3m" class="btn gh sm" onclick="rbAntiguedadTab('3m')">🔴 3 Meses o más</button>
+          <button id="rb-ant-tab-todos" class="btn gh sm" onclick="rbAntiguedadTab('todos')">📋 Todas (1m+)</button>
+          <span id="rb-antiguedad-stats" style="margin-left:auto;font-size:11px;color:var(--tx3);font-weight:600"></span>
+        </div>
+        <!-- Table -->
+        <div style="overflow-y:auto;flex:1;padding:0 22px 16px">
+          <table id="rb-antiguedad-table" style="width:100%;border-collapse:collapse;font-size:11px;margin-top:12px">
+            <thead>
+              <tr style="background:var(--bg3);position:sticky;top:0;z-index:1">
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">#</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Código</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Nombre del Documento</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Solicitante</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Área</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Fecha Solicitud</th>
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Días Transcurridos</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Estado Actual</th>
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--brd);font-weight:700;color:var(--tx3)">Antigüedad</th>
+              </tr>
+            </thead>
+            <tbody id="rb-antiguedad-body"></tbody>
+          </table>
+          <div id="rb-antiguedad-empty" style="display:none;padding:32px;text-align:center;color:var(--tx3);font-size:12px">
+            ✅ Sin solicitudes pendientes en esta categoría.
+          </div>
+        </div>
+        <!-- Footer -->
+        <div style="padding:12px 22px;border-top:1px solid var(--brd);display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn sm" style="background:#1e7145;color:#fff" onclick="rbExportarAntiguedadXLSX()">📥 Descargar Excel</button>
+          <button class="btn gh sm" onclick="document.getElementById('rb-mo-antiguedad').style.display='none'">Cerrar</button>
         </div>
       </div>
     </div>
@@ -20695,6 +20745,9 @@ function rbRender(){
   var cnt=document.getElementById('rb-contador');
   if(cnt) cnt.textContent=filtrados.length+' solicitud'+(filtrados.length!==1?'es':'');
 
+  // Actualizar badge de alerta de antigüedad
+  if(typeof rbActualizarBadgeAntiguedad==='function') rbActualizarBadgeAntiguedad();
+
   rbRenderList(filtrados);
   // Re-render detail if active sol still in filtrados
   if(_rbActiveSol){
@@ -21352,6 +21405,225 @@ function rbRevertirARevision(consecutivo){
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer)clearTimeout(OD.saveTimer);
     OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+  }
+}
+
+// ── Alerta de Antigüedad: solicitudes activas sin oficializar ───────────────
+// Calcula días transcurridos desde fechaSolicitud y clasifica en 1/2/3 meses.
+function _rbDiasTranscurridos(fechaStr){
+  if(!fechaStr) return null;
+  var f = new Date(fechaStr+'T00:00:00');
+  if(isNaN(f.getTime())) return null;
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  return Math.round((hoy.getTime()-f.getTime())/86400000);
+}
+
+// Solicitudes activas: no oficializadas, no anuladas, no rechazadas
+function _rbSolicitudesActivasConAntiguedad(){
+  return (solicitudes||[]).map(function(s){
+    var info = rbEstadoInfo(s);
+    var dias = _rbDiasTranscurridos(s.fechaSolicitud);
+    return { s:s, info:info, dias:dias };
+  }).filter(function(r){
+    return !r.info.esOfic && !r.info.esAnulado && !r.info.esRechazo && r.dias!==null && r.dias>=30;
+  }).map(function(r){
+    var meses = r.dias>=90 ? 3 : r.dias>=60 ? 2 : 1;
+    return Object.assign(r, {meses:meses});
+  });
+}
+
+var _rbAntiguedadTabActiva = '1m';
+
+function rbAbrirAlertaAntiguedad(){
+  _rbAntiguedadTabActiva = '1m';
+  document.getElementById('rb-mo-antiguedad').style.display='flex';
+  rbAntiguedadTab('1m');
+}
+
+function rbAntiguedadTab(tab){
+  _rbAntiguedadTabActiva = tab;
+  var colores = {'1m':'#d97706','2m':'#ea580c','3m':'#dc2626','todos':'#374151'};
+  ['1m','2m','3m','todos'].forEach(function(t){
+    var btn=document.getElementById('rb-ant-tab-'+t);
+    if(!btn) return;
+    btn.style.background = t===tab ? colores[t] : '';
+    btn.style.color = t===tab ? '#fff' : '';
+    btn.className = t===tab ? 'btn sm' : 'btn gh sm';
+  });
+  rbRenderAntiguedadTabla(tab);
+}
+
+function rbRenderAntiguedadTabla(tab){
+  var activas = _rbSolicitudesActivasConAntiguedad();
+  var cnt1 = activas.filter(function(r){return r.meses===1;}).length;
+  var cnt2 = activas.filter(function(r){return r.meses===2;}).length;
+  var cnt3 = activas.filter(function(r){return r.meses===3;}).length;
+
+  var statsEl = document.getElementById('rb-antiguedad-stats');
+  if(statsEl) statsEl.innerHTML =
+    'Total con 1m+: <strong>'+activas.length+'</strong> &nbsp;|&nbsp; '+
+    '\uD83D\uDFE1 1 Mes: <strong style="color:#d97706">'+cnt1+'</strong> &nbsp;|&nbsp; '+
+    '\uD83D\uDFE0 2 Meses: <strong style="color:#ea580c">'+cnt2+'</strong> &nbsp;|&nbsp; '+
+    '\uD83D\uDD34 3 Meses+: <strong style="color:#dc2626">'+cnt3+'</strong>';
+
+  var filtrados;
+  if(tab==='1m')        filtrados = activas.filter(function(r){return r.meses===1;});
+  else if(tab==='2m')   filtrados = activas.filter(function(r){return r.meses===2;});
+  else if(tab==='3m')   filtrados = activas.filter(function(r){return r.meses===3;});
+  else                  filtrados = activas.slice();
+
+  filtrados.sort(function(a,b){ return b.dias - a.dias; });
+
+  var tbody = document.getElementById('rb-antiguedad-body');
+  var empty = document.getElementById('rb-antiguedad-empty');
+  if(!tbody) return;
+
+  if(!filtrados.length){
+    tbody.innerHTML = '';
+    if(empty) empty.style.display='block';
+    return;
+  }
+  if(empty) empty.style.display='none';
+
+  tbody.innerHTML = filtrados.map(function(r, i){
+    var s = r.s, info = r.info;
+    var esRojo = r.meses===3;
+    var rowStyle = esRojo ? 'background:#fef2f2' : (i%2===1?'background:var(--bg3)':'');
+    var antLabel = r.meses===3
+      ? '<span style="background:#fecaca;color:#991b1b;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:800">\uD83D\uDD34 3+ meses</span>'
+      : r.meses===2
+      ? '<span style="background:#fed7aa;color:#9a3412;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">\uD83D\uDFE0 2 meses</span>'
+      : '<span style="background:#fef3c7;color:#92400e;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:700">\uD83D\uDFE1 1 mes</span>';
+    var estadoBadge = '<span style="background:'+info.bg+';color:'+info.tc+';border-radius:4px;padding:2px 8px;font-size:10px;font-weight:600">'+info.label+'</span>';
+    var diasTexto = r.dias + ' d\u00edas';
+    var clickAttr = 'onclick="rbVerDetalle('+s.consecutivo+');document.getElementById(\'rb-mo-antiguedad\').style.display=\'none\';" style="cursor:pointer;'+rowStyle+(esRojo?';font-weight:600':'')+'"';
+    return '<tr '+clickAttr+'>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx3);font-size:10px">'+(i+1)+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);font-family:monospace;font-weight:700;color:'+(esRojo?'#991b1b':'var(--T3)')+';font-size:10px">'+(s.codigo||'\u2014')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:'+(esRojo?'#991b1b':'var(--tx)')+';max-width:260px">'+(s.nombreDoc||'\u2014')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx2);font-size:10px">'+(s.solicitante||'\u2014')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx2);font-size:10px">'+(s.areaGeneradora||'\u2014')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);color:var(--tx3);font-size:10px">'+(s.fechaSolicitud||'\u2014')+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center;color:'+(esRojo?'#991b1b':'var(--tx)')+';font-weight:700">'+diasTexto+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd)">'+estadoBadge+'</td>'
+      +'<td style="padding:7px 10px;border-bottom:1px solid var(--brd);text-align:center">'+antLabel+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ── Badge en el bot\u00f3n: muestra el total de solicitudes en alerta (1m+) ──
+function rbActualizarBadgeAntiguedad(){
+  var badge = document.getElementById('rb-antiguedad-badge');
+  if(!badge) return;
+  var activas = _rbSolicitudesActivasConAntiguedad();
+  if(activas.length>0){
+    badge.style.display='inline-block';
+    badge.textContent = activas.length;
+    var cnt3 = activas.filter(function(r){return r.meses===3;}).length;
+    var btn = document.getElementById('rb-btn-antiguedad');
+    if(btn) btn.style.boxShadow = cnt3>0 ? '0 0 0 2px #fecaca' : '';
+  } else {
+    badge.style.display='none';
+    var btn2 = document.getElementById('rb-btn-antiguedad');
+    if(btn2) btn2.style.boxShadow = '';
+  }
+}
+
+// ── Exportar Excel (formato Listado Maestro) \u2014 Alerta de Antig\u00fcedad ──
+function rbExportarAntiguedadXLSX(){
+  var tab = _rbAntiguedadTabActiva || '1m';
+  var tabLabels = { '1m':'1 Mes', '2m':'2 Meses', '3m':'3 Meses o mas', 'todos':'Todas (1 mes o mas)' };
+
+  var activas = _rbSolicitudesActivasConAntiguedad();
+  var filtrados;
+  if(tab==='1m')      filtrados = activas.filter(function(r){return r.meses===1;});
+  else if(tab==='2m') filtrados = activas.filter(function(r){return r.meses===2;});
+  else if(tab==='3m') filtrados = activas.filter(function(r){return r.meses===3;});
+  else                filtrados = activas.slice();
+
+  filtrados.sort(function(a,b){ return b.dias - a.dias; });
+
+  if(!filtrados.length){ toast('Sin solicitudes en esta categor\u00eda','er'); return; }
+
+  var today = new Date();
+  var fechaHoy = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  var S_TITLE={font:{name:'Calibri',sz:13,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'006860'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  var S_SUB  ={font:{name:'Calibri',sz:10,color:{rgb:'D0F0EC'}},          fill:{fgColor:{rgb:'009B8D'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center'}};
+  var S_MLBL ={font:{name:'Calibri',sz:8,bold:true,color:{rgb:'006860'}}, fill:{fgColor:{rgb:'F5F9F9'},patternType:'solid'},alignment:{horizontal:'left',vertical:'center'}};
+  var S_MVAL ={font:{name:'Calibri',sz:8,color:{rgb:'336666'}},           fill:{fgColor:{rgb:'F5F9F9'},patternType:'solid'},alignment:{horizontal:'left',vertical:'center'}};
+  var S_HDR  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'009B8D'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true},
+               border:{top:{style:'thin',color:{rgb:'FFFFFF'}},bottom:{style:'thin',color:{rgb:'FFFFFF'}},left:{style:'thin',color:{rgb:'FFFFFF'}},right:{style:'thin',color:{rgb:'FFFFFF'}}}};
+  var bd={top:{style:'thin',color:{rgb:'C8DEDE'}},bottom:{style:'thin',color:{rgb:'C8DEDE'}},left:{style:'thin',color:{rgb:'C8DEDE'}},right:{style:'thin',color:{rgb:'C8DEDE'}}};
+  var S_CELL_W={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'FFFFFF'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_CELL_A={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'F0F4F3'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_1M   ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'92400E'}},fill:{fgColor:{rgb:'FEF3C7'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_2M   ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'9A3412'}},fill:{fgColor:{rgb:'FED7AA'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_3M   ={font:{name:'Calibri',sz:10,bold:true,color:{rgb:'991B1B'}},fill:{fgColor:{rgb:'FECACA'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+  var S_DIAS ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'FFFFFF'},patternType:'solid'},border:bd,alignment:{horizontal:'center',vertical:'center'}};
+
+  var cols = [
+    {h:'C\u00f3digo',                w:16},
+    {h:'Nombre del Documento',   w:44},
+    {h:'Solicitante',            w:24},
+    {h:'\u00c1rea Generadora',        w:22},
+    {h:'Fecha de Solicitud',     w:16},
+    {h:'D\u00edas Transcurridos',     w:16},
+    {h:'Estado Actual',          w:20},
+    {h:'Antig\u00fcedad',             w:16}
+  ];
+  var NC = cols.length;
+  var aoa = [];
+
+  var r0=[{v:'ALERTA DE ANTIG\u00dcEDAD \u2014 SOLICITUDES SIN OFICIALIZAR \u2014 '+tabLabels[tab].toUpperCase(),t:'s',s:S_TITLE}];
+  for(var ci=1;ci<NC;ci++) r0.push({v:'',t:'s',s:S_TITLE});
+  aoa.push(r0);
+
+  var r1=[{v:'Ruta de Borrador \u2014 Solicitudes activas (no oficializadas/anuladas/rechazadas) \u2014 '+fechaHoy,t:'s',s:S_SUB}];
+  for(var ci=1;ci<NC;ci++) r1.push({v:'',t:'s',s:S_SUB});
+  aoa.push(r1);
+
+  var r2=[]; for(var ci=0;ci<NC;ci++) r2.push({v:'',t:'s',s:S_MVAL});
+  var mPairs=[['Filtro:',tabLabels[tab]],['Fecha:',fechaHoy],['Total:',String(filtrados.length)],['Generado:',currentUser?currentUser.nombre:'Sistema']];
+  var mStep=Math.max(1,Math.floor(NC/mPairs.length));
+  mPairs.forEach(function(p,mi){var c0=mi*mStep;if(c0<NC)r2[c0]={v:p[0],t:'s',s:S_MLBL};if(c0+1<NC)r2[c0+1]={v:p[1],t:'s',s:S_MVAL};});
+  aoa.push(r2);
+
+  aoa.push(cols.map(function(c){ return {v:c.h,t:'s',s:S_HDR}; }));
+
+  filtrados.forEach(function(r,ri){
+    var s = r.s, info = r.info;
+    var alt = ri%2===1;
+    var baseS = alt ? S_CELL_A : S_CELL_W;
+    var antS = r.meses===3 ? S_3M : r.meses===2 ? S_2M : S_1M;
+    var antLabel = r.meses===3 ? '3+ MESES' : r.meses===2 ? '2 MESES' : '1 MES';
+    aoa.push([
+      {v:s.codigo||'',          t:'s',s:baseS},
+      {v:s.nombreDoc||'',       t:'s',s:baseS},
+      {v:s.solicitante||'',     t:'s',s:baseS},
+      {v:s.areaGeneradora||'',  t:'s',s:baseS},
+      {v:s.fechaSolicitud||'',  t:'s',s:baseS},
+      {v:r.dias,                t:'n',s:S_DIAS},
+      {v:info.label,            t:'s',s:baseS},
+      {v:antLabel,              t:'s',s:antS}
+    ]);
+  });
+
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges']     = [{s:{r:0,c:0},e:{r:0,c:NC-1}},{s:{r:1,c:0},e:{r:1,c:NC-1}}];
+  ws['!cols']       = cols.map(function(c){ return {wch:c.w}; });
+  ws['!rows']       = [{hpt:34},{hpt:22},{hpt:18},{hpt:28}].concat(filtrados.map(function(){ return {hpt:16}; }));
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:3,c:0},e:{r:3,c:NC-1}})};
+  XLSX.utils.book_append_sheet(wb, ws, 'Alerta Antiguedad');
+
+  var fname = 'RB_Alerta_Antiguedad_'+tabLabels[tab].replace(/[^a-zA-Z0-9]/g,'_')+'_'+fechaHoy+'.xlsx';
+  try{
+    XLSX.writeFile(wb, fname, {cellStyles:true});
+    toast('\u2705 Excel descargado: '+fname,'ok');
+    logA(currentUser?currentUser.nombre:'Sistema','Descarga','Alerta Antig\u00fcedad RB ('+tab+'): '+filtrados.length+' solicitudes');
+  }catch(e){
+    toast('Error al descargar: '+e.message,'er'); console.error(e);
   }
 }
 
