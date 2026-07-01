@@ -22874,6 +22874,9 @@ function xlsSelIdioma(lang){
     var el=document.getElementById('xls-op-'+l);
     if(el){el.style.borderColor=l===lang?'var(--T)':'var(--brd)';el.style.background=l===lang?'var(--tl)':'#fff';}
   });
+  // Re-render column and estado labels in the selected language
+  xlsRenderCols();
+  xlsRenderEstados();
   xlsCheckReady();
 }
 
@@ -22889,7 +22892,7 @@ function xlsRenderEstados(){
     return '<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;'
       +'background:'+e.bg+';border:1.5px solid '+e.color+'33;border-radius:6px;padding:5px 9px;user-select:none">'
       +'<input type="checkbox" id="xls-e-'+i+'" '+(e.defOn?'checked':'')+' style="accent-color:'+e.color+'" onchange="xlsCheckReady()">'
-      +'<span style="font-weight:600;color:'+e.color+'">'+e.es+'</span>'
+      +'<span style="font-weight:600;color:'+e.color+'">'+(_xlsLang==='pt'?(e.pt||e.es):_xlsLang==='en'?e.en:e.es)+'</span>'
       +'</label>';
   }).join('');
 }
@@ -22915,7 +22918,7 @@ function xlsRenderCols(){
     return '<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;'
       +'background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:5px 8px;user-select:none">'
       +'<input type="checkbox" id="xls-c-'+i+'" '+(c.defOn?'checked':'')+' style="accent-color:var(--T)" onchange="xlsCheckReady()">'
-      +'<span style="font-weight:500">'+c.es+'</span>'
+      +'<span style="font-weight:500">'+(_xlsLang==='pt'?(c.pt||c.es):_xlsLang==='en'?c.en:c.es)+'</span>'
       +'</label>';
   }).join('');
   xlsCheckReady();
@@ -22989,42 +22992,60 @@ function generarExcelLM(){
     'Menos de 4 Meses':'< 4 Meses','Menos de 5 Meses':'< 5 Meses',
     'Vencido':'Vencido','Obsoleto':'Obsoleto'};
   function tradVal(col,d){
-    // Los valores de las celdas son datos del documento (no se traducen),
-    // excepto el campo 'estado' que tiene etiquetas en español y necesita traducción.
-    // El campo 'descripcion' puede tener versión en inglés via descriptionEn.
     var v=String(d[col.key]||'');
     if(pt){
-      // Descripción: si hay versión en inglés disponible, usarla también en PT
+      // PT: para la descripción, usar descriptionEn si existe (igual que EN),
+      // ya que muchos documentos tienen el nombre registrado en inglés en ese campo.
+      // Para todos los demás campos de texto, usar el valor en español.
       if(col.useEn&&d[col.useEn]) return String(d[col.useEn]);
-      // Estado: traducir al portugués
-      if(col.key==='estado') return estPT[v]||v;
-      // Obsoleto: traducir SI/NO
+      if(col.key==='estado')  return estPT[v]||v;
       if(col.key==='obsoleto'){
         if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
-        if(v===''||v==='No'||v==='no') return 'Não';
+        if(v===''||v==='No'||v==='no')             return 'Não';
         return v;
       }
-      // Idioma: traducir E/S → Espanhol/Espanhol, I → Inglês, P → Português
       if(col.key==='idioma'){
         if(v==='E'||v==='S') return 'Espanhol';
-        if(v==='I') return 'Inglês';
-        if(v==='P') return 'Português';
+        if(v==='I')          return 'Inglês';
+        if(v==='P')          return 'Português';
         return v;
       }
+      if(col.key==='docGxP'){
+        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
+        if(v===''||v==='No'||v==='no')             return 'Não';
+        return v;
+      }
+      if(col.key==='mbr'){
+        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
+        if(v===''||v==='No'||v==='no')             return 'Não';
+        return v;
+      }
+      if(col.key==='docIntercompania'){
+        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
+        if(v===''||v==='No'||v==='no')             return 'Não';
+        return v;
+      }
+      // Todos los demás campos: usar el valor en español tal cual
       return v;
     }
     if(!es){
+      // EN: usar descriptionEn si existe, y traducir estado/obsoleto/idioma
       if(col.useEn&&d[col.useEn]) return String(d[col.useEn]);
       if(col.key==='estado') return estEN[v]||v;
       if(col.key==='obsoleto'){
         if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Yes';
-        if(v===''||v==='No'||v==='no') return 'No';
+        if(v===''||v==='No'||v==='no')             return 'No';
         return v;
       }
       if(col.key==='idioma'){
         if(v==='E'||v==='S') return 'Spanish';
-        if(v==='I') return 'English';
-        if(v==='P') return 'Portuguese';
+        if(v==='I')          return 'English';
+        if(v==='P')          return 'Portuguese';
+        return v;
+      }
+      if(col.key==='docGxP'||col.key==='mbr'||col.key==='docIntercompania'){
+        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Yes';
+        if(v===''||v==='No'||v==='no')             return 'No';
         return v;
       }
     }
