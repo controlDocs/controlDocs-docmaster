@@ -1693,6 +1693,15 @@ tbody tr:last-child td{border-bottom:none}
               <label class="fl rq">Código del documento</label>
               <input class="fi" id="fev-codigo" placeholder="Ej: SOP-001, SUB-005" oninput="fev_onCodigo(this.value)" style="font-size:13px;font-weight:600;text-transform:uppercase">
               <div class="fh" id="fev-codigo-status"></div>
+              <!-- Banner nueva fecha de vigencia — se llena automáticamente -->
+              <div id="fev-nueva-vigencia-banner" style="display:none;margin-top:8px;background:linear-gradient(135deg,#e0f5f3 0%,#d1fae5 100%);border:2px solid #059669;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px">
+                <div style="font-size:22px;flex-shrink:0">📅</div>
+                <div>
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#047857;margin-bottom:2px">Nueva fecha de vigencia (vencimiento + 1 año)</div>
+                  <div id="fev-nueva-vigencia-valor" style="font-size:16px;font-weight:800;color:#065f46;letter-spacing:.3px">—</div>
+                  <div id="fev-nueva-vigencia-sub" style="font-size:10px;color:#059669;margin-top:1px"></div>
+                </div>
+              </div>
               <div id="fev-alerta-box" style="display:none;margin-top:6px"></div>
             </div>
             <div class="fp">
@@ -18519,6 +18528,7 @@ function fev_onCodigo(val){
   if(!val){
     CAMPOS.forEach(function(id){var el=document.getElementById(id);if(el){el.value='';el.style.color='';}});
     if(statusEl) statusEl.innerHTML='';
+    var b=document.getElementById('fev-nueva-vigencia-banner');if(b)b.style.display='none';
     return;
   }
 
@@ -18527,6 +18537,7 @@ function fev_onCodigo(val){
   if(!doc){
     CAMPOS.forEach(function(id){var el=document.getElementById(id);if(el){el.value='';el.style.color='';}});
     if(statusEl) statusEl.innerHTML='<span style="color:var(--A)">⚠ Código no encontrado en el listado maestro — puede continuar manualmente</span>';
+    var b=document.getElementById('fev-nueva-vigencia-banner');if(b)b.style.display='none';
     return;
   }
 
@@ -18556,6 +18567,7 @@ function fev_onCodigo(val){
       'er'
     );
     CAMPOS.forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+    var b=document.getElementById('fev-nueva-vigencia-banner');if(b)b.style.display='none';
     return;
   }
 
@@ -18599,25 +18611,20 @@ function fev_onCodigo(val){
     }catch(e){}
   }
 
+  // Siempre llenar el formulario para que el usuario vea la nueva fecha de vigencia
+  // Las alertas se muestran como advertencias informativas, no como bloqueos
+  fev_llenarDoc(doc);
+
   if(quedaVencido){
     fev_showAlert(
-      'Aun aplicando la extensión de vigencia de 1 año, el documento <strong>'+val+'</strong> quedará <strong>vencido</strong> (la fecha extendida es anterior a hoy).',
+      '⚠️ Aun aplicando la extensión de vigencia de 1 año, el documento <strong>'+val+'</strong> quedará <strong>vencido</strong> (la fecha extendida es anterior a hoy). Verifique con el administrador.',
       'wa',
-      {onContinue: function(){ fev_llenarDoc(doc); fev_clearAlert(); }}
+      null
     );
-    return;
+  } else if(fechaSolMenor){
+    // Caso normal: documento ya vencido, se puede proceder con la extensión
+    // No se muestra alerta para este caso ya que es el escenario esperado
   }
-
-  if(fechaSolMenor){
-    fev_showAlert(
-      'La <strong>Fecha de solicitud de extensión de vigencia</strong> (fecha de vencimiento del documento) es anterior a hoy. Solo se permite si la fecha de solicitud es igual o posterior a hoy.',
-      'wa',
-      {onContinue: function(){ fev_llenarDoc(doc); fev_clearAlert(); }}
-    );
-    return;
-  }
-
-  fev_llenarDoc(doc);
 }
 
 function fev_llenarDoc(doc){
@@ -18630,11 +18637,36 @@ function fev_llenarDoc(doc){
   var fechaSol=doc.fechaVencimiento||'';
   set('fev-fecha-sol', fechaSol);
   // Vigencia extendida = vencimiento + 1 año
+  var nuevaFechaStr='';
   if(doc.fechaVencimiento){
     try{
-      var d=new Date(doc.fechaVencimiento+'T12:00:00');
-      d.setFullYear(d.getFullYear()+1);
-      set('fev-fecha-ext', fD(d));
+      var dExt=new Date(doc.fechaVencimiento+'T12:00:00');
+      dExt.setFullYear(dExt.getFullYear()+1);
+      nuevaFechaStr=fD(dExt);
+      set('fev-fecha-ext', nuevaFechaStr);
+
+      // Mostrar banner prominente con la nueva fecha
+      var banner=document.getElementById('fev-nueva-vigencia-banner');
+      var valor=document.getElementById('fev-nueva-vigencia-valor');
+      var sub=document.getElementById('fev-nueva-vigencia-sub');
+      if(banner){
+        banner.style.display='flex';
+        if(valor) valor.textContent=fDL?fDL(dExt):nuevaFechaStr;
+        if(sub){
+          var hoy=new Date(); hoy.setHours(0,0,0,0);
+          dExt.setHours(0,0,0,0);
+          var diasRestantes=Math.round((dExt.getTime()-hoy.getTime())/86400000);
+          var mesesRestantes=Math.floor(diasRestantes/30);
+          if(dExt>hoy){
+            sub.style.color='#059669';
+            sub.textContent='Quedará vigente por '+(mesesRestantes>0?mesesRestantes+' mes'+(mesesRestantes!==1?'es':'')+' aproximadamente':diasRestantes+' días')
+              +' · Vence actual: '+(doc.fechaVencimiento||'—');
+          } else {
+            sub.style.color='#dc2626';
+            sub.textContent='⚠️ La fecha extendida también está vencida — verifique con el administrador · Vence actual: '+(doc.fechaVencimiento||'—');
+          }
+        }
+      }
     }catch(e){}
   }
   // Auto-diligenciar fechas de firma (Revisión y Aprobación) con la fecha de solicitud de extensión
@@ -18697,6 +18729,7 @@ function fev_limpiar(){
   document.getElementById('fev-codigo').value='';
   fev_onCodigo('');
   ['fev-rev-nombre','fev-rev-cargo','fev-rev-fecha','fev-apr-fecha'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var b=document.getElementById('fev-nueva-vigencia-banner');if(b)b.style.display='none';
 }
 
 function fev_generarPDF(){
