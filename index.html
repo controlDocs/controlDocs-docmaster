@@ -1237,6 +1237,11 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn gh" onclick="expBak()">Backup JSON</button>
         <button class="btn" onclick="solicitarIdiomaListadoPDF()" style="background:#006860;gap:6px">📄 Descargar Listado Maestro PDF</button>
         <button class="btn" onclick="abrirModalExcelLM()" style="background:#1e7145;gap:6px">📊 Descargar Listado Maestro Excel</button>
+        <button class="btn" id="tp-btn" onclick="traducirTodosPT()" style="background:#009B8D;gap:6px" title="Traduzir automaticamente a Descrição de todos os documentos para Português usando IA">🤖 Traduzir todos ao PT (IA)</button>
+      </div>
+      <div style="margin-top:8px;display:none;align-items:center;gap:8px" id="tp-progress-wrap">
+        <progress id="tp-progress-bar" style="flex:1;height:8px;display:none"></progress>
+        <span id="tp-progress-lbl" style="font-size:10px;color:var(--tx3);display:none"></span>
       </div>
       <div style="font-size:10px;color:var(--tx3);margin-top:7px">📁 Guardar en: <span style="font-family:monospace;background:var(--tl);padding:2px 6px;border-radius:4px">\\elara\SistDoc-Intranet\Listado\PROCAPS\LM-0019.xlsx</span> — reemplaza el archivo anterior.</div>
     </div>
@@ -2589,6 +2594,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="fp"><label class="fl">Codigo Antiguo</label><input class="fi" id="d-codant" value="No Aplica"></div>
     <div class="fp fgf"><label class="fl rq">Descripcion (Espanol)</label><input class="fi" id="d-desc" oninput="onDesc()" placeholder="Nombre del documento"><div class="fh">Formato Nombre Propio automatico y traduccion al ingles.</div></div>
     <div class="fp fgf"><label class="fl">Description (English)</label><input class="fi au" id="d-desen" readonly placeholder="Traduccion automatica"></div>
+    <div class="fp fgf" style="position:relative"><label class="fl">Descrição (Português)</label><input class="fi" id="d-despt" placeholder="Tradução em português" oninput="document.getElementById('d-despt')._manual=true"><button type="button" onclick="docTraducirPT()" title="Traduzir com IA (Claude)" style="position:absolute;right:8px;top:24px;background:#009B8D;color:#fff;border:none;border-radius:5px;padding:3px 9px;font-size:10px;cursor:pointer;font-weight:700">🤖 Traduzir</button></div>
   </div>
   <div class="fsec">Clasificacion</div>
   <div class="fg3" style="margin-bottom:3px">
@@ -5205,6 +5211,98 @@ function onCod() {
   el.setSelectionRange(pos, pos);
   document.getElementById('d-tipo').value = detTipo(el.value);
 }
+// ── Traducción individual a PT usando Claude API ─────────────────────────────
+async function docTraducirPT(){
+  var descEl=document.getElementById('d-desc');
+  var enEl=document.getElementById('d-desen');
+  var ptEl=document.getElementById('d-despt');
+  var src=(enEl&&enEl.value.trim())||(descEl&&descEl.value.trim());
+  if(!src){toast('Sin texto para traducir','er');return;}
+  ptEl.value='⏳ Traduzindo...'; ptEl.disabled=true;
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',max_tokens:200,
+        messages:[{role:'user',content:'Translate this pharmaceutical document title to Brazilian Portuguese. Return ONLY the translation, nothing else. Keep proper nouns and abbreviations as-is.\n\n'+src}]
+      })
+    });
+    var data=await resp.json();
+    var translated=(data.content&&data.content[0]&&data.content[0].text)||'';
+    if(translated){
+      ptEl.value=translated.trim();
+      ptEl._manual=true;
+      toast('✅ Tradução concluída','ok');
+    } else {
+      ptEl.value='';
+      toast('Resposta vazia da API','er');
+    }
+  }catch(e){
+    ptEl.value='';
+    toast('Erro na tradução: '+e.message,'er');
+  }
+  ptEl.disabled=false;
+}
+
+// ── Traducción masiva a PT ────────────────────────────────────────────────────
+// Traduce todos los docs que no tienen descriptionPt usando la API de Claude
+var _tpBatch=[]; var _tpIdx=0; var _tpTotal=0;
+
+async function traducirTodosPT(){
+  var pendientes=(docs||[]).filter(function(d){
+    return !d.descriptionPt&&(d.descriptionEn||d.descripcion);
+  });
+  if(!pendientes.length){toast('✅ Todos los documentos ya tienen traducción al PT','ok');return;}
+  if(!confirm('Traducir '+pendientes.length+' documentos al portugu\u00e9s usando IA.\n\nEsto puede tardar varios minutos.\n\u00bfContinuar?')) return;
+  _tpBatch=pendientes; _tpIdx=0; _tpTotal=pendientes.length;
+  var bar=document.getElementById('tp-progress-bar');
+  var lbl=document.getElementById('tp-progress-lbl');
+  var btn=document.getElementById('tp-btn');
+  if(bar){bar.style.display='block';bar.value=0;bar.max=_tpTotal;}
+  if(lbl){lbl.style.display='block';lbl.textContent='0 / '+_tpTotal;}
+  if(btn){btn.disabled=true;btn.textContent='⏳ Traduzindo...';}
+  await _tpNext();
+}
+
+async function _tpNext(){
+  if(_tpIdx>=_tpBatch.length){
+    saveDocs(docs);
+    toast('✅ '+_tpTotal+' documentos traduzidos ao português','ok');
+    var bar=document.getElementById('tp-progress-bar');
+    var lbl=document.getElementById('tp-progress-lbl');
+    var btn=document.getElementById('tp-btn');
+    if(bar)bar.style.display='none';
+    if(lbl)lbl.style.display='none';
+    if(btn){btn.disabled=false;btn.textContent='🤖 Traduzir todos ao PT (IA)';}
+    return;
+  }
+  var d=_tpBatch[_tpIdx];
+  var src=d.descriptionEn||d.descripcion||'';
+  var bar=document.getElementById('tp-progress-bar');
+  var lbl=document.getElementById('tp-progress-lbl');
+  if(bar) bar.value=_tpIdx+1;
+  if(lbl) lbl.textContent=(_tpIdx+1)+' / '+_tpTotal+' — '+d.codigoActual;
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',max_tokens:200,
+        messages:[{role:'user',content:'Translate this pharmaceutical document title to Brazilian Portuguese. Return ONLY the translation, nothing else. Keep proper nouns and abbreviations as-is.\n\n'+src}]
+      })
+    });
+    var data=await resp.json();
+    var tr=(data.content&&data.content[0]&&data.content[0].text)||'';
+    if(tr) d.descriptionPt=tr.trim();
+  }catch(e){ console.warn('[TPT] error en '+d.codigoActual,e); }
+  _tpIdx++;
+  // Guardar cada 20 docs para no perder progreso
+  if(_tpIdx%20===0) saveDocs(docs);
+  // Pequeño delay para no saturar la API
+  setTimeout(_tpNext, 300);
+}
+
 function onDesc() {
   var el = document.getElementById('d-desc');
   var v = toTP(el.value);
@@ -5289,7 +5387,7 @@ document.addEventListener('click',function(e){
 function openNewDoc() {
   document.getElementById('d-eid').value = '';
   document.getElementById('mo-doc-t').textContent = 'Nuevo documento';
-  var ids = ['d-cod','d-desc','d-desen','d-ver','d-tipo','d-tpl','d-proc','d-adm','d-lid','d-cor','d-aapl','d-drel','d-ext'];
+  var ids = ['d-cod','d-desc','d-desen','d-despt','d-ver','d-tipo','d-tpl','d-proc','d-adm','d-lid','d-cor','d-aapl','d-drel','d-ext'];
   ids.forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   // Limpiar dropdown multi-empresa
   ['d-alc','d-inter'].forEach(function(id){
@@ -5377,6 +5475,7 @@ function _saveDocOriginal() {
   var data = {
     codigoActual:cod, codigoAntiguo:document.getElementById('d-codant').value||'No Aplica',
     descripcion:desc, descriptionEn:document.getElementById('d-desen').value,
+    descriptionPt:document.getElementById('d-despt')?document.getElementById('d-despt').value:'',
     version:document.getElementById('d-ver').value, tipoDocumento:document.getElementById('d-tipo').value,
     tipoPlantilla:document.getElementById('d-tpl').value, areaGeneradora:document.getElementById('d-area').value,
     proceso:document.getElementById('d-proc').value, idioma:document.getElementById('d-idioma').value,
@@ -5510,11 +5609,12 @@ function editDoc(id) {
   document.getElementById('d-eid').value = id;
   document.getElementById('mo-doc-t').textContent = 'Editar documento';
   window._docEmailCtx={accion:'edicion', verAnterior:d.version||'', verNueva:d.version||''};
-  var map = {cod:'codigoActual',codant:'codigoAntiguo',desc:'descripcion',desen:'descriptionEn',ver:'version',tipo:'tipoDocumento',tpl:'tipoPlantilla',proc:'proceso',idioma:'idioma',fvig:'fechaVigencia',ext:'extensionVigencia',obs:'obsoleto',adm:'administrador',lid:'liderProceso',cor:'correoElectronico',alc:'alcanceEmpresas',aapl:'areasAplicables',drel:'docsRelacionados'};
+  var map = {cod:'codigoActual',codant:'codigoAntiguo',desc:'descripcion',desen:'descriptionEn',despt:'descriptionPt',ver:'version',tipo:'tipoDocumento',tpl:'tipoPlantilla',proc:'proceso',idioma:'idioma',fvig:'fechaVigencia',ext:'extensionVigencia',obs:'obsoleto',adm:'administrador',lid:'liderProceso',cor:'correoElectronico',alc:'alcanceEmpresas',aapl:'areasAplicables',drel:'docsRelacionados'};
   for (var k in map) { var el = document.getElementById('d-'+k); if (el) el.value = d[map[k]] || ''; }
   // Re-generar traduccion si no existe o forzar desde descripcion actual
   var descEl = document.getElementById('d-desc');
   var denEl  = document.getElementById('d-desen');
+  var dptEl  = document.getElementById('d-despt');
   if (descEl && denEl && (!denEl.value || denEl.value.trim()==='' || denEl.value===descEl.value)) {
     denEl.value = autoTr(toTP(descEl.value));
   }
@@ -8651,7 +8751,7 @@ function expExcel(){
   toast('✅ Archivo descargado: '+fileName+'. Cópialo a: \\\\elara\\SistDoc-Intranet\\Listado\\PROCAPS (reemplaza el anterior)','if');
 }
 function expCSV(){
-  var cols=['codigoActual','codigoAntiguo','descripcion','descriptionEn','version','tipoDocumento','areaGeneradora','fechaVigencia','fechaVencimiento','estado','idioma','extensionVigencia','obsoleto','administrador','liderProceso','alcanceEmpresas','mbr','tipoPlantilla','docsRelacionados','docGxP','docIntercompania','areasAplicables','proceso','correoElectronico'];
+  var cols=['codigoActual','codigoAntiguo','descripcion','descriptionEn','descriptionPt','version','tipoDocumento','areaGeneradora','fechaVigencia','fechaVencimiento','estado','idioma','extensionVigencia','obsoleto','administrador','liderProceso','alcanceEmpresas','mbr','tipoPlantilla','docsRelacionados','docGxP','docIntercompania','areasAplicables','proceso','correoElectronico'];
   var hdr=['Codigo Actual','Codigo Antiguo','Descripcion','Description','Version','Tipo De Documento','Area Generadora','Fecha De Vigencia','Fecha De Vencimiento2','Estado','Idioma','Extension De Vigencia','Obsoleto','Administrador','Lider De Proceso','Alcance A Empresas','Mbr','Tipo De Plantilla','Documentos Relacionados','Doc.Gxp','Doc.Intercompania','Areas Aplicables','Proceso','Correo Electronico'];
   var rows=[hdr].concat(docs.map(function(d){return cols.map(function(c){return d[c]||'';});}));
   var csv=rows.map(function(r){return r.map(function(v){return'"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
@@ -8713,6 +8813,7 @@ function procXLS(file){
         codigoAntiguo:   ['codigo antiguo','cod antiguo'],
         descripcion:     ['descripcion','nombre','description es'],
         descriptionEn:   ['description','description en'],
+        descriptionPt:   ['descricao pt','descricao','description pt','descrição pt','descrição'],
         version:         ['version','ver','rev'],
         tipoDocumento:   ['tipo de documento','tipo documento','tipo'],
         areaGeneradora:  ['area generadora','area generadora','area','departamento'],
@@ -8867,6 +8968,7 @@ function procXLS(file){
           codigoAntiguo:    getCellStr(row,colIdx.codigoAntiguo) || 'No Aplica',
           descripcion:      desc || ('Documento '+row),
           descriptionEn:    getCellStr(row,colIdx.descriptionEn),
+          descriptionPt:    getCellStr(row,colIdx.descriptionPt),
           version:          (function(){var v=getCellStr(row,colIdx.version);return v!==''?v:'01';})(),
           tipoDocumento:    (function(){var t=getCellStr(row,colIdx.tipoDocumento);var cod=getCellStr(row,colIdx.codigoActual);return(t&&t.trim())?t:nTipo(cod);})(),
           tipoPlantilla:    getCellStr(row,colIdx.tipoPlantilla),
@@ -15275,7 +15377,7 @@ var OD = {
   saveTimer:     null,
   SYNC_INTERVAL: 60000,   // auto-guardar cada 60s
   COLUMNAS_EXCEL: [
-    'Código Actual','Código Antiguo','Descripción','Description','Versión',
+    'Código Actual','Código Antiguo','Descripción','Description','Descrição (PT)','Versión',
     'Tipo De Documento','Área Generadora','Fecha De Vigencia','Fecha De Vencimiento2',
     'Estado','Idioma','Extension De Vigencia','Obsoleto','Administrador',
     'Lider De Proceso','Alcance A Empresas','Mbr','Tipo De Plantilla',
@@ -15283,7 +15385,7 @@ var OD = {
     'Historial_Cambios','Correo Electrónico'
   ],
   COLUMNAS_CLAVE: [
-    'codigoActual','codigoAntiguo','descripcion','descriptionEn','version',
+    'codigoActual','codigoAntiguo','descripcion','descriptionEn','descriptionPt','version',
     'tipoDocumento','areaGeneradora','fechaVigencia','fechaVencimiento',
     'estado','idioma','extensionVigencia','obsoleto','administrador',
     'liderProceso','alcanceEmpresas','mbr','tipoPlantilla',
@@ -16763,7 +16865,7 @@ async function odCargarListado(){
       'Código Actual':'codigoActual','Codigo Actual':'codigoActual',
       'Código Antiguo':'codigoAntiguo','Codigo Antiguo':'codigoAntiguo',
       'Descripción':'descripcion','Descripcion':'descripcion',
-      'Description':'descriptionEn','Versión':'version','Version':'version',
+      'Description':'descriptionEn','Descri\u00e7\u00e3o (PT)':'descriptionPt','Vers\u00f3n':'version','Version':'version',
       'Tipo De Documento':'tipoDocumento','Tipo de Documento':'tipoDocumento',
       'Área Generadora':'areaGeneradora','Area Generadora':'areaGeneradora',
       'Fecha De Vigencia':'fechaVigencia','Fecha de Vigencia':'fechaVigencia',
@@ -20055,7 +20157,9 @@ function _buildListadoPDF(lang){
         var col=COLS[ci2], cw4=colWidths[ci2];
         if(ci2>0) line(rx,y,rx,y+ROW_H,C.b2,0.4);
         var rawVal=String(d[col.key]||'');
-        if(!es && col.useEn && d.descriptionEn) rawVal=String(d.descriptionEn);
+        if(pt && col.key==='descripcion' && d.descriptionPt) rawVal=String(d.descriptionPt);
+  else if(pt && col.key==='descripcion' && d.descriptionEn) rawVal=String(d.descriptionEn);
+  else if(!es && !pt && col.useEn && d.descriptionEn) rawVal=String(d.descriptionEn);
         if(col.isEstado){
           var pc=pillColor(rawVal);
           var pw2=Math.min(cw4-8*S, 108*S), ph2=10*S;
@@ -22810,7 +22914,8 @@ var _xlsLang = null;
 var XLS_COLS_DEF = [
   {key:'codigoActual',      es:'Código Actual',           en:'Current Code',          pt:'Código Atual',             w:16, defOn:true},
   {key:'codigoAntiguo',     es:'Código Anterior',         en:'Previous Code',         pt:'Código Anterior',          w:14, defOn:false},
-  {key:'descripcion',       es:'Descripción',             en:'Description',           pt:'Descrição',                w:42, defOn:true, useEn:'descriptionEn'},
+  {key:'descripcion',       es:'Descripción',             en:'Description',           pt:'Descrição',                w:42, defOn:true, useEn:'descriptionEn', usePt:'descriptionPt'},
+  {key:'descriptionPt',     es:'Descrição (PT)',           en:'Descrição (PT)',         pt:'Descrição (PT)',            w:42, defOn:false},
   {key:'version',           es:'Versión',                 en:'Version',               pt:'Versão',                   w:9,  defOn:true},
   {key:'tipoDocumento',     es:'Tipo de Documento',       en:'Document Type',         pt:'Tipo de Documento',        w:20, defOn:true},
   {key:'areaGeneradora',    es:'Área Generadora',         en:'Generating Area',       pt:'Área Geradora',            w:22, defOn:true},
@@ -22994,9 +23099,8 @@ function generarExcelLM(){
   function tradVal(col,d){
     var v=String(d[col.key]||'');
     if(pt){
-      // PT: para la descripción, usar descriptionEn si existe (igual que EN),
-      // ya que muchos documentos tienen el nombre registrado en inglés en ese campo.
-      // Para todos los demás campos de texto, usar el valor en español.
+      // PT: usar descriptionPt si existe; si no, usar descriptionEn; si no, usar descripcion
+      if(col.usePt&&d[col.usePt]) return String(d[col.usePt]);
       if(col.useEn&&d[col.useEn]) return String(d[col.useEn]);
       if(col.key==='estado')  return estPT[v]||v;
       if(col.key==='obsoleto'){
