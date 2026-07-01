@@ -9524,8 +9524,8 @@ function evSelDoc(id){
     document.getElementById('ev-sel-cod').textContent=d.codigoActual;
     document.getElementById('ev-sel-desc').textContent=d.descripcion;
     document.getElementById('ev-sel-info').innerHTML='Vigencia: <strong>'+d.fechaVigencia+'</strong> | Vencimiento: <strong style="color:var(--R)">'+d.fechaVencimiento+'</strong> '+vencInfo;
-    // Suggest new date: +1 year from vencimiento or from today if already expired
-    var base=di<0?new Date():new Date(d.fechaVencimiento+'T12:00:00');
+    // Nueva fecha = vencimiento + 1 año exacto (siempre desde la fecha de vencimiento, nunca desde hoy)
+    var base=new Date(d.fechaVencimiento+'T12:00:00');
     base.setFullYear(base.getFullYear()+1);
     var sug=fD(base);
     document.getElementById('ev-nueva-fecha').value=sug;
