@@ -5666,7 +5666,20 @@ function renderVenc() {
   document.getElementById('vp').textContent = p.length;
   document.getElementById('vg').textContent = g.length;
   var f = (document.getElementById('fv')||{}).value || 't';
-  var lista = f==='v'?v:f==='p'?p:f==='g'?g:v.concat(p).concat(g);
+  var listaRaw = f==='v'?v:f==='p'?p:f==='g'?g:v.concat(p).concat(g);
+  // Ordenar: documentos que pueden recibir extensión de vigencia van primero
+  var lista = listaRaw.slice().sort(function(a,b){
+    var diA=dH(a.fechaVencimiento), diB=dH(b.fechaVencimiento);
+    var extA=(a.extensionVigencia||'').trim().toUpperCase();
+    var extB=(b.extensionVigencia||'').trim().toUpperCase();
+    var tieneExtA=(extA==='X'||extA==='SI'||extA==='SÍ'||(extA&&extA!=='NO'&&extA!==''));
+    var tieneExtB=(extB==='X'||extB==='SI'||extB==='SÍ'||(extB&&extB!=='NO'&&extB!==''));
+    var pA=diA<0&&!(a.codigoActual&&a.codigoActual.toUpperCase().indexOf('F-')===0)&&!(a.codigoActual&&a.codigoActual.toUpperCase().indexOf('PRG-')===0)&&a.estado!=='Obsoleto'&&!tieneExtA&&Math.abs(diA)<=365;
+    var pB=diB<0&&!(b.codigoActual&&b.codigoActual.toUpperCase().indexOf('F-')===0)&&!(b.codigoActual&&b.codigoActual.toUpperCase().indexOf('PRG-')===0)&&b.estado!=='Obsoleto'&&!tieneExtB&&Math.abs(diB)<=365;
+    if(pA&&!pB) return -1;
+    if(!pA&&pB) return 1;
+    return 0; // mantiene orden original dentro de cada grupo
+  });
   var frag = document.createDocumentFragment();
   lista.forEach(function(d) {
     var di = dH(d.fechaVencimiento); var r = document.createElement('tr');
@@ -17701,9 +17714,9 @@ async function odGuardarListado(silencioso){
           var writableTarget;
           if(OD.carpetaHandle){
             var fhLM2=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.lm,{create:false});
-            writableTarget=await fhLM2.createWritable();
+            writableTarget=await fhLM2.createWritable({keepExistingData:false}); // evita copias temporales
           } else {
-            writableTarget=await OD.fileHandle.createWritable();
+            writableTarget=await OD.fileHandle.createWritable({keepExistingData:false}); // evita copias temporales
           }
           await writableTarget.write(new Uint8Array(buf));
           await writableTarget.close();
@@ -20646,21 +20659,22 @@ function rbEstadoInfo(s){
   var esOfic=est.toLowerCase().indexOf('oficial')>=0;
   var esAnulado=est.toLowerCase().indexOf('anulad')>=0||est.toLowerCase()==='solicitud anulada'||est.toLowerCase()==='eliminación cerrada';
   var esRechazo=est.toLowerCase().indexOf('rechaz')>=0;
+  var esRetirada=est.toLowerCase().indexOf('retirada por vencimiento')>=0;
   var esRevision=est.toLowerCase()==='en revisión'||est.toLowerCase()==='en revision'||est.toLowerCase()==='aceptada';
   var esFirma=est.toLowerCase().indexOf('proceso de firma')>=0||est.toLowerCase()==='en proceso';
-  var color=esAnulado?'#6d28d9':esOfic?'var(--G)':esRechazo?'var(--R)':esFirma?'var(--T)':esRevision?'var(--A)':'#aaa';
-  var bg=esAnulado?'#f3e8ff':esOfic?'#e6f9f3':esRechazo?'#fde8e8':esFirma?'#e0f5f3':esRevision?'#fff8e1':'#f0f0f0';
-  var tc=esAnulado?'#5b21b6':esOfic?'#0f7a50':esRechazo?'#a02020':esFirma?'var(--T3)':esRevision?'#a06000':'#666';
-  var label=esAnulado?'Anulada':esOfic?'Oficializado':esRechazo?'Rechazada':esFirma?'En proceso de firma':esRevision?'En revisión':est||'Pendiente';
-  return{color:color,bg:bg,tc:tc,label:label,esOfic:esOfic,esAnulado:esAnulado,esRechazo:esRechazo,esRevision:esRevision,esFirma:esFirma};
+  var color=esRetirada?'#7c2d12':esAnulado?'#6d28d9':esOfic?'var(--G)':esRechazo?'var(--R)':esFirma?'var(--T)':esRevision?'var(--A)':'#aaa';
+  var bg=esRetirada?'#fef2e6':esAnulado?'#f3e8ff':esOfic?'#e6f9f3':esRechazo?'#fde8e8':esFirma?'#e0f5f3':esRevision?'#fff8e1':'#f0f0f0';
+  var tc=esRetirada?'#7c2d12':esAnulado?'#5b21b6':esOfic?'#0f7a50':esRechazo?'#a02020':esFirma?'var(--T3)':esRevision?'#a06000':'#666';
+  var label=esRetirada?'Retirada por vencimiento':esAnulado?'Anulada':esOfic?'Oficializado':esRechazo?'Rechazada':esFirma?'En proceso de firma':esRevision?'En revisión':est||'Pendiente';
+  return{color:color,bg:bg,tc:tc,label:label,esOfic:esOfic,esAnulado:esAnulado,esRechazo:esRechazo,esRetirada:esRetirada,esRevision:esRevision,esFirma:esFirma};
 }
 
 function rbSplitStageBar(s){
   var info=rbEstadoInfo(s);
   var stages=[
-    {key:'revision',  label:'En revisión',       done:info.esRevision||info.esFirma||info.esOfic, active:info.esRevision&&!info.esFirma&&!info.esOfic},
-    {key:'firma',     label:'En proceso de firma',done:info.esFirma||info.esOfic,                  active:info.esFirma&&!info.esOfic},
-    {key:'oficial',   label:'Oficializado',       done:info.esOfic,                                active:false}
+    {key:'revision',  label:'En revisión',       done:info.esRevision||info.esFirma||info.esOfic||info.esRetirada, active:info.esRevision&&!info.esFirma&&!info.esOfic&&!info.esRetirada},
+    {key:'firma',     label:'En proceso de firma',done:info.esFirma||info.esOfic,                  active:info.esFirma&&!info.esOfic&&!info.esRetirada},
+    {key:'oficial',   label:info.esRetirada?'Retirada por vencimiento':'Oficializado',       done:info.esOfic||info.esRetirada,                                active:false}
   ];
   return stages.map(function(st,i){
     var pillBg=st.done&&!st.active?'var(--G)':st.active?'var(--A)':'var(--bg4)';
@@ -21231,6 +21245,8 @@ function rbRenderDetail(s){
         :'')
       +(!info.esAnulado&&!info.esOfic
         ?'<button class="btn sm" style="background:#7c3aed;color:#fff" onclick="rbAnularDirecto(\''+s.consecutivo+'\')" title="Anular esta solicitud">🚫 Anular solicitud</button>'
+        :'')      +(!info.esAnulado&&!info.esOfic&&!info.esRechazo&&!info.esRetirada
+        ?'<button class="btn sm" style="background:#78350f;color:#fff;border-color:#78350f" onclick="rbRetirarPorVencimiento(\''+s.consecutivo+'\')" title="Marcar como Retirada por vencimiento de tiempo — el documento no fue oficializado en el plazo">⌛ Retirada por vencimiento</button>'
         :'')
       +(!info.esAnulado&&!info.esOfic
         ?'<button class="btn gh sm" style="border-color:var(--T);color:var(--T)" onclick="rbEditarSolicitud(\''+s.consecutivo+'\')" title="Editar datos de esta solicitud">✏️ Editar</button>'
@@ -21386,6 +21402,35 @@ function rbAprobar(consecutivo){
   if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);}
 }
 
+function rbRetirarPorVencimiento(consecutivo){
+  var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s) return;
+  var info=rbEstadoInfo(s);
+  if(info.esOfic||info.esAnulado||info.esRechazo){
+    toast('Esta solicitud ya tiene un estado final','er'); return;
+  }
+  if(!confirm(
+    'Marcar la solicitud #'+consecutivo+' como "Retirada por vencimiento de tiempo"?\n\n'+
+    'Código: '+s.codigo+'\nDocumento: '+s.nombreDoc+'\n\n'+
+    'Esto indica que el documento no fue oficializado dentro del plazo establecido.\n'+
+    'La solicitud quedará cerrada y no podrá ser aprobada ni oficializada.'
+  )) return;
+  s.estatus='Retirada por vencimiento';
+  s.estadoOficializacion='Retirada por vencimiento';
+  s.fechaRetiro=new Date().toISOString().slice(0,10);
+  saveArr('sol',solicitudes);
+  logA(currentUser?currentUser.nombre:'Usuario','Retiro por vencimiento',
+    'Solicitud #'+consecutivo+' — '+s.codigo+' | '+s.nombreDoc,
+    'Estado anterior: '+info.label,
+    'Ruta de Borrador');
+  toast('⌛ Solicitud #'+consecutivo+' marcada como Retirada por vencimiento','ok');
+  rbRender();
+  if(window.OD&&OD.fileHandle&&OD.syncActivo){
+    if(OD.saveTimer)clearTimeout(OD.saveTimer);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+  }
+}
+
 function rbRevertirARevision(consecutivo){
   var s=(solicitudes||[]).find(function(x){return String(x.consecutivo)===String(consecutivo);});
   if(!s) return;
@@ -21418,14 +21463,16 @@ function _rbDiasTranscurridos(fechaStr){
   return Math.round((hoy.getTime()-f.getTime())/86400000);
 }
 
-// Solicitudes activas: no oficializadas, no anuladas, no rechazadas
+// Solicitudes activas: solo En revisión o En proceso de firma, con 30+ días sin oficializar
 function _rbSolicitudesActivasConAntiguedad(){
   return (solicitudes||[]).map(function(s){
     var info = rbEstadoInfo(s);
     var dias = _rbDiasTranscurridos(s.fechaSolicitud);
     return { s:s, info:info, dias:dias };
   }).filter(function(r){
-    return !r.info.esOfic && !r.info.esAnulado && !r.info.esRechazo && r.dias!==null && r.dias>=30;
+    // Solo incluir las que están activamente en proceso (revisión o firma)
+    // Excluye: oficializadas, anuladas, rechazadas, pendientes, u otros estados
+    return (r.info.esRevision || r.info.esFirma) && r.dias!==null && r.dias>=30;
   }).map(function(r){
     var meses = r.dias>=90 ? 3 : r.dias>=60 ? 2 : 1;
     return Object.assign(r, {meses:meses});
