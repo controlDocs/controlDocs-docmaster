@@ -23638,13 +23638,36 @@ function nfInit(){
   // Listener tipo novedad -> mostrar bloque creacion
   var elTipo=document.getElementById('nf-tipo');
   if(elTipo) elTipo.addEventListener('change',function(){
-    var isCreacion=this.value==='Creación';
+    var _tipo=this.value;
+    var isCreacion=_tipo==='Creación';
+    var isElim=_tipo==='Eliminación';
     var extra=document.getElementById('nf-creacion-extra');
     if(extra) extra.style.display=isCreacion?'block':'none';
     if(isCreacion){
       nfPoblarTiposDocNuevo();
       var verEl=document.getElementById('nf-version');
-      if(verEl) verEl.value='01';
+      if(verEl && !verEl._manual) verEl.value='00'; // Creación siempre versión 0
+    } else {
+      // Re-calcular la versión según el tipo ahora seleccionado,
+      // leyendo el documento del LM si el código ya fue ingresado
+      var _codEl2=document.getElementById('nf-cod');
+      var _codVal2=_codEl2?(_codEl2.value||'').trim().toUpperCase():'';
+      if(_codVal2.length>=3){
+        var _docRe=(docs||[]).find(function(d){
+          return (d.codigoActual||'').toUpperCase()===_codVal2;
+        });
+        if(_docRe){
+          var verElR=document.getElementById('nf-version');
+          if(verElR&&!verElR._manual){
+            var _vb=parseInt(_docRe.version)||0;
+            if(isElim){
+              verElR.value=String(_vb).padStart(2,'0'); // misma versión LM
+            } else {
+              verElR.value=String(_vb+1).padStart(2,'0'); // Modificación: +1
+            }
+          }
+        }
+      }
     }
   });
   // Construir filas de matriz si no existen
@@ -23858,7 +23881,7 @@ function nfEvaluarCodigoNuevo(){
   if(codAsig) codAsig.value=nuevoCod;
   if(codEl){ codEl.value=nuevoCod; codEl.style.color='var(--T)'; codEl.style.fontWeight='700'; }
   if(tipodocEl) tipodocEl.value=tipo;
-  if(verEl) verEl.value='0'; // Creación siempre versión 0
+  if(verEl && !verEl._manual) verEl.value='00'; // Creación siempre versión 00
 
   var msgDesc=descartados.length?' — Descartados: '+descartados.join(', '):'';
   showMsg('✅ Código asignado: '+nuevoCod+' (base: '+prefijoBase+'-'+String(maxGlobal).padStart(4,'0')+(esCorp?'-COR':'')+')'+msgDesc,'#e8f5e9','#1b5e20');
@@ -24141,8 +24164,20 @@ function nfBuscarDoc(cod){
       else { areaInfoEl.textContent='📍 Área: (no registrada en LM)'; areaInfoEl.style.display='block'; }
     } else { console.warn('nf-area-info div NO encontrado en el DOM'); }
     if(verEl && !verEl._manual){
-      var v = (parseInt(doc.version)||0) + 1;
-      verEl.value = String(v).padStart(2,'0');
+      var _tipoNovVer=(document.getElementById('nf-tipo')||{}).value||'';
+      var _verBase=parseInt(doc.version)||0;
+      var _verCalc;
+      if(_tipoNovVer==='Eliminación'){
+        // Eliminación: misma versión que está en el Listado Maestro
+        _verCalc=_verBase;
+      } else if(_tipoNovVer==='Creación'){
+        // Creación: versión 0 (el documento aún no existe)
+        _verCalc=0;
+      } else {
+        // Modificación (u otro): versión actual + 1
+        _verCalc=_verBase+1;
+      }
+      verEl.value=String(_verCalc).padStart(2,'0');
     }
     var obsStr = String(doc.obsoleto||'').toUpperCase().trim();
     var estStr = String(doc.estado||'').toUpperCase().trim();
