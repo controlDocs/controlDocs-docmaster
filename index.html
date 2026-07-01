@@ -22956,6 +22956,7 @@ function xlsCheckReady(){
 function generarExcelLM(){
   var lang=_xlsLang; if(!lang) return;
   var es=lang==='es';
+  var pt=lang==='pt';
 
   var selectedCols=XLS_COLS_DEF.filter(function(_,i){
     var el=document.getElementById('xls-c-'+i); return el&&el.checked;
@@ -22976,7 +22977,6 @@ function generarExcelLM(){
     return selectedEstados.indexOf(d.estado)>=0;
   });
 
-  var pt=lang==='pt';
   if(!data.length){toast(es?'Sin documentos con los estados seleccionados':pt?'Nenhum documento corresponde aos estados selecionados':'No documents match the selected statuses','er');return;}
   closeMo('mo-lm-excel');
 
@@ -22989,14 +22989,45 @@ function generarExcelLM(){
     'Menos de 4 Meses':'< 4 Meses','Menos de 5 Meses':'< 5 Meses',
     'Vencido':'Vencido','Obsoleto':'Obsoleto'};
   function tradVal(col,d){
+    // Los valores de las celdas son datos del documento (no se traducen),
+    // excepto el campo 'estado' que tiene etiquetas en español y necesita traducción.
+    // El campo 'descripcion' puede tener versión en inglés via descriptionEn.
     var v=String(d[col.key]||'');
     if(pt){
+      // Descripción: si hay versión en inglés disponible, usarla también en PT
       if(col.useEn&&d[col.useEn]) return String(d[col.useEn]);
+      // Estado: traducir al portugués
       if(col.key==='estado') return estPT[v]||v;
-      return col.pt?col.pt&&v===col.es?col.pt:v:v; // use pt label value passthrough
+      // Obsoleto: traducir SI/NO
+      if(col.key==='obsoleto'){
+        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
+        if(v===''||v==='No'||v==='no') return 'Não';
+        return v;
+      }
+      // Idioma: traducir E/S → Espanhol/Espanhol, I → Inglês, P → Português
+      if(col.key==='idioma'){
+        if(v==='E'||v==='S') return 'Espanhol';
+        if(v==='I') return 'Inglês';
+        if(v==='P') return 'Português';
+        return v;
+      }
+      return v;
     }
-    if(!es&&col.useEn&&d[col.useEn]) return String(d[col.useEn]);
-    if(!es&&col.key==='estado') return estEN[v]||v;
+    if(!es){
+      if(col.useEn&&d[col.useEn]) return String(d[col.useEn]);
+      if(col.key==='estado') return estEN[v]||v;
+      if(col.key==='obsoleto'){
+        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Yes';
+        if(v===''||v==='No'||v==='no') return 'No';
+        return v;
+      }
+      if(col.key==='idioma'){
+        if(v==='E'||v==='S') return 'Spanish';
+        if(v==='I') return 'English';
+        if(v==='P') return 'Portuguese';
+        return v;
+      }
+    }
     return v;
   }
 
