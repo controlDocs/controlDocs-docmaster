@@ -19727,7 +19727,7 @@ window._selLM = null;
 function solicitarIdiomaListadoPDF(){
   if(!docs||!docs.length){toast('Sin documentos en el listado maestro','er');return;}
   window._selLM = null;
-  ['pdf-op-es','pdf-op-en'].forEach(function(id){
+  ['pdf-op-es','pdf-op-en','pdf-op-pt'].forEach(function(id){
     var el=document.getElementById(id);
     if(el){el.style.borderColor='var(--brd)';el.style.background='#fff';}
   });
@@ -19738,7 +19738,7 @@ function solicitarIdiomaListadoPDF(){
 
 function selIdiomaLM(lang){
   window._selLM = lang;
-  ['es','en'].forEach(function(l){
+  ['es','en','pt'].forEach(function(l){
     var el=document.getElementById('pdf-op-'+l);
     if(el){
       el.style.borderColor = l===lang ? 'var(--T)' : 'var(--brd)';
@@ -19753,12 +19753,13 @@ function generarListadoPDF(){
   var lang = window._selLM;
   if(!lang){toast('Selecciona un idioma','er');return;}
   closeMo('mo-pdf-idioma');
-  toast(lang==='es'?'Generando PDF del Listado Maestro...':'Generating Master Document List PDF...','if');
+  toast(lang==='es'?'Generando PDF del Listado Maestro...':lang==='pt'?'Gerando PDF da Lista Mestra...':'Generating Master Document List PDF...','if');
   setTimeout(function(){_buildListadoPDF(lang);},150);
 }
 
 function _buildListadoPDF(lang){
   var es = lang==='es';
+  var pt = lang==='pt';
   var today = new Date();
   var dd  = String(today.getDate()).padStart(2,'0');
   var mm  = String(today.getMonth()+1).padStart(2,'0');
@@ -19792,32 +19793,35 @@ function _buildListadoPDF(lang){
   var estadoEN={'Vigente':'Active','Menos de 15 días':'< 15 days','Menos de 1 Mes':'< 1 Month',
     'Menos de 2 Meses':'< 2 Months','Menos de 3 Meses':'< 3 Months',
     'Menos de 4 Meses':'< 4 Months','Menos de 5 Meses':'< 5 Months'};
+  var estadoPT={'Vigente':'Vigente','Menos de 15 días':'< 15 dias','Menos de 1 Mes':'< 1 Mês',
+    'Menos de 2 Meses':'< 2 Meses','Menos de 3 Meses':'< 3 Meses',
+    'Menos de 4 Meses':'< 4 Meses','Menos de 5 Meses':'< 5 Meses'};
 
   //  Etiquetas según idioma 
   var L={
-    titulo:     es?'ADMINISTRACIÓN DEL SISTEMA DE DOCUMENTACIÓN':'DOCUMENTATION SYSTEM MANAGEMENT',
-    subtitulo:  es?'Listado Maestro de Documentos':'Master Document List',
-    codLbl:     es?'CÓDIGO:':'CODE:',
-    verLbl:     es?'VERSIÓN:':'VERSION:',
-    fechaLbl:   es?'Fecha Actualización:':'Update Date:',
-    pagLbl:     es?'Página':'Page',
-    deLbl:      es?'de':'of',
-    hCod:       es?'Código':'Code',
-    hDesc:      es?'Descripción':'Description',
-    hVer:       es?'Versión':'Version',
-    hFVig:      es?'Fecha Vigencia':'Effective Date',
-    hFVenc:     es?'Fecha Vencimiento':'Expiration Date',
-    hEst:       es?'Estado':'Status',
-    pie:        es?'DOCUMENTO PROPIEDAD DE PROCAPS S.A. PROHIBIDA SU REPRODUCCIÓN TOTAL O PARCIAL.':'DOCUMENT PROPERTY OF PROCAPS S.A. TOTAL OR PARTIAL REPRODUCTION PROHIBITED.',
-    histTit:    es?'HISTÓRICO DE CAMBIO':'CHANGE HISTORY',
-    hCodH:      es?'CÓDIGO':'CODE',
-    hVerH:      es?'VERSIÓN':'VERSION',
-    hFechaMod:  es?'FECHA DE MODIFICACIÓN':'MODIFICATION DATE',
-    hDescH:     es?'DESCRIPCIÓN':'DESCRIPTION',
-    histDescVal:es?'Actualización del listado maestro para la inclusión de nuevos documentos.':'Master document list update for inclusion of new documents.',
-    authResp:   es?'RESPONSABLE':'RESPONSIBLE',
-    authNom:    es?'NOMBRE':'NAME',
-    authCargo:  es?'CARGO / ROL':'POSITION / ROLE',
+    titulo:     es?'ADMINISTRACIÓN DEL SISTEMA DE DOCUMENTACIÓN':pt?'ADMINISTRAÇÃO DO SISTEMA DE DOCUMENTAÇÃO':'DOCUMENTATION SYSTEM MANAGEMENT',
+    subtitulo:  es?'Listado Maestro de Documentos':pt?'Lista Mestra de Documentos':'Master Document List',
+    codLbl:     es?'CÓDIGO:':pt?'CÓDIGO:':'CODE:',
+    verLbl:     es?'VERSIÓN:':pt?'VERSÃO:':'VERSION:',
+    fechaLbl:   es?'Fecha Actualización:':pt?'Data de Atualização:':'Update Date:',
+    pagLbl:     es?'Página':pt?'Página':'Page',
+    deLbl:      es?'de':pt?'de':'of',
+    hCod:       es?'Código':pt?'Código':'Code',
+    hDesc:      es?'Descripción':pt?'Descrição':'Description',
+    hVer:       es?'Versión':pt?'Versão':'Version',
+    hFVig:      es?'Fecha Vigencia':pt?'Data de Vigência':'Effective Date',
+    hFVenc:     es?'Fecha Vencimiento':pt?'Data de Vencimento':'Expiration Date',
+    hEst:       es?'Estado':pt?'Status':'Status',
+    pie:        es?'DOCUMENTO PROPIEDAD DE PROCAPS S.A. PROHIBIDA SU REPRODUCCIÓN TOTAL O PARCIAL.':pt?'DOCUMENTO PROPRIEDADE DA PROCAPS S.A. PROIBIDA SUA REPRODUÇÃO TOTAL OU PARCIAL.':'DOCUMENT PROPERTY OF PROCAPS S.A. TOTAL OR PARTIAL REPRODUCTION PROHIBITED.',
+    histTit:    es?'HISTÓRICO DE CAMBIO':pt?'HISTÓRICO DE ALTERAÇÕES':'CHANGE HISTORY',
+    hCodH:      es?'CÓDIGO':pt?'CÓDIGO':'CODE',
+    hVerH:      es?'VERSIÓN':pt?'VERSÃO':'VERSION',
+    hFechaMod:  es?'FECHA DE MODIFICACIÓN':pt?'DATA DE MODIFICAÇÃO':'MODIFICATION DATE',
+    hDescH:     es?'DESCRIPCIÓN':pt?'DESCRIÇÃO':'DESCRIPTION',
+    histDescVal:es?'Actualización del listado maestro para la inclusión de nuevos documentos.':pt?'Atualização da lista mestra para inclusão de novos documentos.':'Master document list update for inclusion of new documents.',
+    authResp:   es?'RESPONSABLE':pt?'RESPONSÁVEL':'RESPONSIBLE',
+    authNom:    es?'NOMBRE':pt?'NOME':'NAME',
+    authCargo:  es?'CARGO / ROL':pt?'CARGO / FUNÇÃO':'POSITION / ROLE',
     authFirma:  es?'FIRMA':'SIGNATURE',
     authFecha:  es?'FECHA':'DATE',
     auth1Resp:  es?'PREPARACIÓN':'PREPARATION',
@@ -19868,7 +19872,7 @@ function _buildListadoPDF(lang){
 
   //  Estado → color pill 
   function pillColor(raw){
-    var v=es?raw:(estadoEN[raw]||raw);
+    var v=es?raw:pt?(estadoPT[raw]||raw):(estadoEN[raw]||raw);
     var bg='#e6f9f3',fg='#0f7a50';
     if(raw==='Vencido'){bg='#fde8e8';fg='#a02020';}
     else if(raw==='Menos de 15 días'||raw==='Menos de 1 Mes'){bg='#fff3cd';fg='#856404';}
@@ -20129,7 +20133,7 @@ function _buildListadoPDF(lang){
         var blob=new Blob([pdfBytes],{type:'application/pdf'});
         var a=document.createElement('a');
         a.href=URL.createObjectURL(blob);
-        a.download='LM-0019_'+(es?'Listado_Maestro':'Master_Document_List')+'_'+fnDate+'.pdf';
+        a.download='LM-0019_'+(es?'Listado_Maestro':pt?'Lista_Mestra':'Master_Document_List')+'_'+fnDate+'.pdf';
         document.body.appendChild(a);
         a.click();
         setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); },8000);
@@ -22757,6 +22761,10 @@ function rlExportarExcel(datos){
         <div style="font-size:22px;margin-bottom:4px">🇺🇸</div>
         <div style="font-weight:700;font-size:12px;color:var(--tx)">English</div>
       </div>
+      <div onclick="xlsSelIdioma('pt')" id="xls-op-pt" style="flex:1;border:2px solid var(--brd);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .15s">
+        <div style="font-size:22px;margin-bottom:4px">🇧🇷</div>
+        <div style="font-weight:700;font-size:12px;color:var(--tx)">Português</div>
+      </div>
     </div>
 
     <!-- Filtro por estado -->
@@ -22800,30 +22808,30 @@ var _xlsLang = null;
 
 // Definición maestra de columnas disponibles
 var XLS_COLS_DEF = [
-  {key:'codigoActual',      es:'Código Actual',           en:'Current Code',          w:16, defOn:true},
-  {key:'codigoAntiguo',     es:'Código Anterior',         en:'Previous Code',         w:14, defOn:false},
-  {key:'descripcion',       es:'Descripción',             en:'Description',           w:42, defOn:true, useEn:'descriptionEn'},
-  {key:'version',           es:'Versión',                 en:'Version',               w:9,  defOn:true},
-  {key:'tipoDocumento',     es:'Tipo de Documento',       en:'Document Type',         w:20, defOn:true},
-  {key:'areaGeneradora',    es:'Área Generadora',         en:'Generating Area',       w:22, defOn:true},
-  {key:'proceso',           es:'Proceso',                 en:'Process',               w:22, defOn:true},
-  {key:'fechaVigencia',     es:'Fecha de Vigencia',       en:'Effective Date',        w:15, defOn:true},
-  {key:'fechaVencimiento',  es:'Fecha de Vencimiento',    en:'Expiration Date',       w:15, defOn:true},
-  {key:'extensionVigencia', es:'Extensión de Vigencia',   en:'Validity Extension',    w:16, defOn:false},
-  {key:'estado',            es:'Estado',                  en:'Status',                w:14, defOn:true},
-  {key:'obsoleto',          es:'Obsoleto',                en:'Obsolete',              w:10, defOn:false},
-  {key:'administrador',     es:'Administrador',           en:'Administrator',         w:24, defOn:true},
-  {key:'liderProceso',      es:'Líder de Proceso',        en:'Process Leader',        w:24, defOn:false},
-  {key:'correoElectronico', es:'Correo Electrónico',      en:'Email',                 w:32, defOn:false},
-  {key:'alcanceEmpresas',   es:'Alcance Empresas',        en:'Company Scope',         w:20, defOn:false},
-  {key:'areasAplicables',   es:'Áreas Aplicables',        en:'Applicable Areas',      w:22, defOn:false},
-  {key:'idioma',            es:'Idioma',                  en:'Language',              w:9,  defOn:false},
-  {key:'docGxP',            es:'Doc. GxP',                en:'GxP Doc',               w:9,  defOn:false},
-  {key:'docsRelacionados',  es:'Documentos Relacionados', en:'Related Documents',     w:22, defOn:false},
-  {key:'mbr',               es:'MBR',                     en:'MBR',                   w:8,  defOn:false},
-  {key:'tipoPlantilla',     es:'Tipo Plantilla',          en:'Template Type',         w:14, defOn:false},
-  {key:'docIntercompania',  es:'Doc. Intercompañía',      en:'Intercompany Doc',      w:16, defOn:false},
-  {key:'liderProceso',      es:'Líder de Proceso',        en:'Process Leader',        w:24, defOn:false},
+  {key:'codigoActual',      es:'Código Actual',           en:'Current Code',          pt:'Código Atual',             w:16, defOn:true},
+  {key:'codigoAntiguo',     es:'Código Anterior',         en:'Previous Code',         pt:'Código Anterior',          w:14, defOn:false},
+  {key:'descripcion',       es:'Descripción',             en:'Description',           pt:'Descrição',                w:42, defOn:true, useEn:'descriptionEn'},
+  {key:'version',           es:'Versión',                 en:'Version',               pt:'Versão',                   w:9,  defOn:true},
+  {key:'tipoDocumento',     es:'Tipo de Documento',       en:'Document Type',         pt:'Tipo de Documento',        w:20, defOn:true},
+  {key:'areaGeneradora',    es:'Área Generadora',         en:'Generating Area',       pt:'Área Geradora',            w:22, defOn:true},
+  {key:'proceso',           es:'Proceso',                 en:'Process',               pt:'Processo',                 w:22, defOn:true},
+  {key:'fechaVigencia',     es:'Fecha de Vigencia',       en:'Effective Date',        pt:'Data de Vigência',         w:15, defOn:true},
+  {key:'fechaVencimiento',  es:'Fecha de Vencimiento',    en:'Expiration Date',       pt:'Data de Vencimento',       w:15, defOn:true},
+  {key:'extensionVigencia', es:'Extensión de Vigencia',   en:'Validity Extension',    pt:'Extensão de Validade',     w:16, defOn:false},
+  {key:'estado',            es:'Estado',                  en:'Status',                pt:'Status',                   w:14, defOn:true},
+  {key:'obsoleto',          es:'Obsoleto',                en:'Obsolete',              pt:'Obsoleto',                 w:10, defOn:false},
+  {key:'administrador',     es:'Administrador',           en:'Administrator',         pt:'Administrador',            w:24, defOn:true},
+  {key:'liderProceso',      es:'Líder de Proceso',        en:'Process Leader',        pt:'Líder de Processo',        w:24, defOn:false},
+  {key:'correoElectronico', es:'Correo Electrónico',      en:'Email',                 pt:'E-mail',                   w:32, defOn:false},
+  {key:'alcanceEmpresas',   es:'Alcance Empresas',        en:'Company Scope',         pt:'Abrangência de Empresas',  w:20, defOn:false},
+  {key:'areasAplicables',   es:'Áreas Aplicables',        en:'Applicable Areas',      pt:'Áreas Aplicáveis',         w:22, defOn:false},
+  {key:'idioma',            es:'Idioma',                  en:'Language',              pt:'Idioma',                   w:9,  defOn:false},
+  {key:'docGxP',            es:'Doc. GxP',                en:'GxP Doc',               pt:'Doc. GxP',                 w:9,  defOn:false},
+  {key:'docsRelacionados',  es:'Documentos Relacionados', en:'Related Documents',     pt:'Documentos Relacionados',  w:22, defOn:false},
+  {key:'mbr',               es:'MBR',                     en:'MBR',                   pt:'MBR',                      w:8,  defOn:false},
+  {key:'tipoPlantilla',     es:'Tipo Plantilla',          en:'Template Type',         pt:'Tipo de Modelo',           w:14, defOn:false},
+  {key:'docIntercompania',  es:'Doc. Intercompañía',      en:'Intercompany Doc',      pt:'Doc. Intercompanhia',      w:16, defOn:false},
+  {key:'liderProceso',      es:'Líder de Proceso',        en:'Process Leader',        pt:'Líder de Processo',        w:24, defOn:false},
 ];
 
 // Deduplicar por key
@@ -22833,15 +22841,15 @@ XLS_COLS_DEF = XLS_COLS_DEF.filter(function(c,i,arr){
 
 // Estados disponibles con color, etiqueta y activado por defecto
 var XLS_ESTADOS_DEF = [
-  {val:'Vigente',           es:'Vigente',             en:'Active',            color:'#006860', bg:'#e6f9f3', defOn:true},
-  {val:'Menos de 5 Meses',  es:'Menos de 5 Meses',    en:'< 5 Months',        color:'#a06000', bg:'#fff9e8', defOn:true},
-  {val:'Menos de 4 Meses',  es:'Menos de 4 Meses',    en:'< 4 Months',        color:'#a06000', bg:'#fff9e8', defOn:true},
-  {val:'Menos de 3 Meses',  es:'Menos de 3 Meses',    en:'< 3 Months',        color:'#856404', bg:'#fff3cd', defOn:true},
-  {val:'Menos de 2 Meses',  es:'Menos de 2 Meses',    en:'< 2 Months',        color:'#856404', bg:'#fff3cd', defOn:true},
-  {val:'Menos de 1 Mes',    es:'Menos de 1 Mes',      en:'< 1 Month',         color:'#856404', bg:'#fff3cd', defOn:true},
-  {val:'Menos de 15 días',  es:'Menos de 15 días',    en:'< 15 days',         color:'#856404', bg:'#fff3cd', defOn:true},
-  {val:'Vencido',           es:'Vencido',             en:'Expired',           color:'#a02020', bg:'#fde8e8', defOn:false},
-  {val:'Obsoleto',          es:'Obsoleto',            en:'Obsolete',          color:'#7a2020', bg:'#f5d5d5', defOn:false},
+  {val:'Vigente',           es:'Vigente',             en:'Active',            pt:'Vigente',           color:'#006860', bg:'#e6f9f3', defOn:true},
+  {val:'Menos de 5 Meses',  es:'Menos de 5 Meses',    en:'< 5 Months',        pt:'< 5 Meses',         color:'#a06000', bg:'#fff9e8', defOn:true},
+  {val:'Menos de 4 Meses',  es:'Menos de 4 Meses',    en:'< 4 Months',        pt:'< 4 Meses',         color:'#a06000', bg:'#fff9e8', defOn:true},
+  {val:'Menos de 3 Meses',  es:'Menos de 3 Meses',    en:'< 3 Months',        pt:'< 3 Meses',         color:'#856404', bg:'#fff3cd', defOn:true},
+  {val:'Menos de 2 Meses',  es:'Menos de 2 Meses',    en:'< 2 Months',        pt:'< 2 Meses',         color:'#856404', bg:'#fff3cd', defOn:true},
+  {val:'Menos de 1 Mes',    es:'Menos de 1 Mes',      en:'< 1 Month',         pt:'< 1 Mês',           color:'#856404', bg:'#fff3cd', defOn:true},
+  {val:'Menos de 15 días',  es:'Menos de 15 días',    en:'< 15 days',         pt:'< 15 dias',         color:'#856404', bg:'#fff3cd', defOn:true},
+  {val:'Vencido',           es:'Vencido',             en:'Expired',           pt:'Vencido',           color:'#a02020', bg:'#fde8e8', defOn:false},
+  {val:'Obsoleto',          es:'Obsoleto',            en:'Obsolete',          pt:'Obsoleto',          color:'#7a2020', bg:'#f5d5d5', defOn:false},
 ];
 
 var _xlsLang = null;
@@ -22849,7 +22857,7 @@ var _xlsLang = null;
 function abrirModalExcelLM(){
   if(!docs||!docs.length){toast('Sin documentos en el listado maestro','er');return;}
   _xlsLang = null;
-  ['xls-op-es','xls-op-en'].forEach(function(id){
+  ['xls-op-es','xls-op-en','xls-op-pt'].forEach(function(id){
     var el=document.getElementById(id);
     if(el){el.style.borderColor='var(--brd)';el.style.background='#fff';}
   });
@@ -22862,7 +22870,7 @@ function abrirModalExcelLM(){
 
 function xlsSelIdioma(lang){
   _xlsLang=lang;
-  ['es','en'].forEach(function(l){
+  ['es','en','pt'].forEach(function(l){
     var el=document.getElementById('xls-op-'+l);
     if(el){el.style.borderColor=l===lang?'var(--T)':'var(--brd)';el.style.background=l===lang?'var(--tl)':'#fff';}
   });
@@ -22968,15 +22976,25 @@ function generarExcelLM(){
     return selectedEstados.indexOf(d.estado)>=0;
   });
 
-  if(!data.length){toast(es?'Sin documentos con los estados seleccionados':'No documents match the selected statuses','er');return;}
+  var pt=lang==='pt';
+  if(!data.length){toast(es?'Sin documentos con los estados seleccionados':pt?'Nenhum documento corresponde aos estados selecionados':'No documents match the selected statuses','er');return;}
   closeMo('mo-lm-excel');
 
   var estEN={'Vigente':'Active','Menos de 15 días':'< 15 days','Menos de 1 Mes':'< 1 Month',
     'Menos de 2 Meses':'< 2 Months','Menos de 3 Meses':'< 3 Months',
     'Menos de 4 Meses':'< 4 Months','Menos de 5 Meses':'< 5 Months',
     'Vencido':'Expired','Obsoleto':'Obsolete'};
+  var estPT={'Vigente':'Vigente','Menos de 15 días':'< 15 dias','Menos de 1 Mes':'< 1 Mês',
+    'Menos de 2 Meses':'< 2 Meses','Menos de 3 Meses':'< 3 Meses',
+    'Menos de 4 Meses':'< 4 Meses','Menos de 5 Meses':'< 5 Meses',
+    'Vencido':'Vencido','Obsoleto':'Obsoleto'};
   function tradVal(col,d){
     var v=String(d[col.key]||'');
+    if(pt){
+      if(col.useEn&&d[col.useEn]) return String(d[col.useEn]);
+      if(col.key==='estado') return estPT[v]||v;
+      return col.pt?col.pt&&v===col.es?col.pt:v:v; // use pt label value passthrough
+    }
     if(!es&&col.useEn&&d[col.useEn]) return String(d[col.useEn]);
     if(!es&&col.key==='estado') return estEN[v]||v;
     return v;
@@ -23010,24 +23028,26 @@ function generarExcelLM(){
   var aoa=[];
 
   // Fila 0: Título
-  var r0=[{v:es?'ADMINISTRACIÓN DEL SISTEMA DE DOCUMENTACIÓN':'DOCUMENTATION SYSTEM MANAGEMENT',t:'s',s:S_TITLE}];
+  var tituloExcel=es?'ADMINISTRACIÓN DEL SISTEMA DE DOCUMENTACIÓN':pt?'ADMINISTRAÇÃO DO SISTEMA DE DOCUMENTAÇÃO':'DOCUMENTATION SYSTEM MANAGEMENT';
+  var r0=[{v:tituloExcel,t:'s',s:S_TITLE}];
   for(var ci=1;ci<NC;ci++) r0.push({v:'',t:'s',s:S_TITLE});
   aoa.push(r0);
 
   // Fila 1: Subtítulo
-  var r1=[{v:(es?'Listado Maestro de Documentos':'Master Document List')+' — LM-0019',t:'s',s:S_SUB}];
+  var subExcel=(es?'Listado Maestro de Documentos':pt?'Lista Mestra de Documentos':'Master Document List')+' — LM-0019';
+  var r1=[{v:subExcel,t:'s',s:S_SUB}];
   for(var ci=1;ci<NC;ci++) r1.push({v:'',t:'s',s:S_SUB});
   aoa.push(r1);
 
   // Fila 2: Metadata
   var r2=[]; for(var ci=0;ci<NC;ci++) r2.push({v:'',t:'s',s:S_MVAL});
-  var mPairs=[[es?'Código:':'Code:','LM-0019'],[es?'Versión:':'Version:','00'],[es?'Fecha:':'Date:',fechaHoy],[es?'Documentos:':'Documents:',String(data.length)]];
+  var mPairs=[[es?'Código:':pt?'Código:':'Code:','LM-0019'],[es?'Versión:':pt?'Versão:':'Version:','00'],[es?'Fecha:':pt?'Data:':'Date:',fechaHoy],[es?'Documentos:':pt?'Documentos:':'Documents:',String(data.length)]];
   var mStep=Math.max(1,Math.floor(NC/mPairs.length));
   mPairs.forEach(function(p,mi){var c0=mi*mStep;if(c0<NC)r2[c0]={v:p[0],t:'s',s:S_MLBL};if(c0+1<NC)r2[c0+1]={v:p[1],t:'s',s:S_MVAL};});
   aoa.push(r2);
 
   // Fila 3: Encabezados
-  aoa.push(selectedCols.map(function(c){return{v:es?c.es:c.en,t:'s',s:S_HDR};}));
+  aoa.push(selectedCols.map(function(c){return{v:es?c.es:pt?(c.pt||c.es):c.en,t:'s',s:S_HDR};}));
 
   // Filas datos — ordenadas por estado (vigentes primero, luego próximos, vencidos, obsoletos)
   var estadoOrder={'Vigente':0,'Menos de 5 Meses':1,'Menos de 4 Meses':2,'Menos de 3 Meses':3,'Menos de 2 Meses':4,'Menos de 1 Mes':5,'Menos de 15 días':6,'Vencido':7,'Obsoleto':8};
@@ -23048,12 +23068,12 @@ function generarExcelLM(){
   ws['!cols']=selectedCols.map(function(c){return{wch:c.w};});
   ws['!rows']=[{hpt:34},{hpt:22},{hpt:18},{hpt:28}].concat(data.map(function(){return{hpt:16};}));
   ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:3,c:0},e:{r:3,c:NC-1}})};
-  XLSX.utils.book_append_sheet(wb,ws,es?'Listado Maestro':'Master List');
+  XLSX.utils.book_append_sheet(wb,ws,es?'Listado Maestro':pt?'Lista Mestra':'Master List');
 
-  var fname='LM-0019_'+(es?'Listado_Maestro':'Master_Document_List')+'_'+fechaHoy+'.xlsx';
+  var fname='LM-0019_'+(es?'Listado_Maestro':pt?'Lista_Mestra':'Master_Document_List')+'_'+fechaHoy+'.xlsx';
   try{
     XLSX.writeFile(wb,fname,{cellStyles:true});
-    toast('✅ Excel: '+fname+' — '+data.length+' documentos','ok');
+    toast('✅ Excel: '+fname+' — '+data.length+(es?' documentos':pt?' documentos':' documents'),'ok');
     if(typeof logA==='function') logA('Usuario','Descarga','Excel LM ('+lang+'): '+data.length+' docs, estados: '+selectedEstados.join(','));
   }catch(e){
     toast('Error: '+e.message,'er'); console.error(e);
@@ -25429,7 +25449,7 @@ document.addEventListener('click',function(e){
       El listado incluirá únicamente documentos <strong>Vigentes</strong> y <strong>Próximos a vencer (≤5 meses)</strong>. Se excluirán: vencidos, obsoletos, DP, SUB.<br>
       <span style="color:var(--tx3);font-size:11px">The list will include only <strong>Active</strong> and <strong>Expiring within 5 months</strong> documents. Excluded: expired, obsolete, DP, SUB.</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">
       <div onclick="selIdiomaLM('es')" id="pdf-op-es" style="border:2px solid var(--brd);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all .15s">
         <div style="font-size:28px;margin-bottom:6px">🇨🇴</div>
         <div style="font-weight:700;font-size:13px;color:var(--tx)">Español</div>
@@ -25439,6 +25459,11 @@ document.addEventListener('click',function(e){
         <div style="font-size:28px;margin-bottom:6px">🇺🇸</div>
         <div style="font-weight:700;font-size:13px;color:var(--tx)">English</div>
         <div style="font-size:10px;color:var(--tx3);margin-top:2px">Columns in English</div>
+      </div>
+      <div onclick="selIdiomaLM('pt')" id="pdf-op-pt" style="border:2px solid var(--brd);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all .15s">
+        <div style="font-size:28px;margin-bottom:6px">🇧🇷</div>
+        <div style="font-weight:700;font-size:13px;color:var(--tx)">Português</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px">Colunas em português</div>
       </div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
