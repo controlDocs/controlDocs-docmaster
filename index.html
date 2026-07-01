@@ -9524,12 +9524,31 @@ function evSelDoc(id){
     document.getElementById('ev-sel-cod').textContent=d.codigoActual;
     document.getElementById('ev-sel-desc').textContent=d.descripcion;
     document.getElementById('ev-sel-info').innerHTML='Vigencia: <strong>'+d.fechaVigencia+'</strong> | Vencimiento: <strong style="color:var(--R)">'+d.fechaVencimiento+'</strong> '+vencInfo;
-    // Nueva fecha = vencimiento + 1 año exacto (siempre desde la fecha de vencimiento, nunca desde hoy)
-    var base=new Date(d.fechaVencimiento+'T12:00:00');
-    base.setFullYear(base.getFullYear()+1);
-    var sug=fD(base);
-    document.getElementById('ev-nueva-fecha').value=sug;
-    document.getElementById('ev-nueva-preview').textContent=sug;
+    // Nueva fecha = vencimiento + 1 año exacto
+    // Siempre desde fechaVencimiento, nunca desde hoy.
+    // Se parsea manualmente (YYYY-MM-DD) para evitar ambigüedades de zona horaria.
+    var sug='';
+    var fv=d.fechaVencimiento||'';
+    var mFV=fv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(mFV){
+      var yr=parseInt(mFV[1])+1;  // año + 1
+      var mo=mFV[2];               // mismo mes
+      var dy=mFV[3];               // mismo día
+      sug=yr+'-'+mo+'-'+dy;
+    } else {
+      // Fallback: si el formato es inesperado, intentar con Date
+      try{
+        var base2=new Date(fv+'T12:00:00');
+        if(!isNaN(base2.getTime())){
+          base2.setFullYear(base2.getFullYear()+1);
+          sug=fD(base2);
+        }
+      }catch(e2){}
+    }
+    if(sug){
+      document.getElementById('ev-nueva-fecha').value=sug;
+      document.getElementById('ev-nueva-preview').textContent=sug;
+    }
   }
   document.getElementById('ev-q').value=d.codigoActual;
   var qSec=document.getElementById('ev-quitar-section');
