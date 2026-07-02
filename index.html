@@ -16794,6 +16794,22 @@ function odLeerHojaUsuarios(ws){
 }
 
 //  LEER EXCEL COMPLETO 
+// Corrige un bug frecuente de Excel/XLSX: cuando una celda tuvo saltos de
+// línea internos, a veces la secuencia de escape "_x000D_" (retorno de
+// carro) queda sin decodificar y aparece como texto literal repetido
+// cientos de veces dentro del campo (ej. en Descripción o Código Anterior).
+// Esto ensucia el nombre del documento y además rompe la traducción por
+// lote (cada aparición se cuenta como más "contenido" del que realmente
+// hay). Se limpia aquí, en el punto de lectura, para que tanto la
+// visualización en la app como las exportaciones (Excel/PDF, traducidas
+// o no) siempre reciban el texto real y limpio.
+function limpiarTextoExcel(v){
+  if(typeof v!=='string') return v;
+  return v.replace(/(_x000[dD]_)+/g,' ')
+          .replace(/[\r\n\t]+/g,' ')
+          .replace(/\s{2,}/g,' ')
+          .trim();
+}
 async function odCargarListado(){
   console.log('[OD] odCargarListado iniciado. carpetaHandle:',!!OD.carpetaHandle,'fileHandle:',!!OD.fileHandle);
   if(window._odCargando){ console.warn('OD: Carga ya en progreso, ignorando llamada duplicada'); return; }
@@ -16916,6 +16932,7 @@ async function odCargarListado(){
           var pts=val.split('/');
           if(pts.length===3) val=(pts[2].length===4?pts[2]:'20'+pts[2])+'-'+pts[1].padStart(2,'0')+'-'+pts[0].padStart(2,'0');
         }
+        if(typeof val==='string' && clave!=='_historialTexto') val=limpiarTextoExcel(val);
         // Versión siempre como string (0 numérico → '0', no '')
         if(clave==='version') val=String(val);
         obj[clave]=val; tieneVal=true;
@@ -20194,10 +20211,12 @@ async function _buildListadoPDF(lang){
           if(col.key==='descripcion'){
             // Solo la descripción del idioma elegido: campo nativo si existe,
             // si no, la traducción vía API. Nunca se mezcla con el otro idioma.
-            rawVal = pt ? (d.descriptionPt || tMap[rawVal] || rawVal)
-                        : (d.descriptionEn || tMap[rawVal] || rawVal);
+            var _dv=limpiarTextoExcel(rawVal);
+            rawVal = pt ? (d.descriptionPt || tMap[rawVal] || tMap[_dv] || rawVal)
+                        : (d.descriptionEn || tMap[rawVal] || tMap[_dv] || rawVal);
           } else if(col.key==='tipoDocumento' || col.key==='proceso'){
-            rawVal = tMap[rawVal] || rawVal;
+            var _tv=limpiarTextoExcel(rawVal);
+            rawVal = tMap[rawVal] || tMap[_tv] || rawVal;
           } else if(col.key==='obsoleto'){
             var _ov=rawVal.trim().toUpperCase();
             var _truthy=(_ov==='X'||_ov==='SI'||_ov==='SÍ'||_ov==='1'||_ov==='YES'||_ov==='SIM');
@@ -23159,51 +23178,64 @@ function generarExcelLM(){
 async function traducirTextosAPI(textList, lang, progressLabel){
   var pt=lang==='pt';
   var en=lang==='en';
-  var langName=pt?'Brazilian Portuguese':'English';
+  // MyMemory: servicio de traducción gratuito, SIN necesidad de API key y con
+  // CORS habilitado para llamarse directamente desde el navegador. Se usa en
+  // lugar de la API de Anthropic porque esta última requiere una credencial
+  // que solo está disponible dentro de la vista previa de Claude.ai — al
+  // abrir este archivo como app real (doble clic, red, etc.) esa llamada
+  // no tiene forma de autenticarse y siempre fallaba en silencio, dejando
+  // todo el listado en español aunque se eligiera Inglés/Portugués.
+  var targetLang=pt?'pt-BR':'en';
   var tMap={};
   if(!textList||!textList.length) return tMap;
-  try{
-    var batchSize=80;
-    var totalBatches=Math.ceil(textList.length/batchSize);
-    for(var b=0;b<textList.length;b+=batchSize){
-      var bNum=Math.floor(b/batchSize)+1;
-      if(totalBatches>1){
-        toast((progressLabel||(pt?'Traduzindo lote ':en?'Translating batch ':'Traduciendo lote '))+bNum+'/'+totalBatches+'...','if');
-      }
-      var batch=textList.slice(b,b+batchSize);
-      var prompt='Translate each line from Spanish to '+langName+'. '
-        +'Return ONLY the translations, one per line, in the EXACT same order and count. '
-        +'Keep codes, abbreviations (like INST, POL, SOP, NI, DA, COD, CAR, MAN, PRG, SUB), '
-        +'numbers, proper nouns, company names and machine names as-is. '
-        +'Pharmaceutical/quality management context.\n\n'
-        +batch.join('\n');
 
-      var resp=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-6',
-          max_tokens:3000,
-          messages:[{role:'user',content:prompt}]
-        })
-      });
-      if(!resp.ok){
-        console.warn('[TR] API error:',resp.status,await resp.text());
-        continue;
+  // Limpiar (quitar saltos de línea/artefactos de Excel) y deduplicar —
+  // dos descripciones distintas pueden quedar iguales tras la limpieza.
+  var clean=textList.map(function(t){return limpiarTextoExcel(String(t||''));})
+                     .filter(function(t){return t.length>1;});
+  var unicos=[], visto={};
+  clean.forEach(function(t){ if(!visto[t]){visto[t]=true; unicos.push(t);} });
+
+  var total=unicos.length, done=0;
+  var CONCURRENCIA=6; // peticiones simultáneas — balance entre velocidad y no saturar el servicio
+  var idx=0;
+
+  function traducirUno(texto){
+    // Límite práctico de la API gratuita: ~500 caracteres por consulta
+    var q=texto.length>480?texto.slice(0,480):texto;
+    var url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(q)+'&langpair=es|'+targetLang;
+    return fetch(url).then(function(r){ return r.ok?r.json():null; }).then(function(data){
+      var t=data&&data.responseData&&data.responseData.translatedText;
+      if(t && !/MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID LANGUAGE/i.test(t)){
+        tMap[texto]=t;
       }
-      var result=await resp.json();
-      if(result.error){console.warn('[TR] Claude error:',result.error);continue;}
-      var rawText=(result.content&&result.content[0]&&result.content[0].text)||'';
-      var lines=rawText.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-      batch.forEach(function(orig,i){
-        if(lines[i]) tMap[orig]=lines[i];
-      });
-      console.log('[TR] batch '+bNum+': '+Object.keys(tMap).length+' traducciones acumuladas');
+    }).catch(function(e){
+      console.warn('[TR] fallo traduciendo texto:',texto,e);
+    });
+  }
+
+  async function worker(){
+    while(idx<unicos.length){
+      var mi=idx++;
+      await traducirUno(unicos[mi]);
+      done++;
+      if(done%8===0||done===total){
+        toast((progressLabel||(pt?'Traduzindo ':en?'Translating ':'Traduciendo '))+done+'/'+total+'...','if');
+      }
     }
+  }
+
+  try{
+    var nWorkers=Math.min(CONCURRENCIA,unicos.length);
+    var workers=[];
+    for(var w=0;w<nWorkers;w++) workers.push(worker());
+    await Promise.all(workers);
   }catch(e){
-    console.error('[TR] error:',e);
+    console.error('[TR] error general:',e);
     toast((pt?'Erro na tradução, gerando com texto original':en?'Translation error, generating with original text':'Error en traducción'),'wa');
   }
+
+  console.log('[TR] '+Object.keys(tMap).length+'/'+total+' textos traducidos');
   return tMap;
 }
 
@@ -23258,10 +23290,13 @@ function _generarExcelConDatos(data, selectedCols, selectedEstados, lang, tMap){
     'Menos de 4 Meses':'< 4 Meses','Menos de 5 Meses':'< 5 Meses',
     'Vencido':'Vencido','Obsoleto':'Obsoleto'};
 
-  // Función auxiliar: traducir un texto via tMap o diccionarios fijos
+  // Función auxiliar: traducir un texto via tMap o diccionarios fijos.
+  // Se prueba también con espacios recortados por si la recolección y la
+  // búsqueda no coincidieron exactamente en algún caso límite.
   function tr(v){
     if(!v||es) return v;
-    return tMap[v]||v; // tMap tiene las traducciones de la API
+    var vc=limpiarTextoExcel(String(v));
+    return tMap[v]||tMap[vc]||v;
   }
 
   function tradVal(col,d){
