@@ -19859,9 +19859,10 @@ function generarListadoPDF(){
   setTimeout(function(){_buildListadoPDF(lang);},150);
 }
 
-function _buildListadoPDF(lang){
+async function _buildListadoPDF(lang){
   var es = lang==='es';
   var pt = lang==='pt';
+  var en = lang==='en';
   var today = new Date();
   var dd  = String(today.getDate()).padStart(2,'0');
   var mm  = String(today.getMonth()+1).padStart(2,'0');
@@ -19891,6 +19892,27 @@ function _buildListadoPDF(lang){
     return;
   }
 
+  //  Traducción de contenido vía API (tipo de documento, proceso y, si no  
+  //  existe el campo nativo, la descripción) — para que TODO el documento  
+  //  quede en el idioma elegido, no solo los encabezados. 
+  var tMap={};
+  if(!es){
+    var textosUnicos={};
+    filtered.forEach(function(d){
+      ['tipoDocumento','proceso'].forEach(function(k){
+        var v=String(d[k]||'').trim();
+        if(v&&v.length>1) textosUnicos[v]=true;
+      });
+      if(pt && !d.descriptionPt && d.descripcion) textosUnicos[d.descripcion]=true;
+      if(en && !d.descriptionEn && d.descripcion) textosUnicos[d.descripcion]=true;
+    });
+    var textList=Object.keys(textosUnicos).filter(function(t){return t.length>1;});
+    if(textList.length){
+      toast(pt?'Traduzindo conteúdo do PDF...':'Translating PDF content...','if');
+      tMap = await traducirTextosAPI(textList, lang, pt?'Traduzindo lote ':'Translating batch ');
+    }
+  }
+
   //  Traducciones 
   var estadoEN={'Vigente':'Active','Menos de 15 días':'< 15 days','Menos de 1 Mes':'< 1 Month',
     'Menos de 2 Meses':'< 2 Months','Menos de 3 Meses':'< 3 Months',
@@ -19898,6 +19920,8 @@ function _buildListadoPDF(lang){
   var estadoPT={'Vigente':'Vigente','Menos de 15 días':'< 15 dias','Menos de 1 Mes':'< 1 Mês',
     'Menos de 2 Meses':'< 2 Meses','Menos de 3 Meses':'< 3 Meses',
     'Menos de 4 Meses':'< 4 Meses','Menos de 5 Meses':'< 5 Meses'};
+  var idiomaEN={E:'Spanish',S:'Spanish',I:'English',P:'Portuguese',B:'Bilingual'};
+  var idiomaPT={E:'Espanhol',S:'Espanhol',I:'Inglês',P:'Português',B:'Bilíngue'};
 
   //  Etiquetas según idioma 
   var L={
@@ -19914,6 +19938,10 @@ function _buildListadoPDF(lang){
     hFVig:      es?'Fecha Vigencia':pt?'Data de Vigência':'Effective Date',
     hFVenc:     es?'Fecha Vencimiento':pt?'Data de Vencimento':'Expiration Date',
     hEst:       es?'Estado':pt?'Status':'Status',
+    hTipo:      es?'Tipo de Documento':pt?'Tipo de Documento':'Document Type',
+    hProc:      es?'Proceso':pt?'Processo':'Process',
+    hObs:       es?'Obsoleto':pt?'Obsoleto':'Obsolete',
+    hIdi:       es?'Idioma':pt?'Idioma':'Language',
     pie:        es?'DOCUMENTO PROPIEDAD DE PROCAPS S.A. PROHIBIDA SU REPRODUCCIÓN TOTAL O PARCIAL.':pt?'DOCUMENTO PROPRIEDADE DA PROCAPS S.A. PROIBIDA SUA REPRODUÇÃO TOTAL OU PARCIAL.':'DOCUMENT PROPERTY OF PROCAPS S.A. TOTAL OR PARTIAL REPRODUCTION PROHIBITED.',
     histTit:    es?'HISTÓRICO DE CAMBIO':pt?'HISTÓRICO DE ALTERAÇÕES':'CHANGE HISTORY',
     hCodH:      es?'CÓDIGO':pt?'CÓDIGO':'CODE',
@@ -19932,13 +19960,18 @@ function _buildListadoPDF(lang){
     auth2Cargo: es?'DIRECTORA SISTEMA DE GESTIÓN':'MANAGEMENT SYSTEM DIRECTOR',
   };
 
-  //  Columnas 
+  //  Columnas — se traducen tanto los encabezados como el contenido 
   var COLS=[
-    {w:0.11, key:'codigoActual',    lbl:L.hCod},
-    {w:0.52, key:'descripcion',     lbl:L.hDesc, useEn:true, fullText:true},
-    {w:0.08, key:'version',         lbl:L.hVer},
-    {w:0.145,key:'fechaVigencia',   lbl:L.hFVig},
-    {w:0.145,key:'fechaVencimiento',lbl:L.hFVenc},
+    {w:0.09, key:'codigoActual',    lbl:L.hCod},
+    {w:0.22, key:'descripcion',     lbl:L.hDesc, fullText:true},
+    {w:0.05, key:'version',         lbl:L.hVer},
+    {w:0.12, key:'tipoDocumento',   lbl:L.hTipo},
+    {w:0.12, key:'proceso',         lbl:L.hProc},
+    {w:0.09, key:'fechaVigencia',   lbl:L.hFVig},
+    {w:0.09, key:'fechaVencimiento',lbl:L.hFVenc},
+    {w:0.10, key:'estado',          lbl:L.hEst, isEstado:true},
+    {w:0.06, key:'obsoleto',        lbl:L.hObs},
+    {w:0.06, key:'idioma',          lbl:L.hIdi},
   ];
 
   //  Dimensiones página A4 landscape @ 96dpi → px 
@@ -20157,9 +20190,25 @@ function _buildListadoPDF(lang){
         var col=COLS[ci2], cw4=colWidths[ci2];
         if(ci2>0) line(rx,y,rx,y+ROW_H,C.b2,0.4);
         var rawVal=String(d[col.key]||'');
-        if(pt && col.key==='descripcion' && d.descriptionPt) rawVal=String(d.descriptionPt);
-  else if(pt && col.key==='descripcion' && d.descriptionEn) rawVal=String(d.descriptionEn);
-  else if(!es && !pt && col.useEn && d.descriptionEn) rawVal=String(d.descriptionEn);
+        if(!es){
+          if(col.key==='descripcion'){
+            // Solo la descripción del idioma elegido: campo nativo si existe,
+            // si no, la traducción vía API. Nunca se mezcla con el otro idioma.
+            rawVal = pt ? (d.descriptionPt || tMap[rawVal] || rawVal)
+                        : (d.descriptionEn || tMap[rawVal] || rawVal);
+          } else if(col.key==='tipoDocumento' || col.key==='proceso'){
+            rawVal = tMap[rawVal] || rawVal;
+          } else if(col.key==='obsoleto'){
+            var _ov=rawVal.trim().toUpperCase();
+            var _truthy=(_ov==='X'||_ov==='SI'||_ov==='SÍ'||_ov==='1'||_ov==='YES'||_ov==='SIM');
+            rawVal = pt ? (_truthy?'Sim':'Não') : (_truthy?'Yes':'No');
+          } else if(col.key==='idioma'){
+            var _iv=rawVal.trim().toUpperCase();
+            var _idiomaDict = pt?idiomaPT:idiomaEN;
+            rawVal = _idiomaDict[_iv] || rawVal;
+          }
+          // 'estado' se traduce más abajo dentro de pillColor() con su propio diccionario
+        }
         if(col.isEstado){
           var pc=pillColor(rawVal);
           var pw2=Math.min(cw4-8*S, 108*S), ph2=10*S;
@@ -23099,10 +23148,68 @@ function generarExcelLM(){
   }
 }
 
-async function _generarExcelConTraduccion(data, selectedCols, selectedEstados, lang){
+// ============================================================
+// TRADUCCIÓN COMPARTIDA VÍA API (usada por Excel LM y PDF LM)
+// ============================================================
+// Traduce una lista de textos únicos del español al idioma indicado ('en'|'pt').
+// Devuelve un mapa {textoOriginal: textoTraducido}. Usado por el módulo de
+// Reportes tanto para el Excel (generarExcelLM) como para el PDF
+// (generarListadoPDF), de modo que TODO el contenido del documento
+// (descripción, tipo de documento, proceso, etc.) quede en el idioma elegido.
+async function traducirTextosAPI(textList, lang, progressLabel){
   var pt=lang==='pt';
   var en=lang==='en';
   var langName=pt?'Brazilian Portuguese':'English';
+  var tMap={};
+  if(!textList||!textList.length) return tMap;
+  try{
+    var batchSize=80;
+    var totalBatches=Math.ceil(textList.length/batchSize);
+    for(var b=0;b<textList.length;b+=batchSize){
+      var bNum=Math.floor(b/batchSize)+1;
+      if(totalBatches>1){
+        toast((progressLabel||(pt?'Traduzindo lote ':en?'Translating batch ':'Traduciendo lote '))+bNum+'/'+totalBatches+'...','if');
+      }
+      var batch=textList.slice(b,b+batchSize);
+      var prompt='Translate each line from Spanish to '+langName+'. '
+        +'Return ONLY the translations, one per line, in the EXACT same order and count. '
+        +'Keep codes, abbreviations (like INST, POL, SOP, NI, DA, COD, CAR, MAN, PRG, SUB), '
+        +'numbers, proper nouns, company names and machine names as-is. '
+        +'Pharmaceutical/quality management context.\n\n'
+        +batch.join('\n');
+
+      var resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-6',
+          max_tokens:3000,
+          messages:[{role:'user',content:prompt}]
+        })
+      });
+      if(!resp.ok){
+        console.warn('[TR] API error:',resp.status,await resp.text());
+        continue;
+      }
+      var result=await resp.json();
+      if(result.error){console.warn('[TR] Claude error:',result.error);continue;}
+      var rawText=(result.content&&result.content[0]&&result.content[0].text)||'';
+      var lines=rawText.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+      batch.forEach(function(orig,i){
+        if(lines[i]) tMap[orig]=lines[i];
+      });
+      console.log('[TR] batch '+bNum+': '+Object.keys(tMap).length+' traducciones acumuladas');
+    }
+  }catch(e){
+    console.error('[TR] error:',e);
+    toast((pt?'Erro na tradução, gerando com texto original':en?'Translation error, generating with original text':'Error en traducción'),'wa');
+  }
+  return tMap;
+}
+
+async function _generarExcelConTraduccion(data, selectedCols, selectedEstados, lang){
+  var pt=lang==='pt';
+  var en=lang==='en';
 
   toast((pt?'Traduzindo e gerando Excel...':'Translating and generating Excel...'),'if');
 
@@ -23111,8 +23218,6 @@ async function _generarExcelConTraduccion(data, selectedCols, selectedEstados, l
   var TEXTO_LIBRE=['descripcion','tipoDocumento','areaGeneradora','proceso',
     'administrador','liderProceso','alcanceEmpresas','areasAplicables',
     'docsRelacionados','tipoPlantilla'];
-  var BOOLEANOS=['obsoleto','docGxP','mbr','docIntercompania'];
-  var IDIOMA=['idioma'];
 
   // Recopilar textos únicos para traducción vía API
   var uniqueTexts={};
@@ -23125,67 +23230,14 @@ async function _generarExcelConTraduccion(data, selectedCols, selectedEstados, l
     // Estado (aunque tiene diccionario fijo, incluir por si hay variaciones)
     var est=String(d.estado||'').trim();
     if(est) uniqueTexts[est]=true;
-    // Obsoleto como texto (puede venir como 'Si', 'No', 'X', etc.)
-    // Se maneja con booleanos en tradVal; no necesita API
-    // Descripción sin versión traducida
+    // Obsoleto y idioma se traducen con diccionario fijo (no necesitan API)
+    // Descripción: solo si NO existe el campo nativo del idioma elegido
     if(pt&&!d.descriptionPt&&d.descripcion) uniqueTexts[d.descripcion]=true;
     if(en&&!d.descriptionEn&&d.descripcion) uniqueTexts[d.descripcion]=true;
   });
 
-  // También recopilar los encabezados de estados que se traducen
-  var estES={'Vigente':'Vigente','Menos de 15 días':'Menos de 15 días',
-    'Menos de 1 Mes':'Menos de 1 Mes','Menos de 2 Meses':'Menos de 2 Meses',
-    'Menos de 3 Meses':'Menos de 3 Meses','Menos de 4 Meses':'Menos de 4 Meses',
-    'Menos de 5 Meses':'Menos de 5 Meses','Vencido':'Vencido','Obsoleto':'Obsoleto'};
-
   var textList=Object.keys(uniqueTexts).filter(function(t){return t.length>1;});
-
-  var tMap={}; // mapa de texto original → traducción
-
-  if(textList.length>0){
-    try{
-      var batchSize=80;
-      var totalBatches=Math.ceil(textList.length/batchSize);
-      for(var b=0;b<textList.length;b+=batchSize){
-        var bNum=Math.floor(b/batchSize)+1;
-        if(totalBatches>1){
-          toast((pt?'Traduzindo lote ':en?'Translating batch ':'Traduciendo lote ')+bNum+'/'+totalBatches+'...','if');
-        }
-        var batch=textList.slice(b,b+batchSize);
-        var prompt='Translate each line from Spanish to '+langName+'. '
-          +'Return ONLY the translations, one per line, in the EXACT same order and count. '
-          +'Keep codes, abbreviations (like INST, POL, SOP, NI, DA, COD, CAR, MAN, PRG, SUB), '
-          +'numbers, proper nouns, company names and machine names as-is. '
-          +'Pharmaceutical/quality management context.\n\n'
-          +batch.join('\n');
-
-        var resp=await fetch('https://api.anthropic.com/v1/messages',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({
-            model:'claude-sonnet-4-6',
-            max_tokens:3000,
-            messages:[{role:'user',content:prompt}]
-          })
-        });
-        if(!resp.ok){
-          console.warn('[XLS-TR] API error:',resp.status,await resp.text());
-          continue;
-        }
-        var result=await resp.json();
-        if(result.error){console.warn('[XLS-TR] Claude error:',result.error);continue;}
-        var rawText=(result.content&&result.content[0]&&result.content[0].text)||'';
-        var lines=rawText.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-        batch.forEach(function(orig,i){
-          if(lines[i]) tMap[orig]=lines[i];
-        });
-        console.log('[XLS-TR] batch '+bNum+': '+Object.keys(tMap).length+' traducciones acumuladas');
-      }
-    }catch(e){
-      console.error('[XLS-TR] error:',e);
-      toast((pt?'Erro na tradução, gerando com texto original':en?'Translation error, generating with original text':'Error en traducción'),'wa');
-    }
-  }
+  var tMap=await traducirTextosAPI(textList, lang, pt?'Traduzindo lote ':en?'Translating batch ':'Traduciendo lote ');
   console.log('[XLS-TR] tMap total:',Object.keys(tMap).length,'entradas');
 
   _generarExcelConDatos(data, selectedCols, selectedEstados, lang, tMap);
@@ -23216,13 +23268,14 @@ function _generarExcelConDatos(data, selectedCols, selectedEstados, lang, tMap){
     var v=String(d[col.key]||'');
     if(es) return v;
 
-    // Descripción: usar campo nativo si existe
+    // Descripción: usar campo nativo del idioma elegido; si no existe,
+    // traducir el español vía API. NUNCA mostrar la descripción de otro
+    // idioma distinto al seleccionado (p.ej. no mostrar EN cuando se pidió PT).
     if(col.key==='descripcion'){
-      if(pt&&d.descriptionPt) return d.descriptionPt;
-      if(d.descriptionEn)     return d.descriptionEn;
-      return tr(v);
+      if(pt) return d.descriptionPt || tr(v);
+      return d.descriptionEn || tr(v);
     }
-    if(col.key==='descriptionPt') return d.descriptionPt||d.descriptionEn||tr(d.descripcion||'');
+    if(col.key==='descriptionPt') return d.descriptionPt||tr(d.descripcion||'');
     if(col.key==='descriptionEn') return d.descriptionEn||tr(d.descripcion||'');
 
     // Estado: diccionario fijo; si no coincide, usar tMap (traducciones de la API)
