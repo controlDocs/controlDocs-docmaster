@@ -8746,7 +8746,7 @@ function expExcel(){
   toast('✅ Archivo descargado: '+fileName+'. Cópialo a: \\\\elara\\SistDoc-Intranet\\Listado\\PROCAPS (reemplaza el anterior)','if');
 }
 function expCSV(){
-  var cols=['codigoActual','codigoAntiguo','descripcion','descriptionEn','version','tipoDocumento','areaGeneradora','fechaVigencia','fechaVencimiento','estado','idioma','extensionVigencia','obsoleto','administrador','liderProceso','alcanceEmpresas','mbr','tipoPlantilla','docsRelacionados','docGxP','docIntercompania','areasAplicables','proceso','correoElectronico','descriptionPt'];
+  var cols=['codigoActual','codigoAntiguo','descripcion','descriptionEn','descriptionPt','version','tipoDocumento','areaGeneradora','proceso','fechaVigencia','fechaVencimiento','extensionVigencia','estado','obsoleto','administrador','liderProceso','correoElectronico','alcanceEmpresas','areasAplicables','idioma','docGxP','docsRelacionados','mbr','tipoPlantilla','docIntercompania'];
   var hdr=['Codigo Actual','Codigo Antiguo','Descripcion','Description','Version','Tipo De Documento','Area Generadora','Fecha De Vigencia','Fecha De Vencimiento2','Estado','Idioma','Extension De Vigencia','Obsoleto','Administrador','Lider De Proceso','Alcance A Empresas','Mbr','Tipo De Plantilla','Documentos Relacionados','Doc.Gxp','Doc.Intercompania','Areas Aplicables','Proceso','Correo Electronico'];
   var rows=[hdr].concat(docs.map(function(d){return cols.map(function(c){return d[c]||'';});}));
   var csv=rows.map(function(r){return r.map(function(v){return'"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
@@ -8846,6 +8846,23 @@ function procXLS(file){
           if(found!==null){colIdx[campo]=found;break;}
         }
       }
+
+      // FALLBACK POSICIONAL: para columnas sin encabezado (D=descriptionEn, E=descriptionPt)
+      // COLUMNAS_CLAVE define el orden exacto del Excel — usarlo como posición fija
+      // cuando CMAP no encontró la columna por nombre de encabezado.
+      var CLAVE_POSICIONES=OD&&OD.COLUMNAS_CLAVE?OD.COLUMNAS_CLAVE:[
+        'codigoActual','codigoAntiguo','descripcion','descriptionEn','descriptionPt','version',
+        'tipoDocumento','areaGeneradora','proceso','fechaVigencia','fechaVencimiento',
+        'extensionVigencia','estado','obsoleto','administrador',
+        'liderProceso','correoElectronico','alcanceEmpresas','areasAplicables','idioma',
+        'docGxP','docsRelacionados','mbr','tipoPlantilla','docIntercompania'
+      ];
+      CLAVE_POSICIONES.forEach(function(campo,posicion){
+        // Solo aplicar si CMAP no detectó este campo por nombre
+        if(colIdx[campo]===undefined||colIdx[campo]===null){
+          colIdx[campo]=posicion; // usar posición como índice de columna
+        }
+      });
 
       //  Función para leer celda como string preservando el valor original 
       function getCellStr(row, colNum) {
@@ -15372,20 +15389,18 @@ var OD = {
   saveTimer:     null,
   SYNC_INTERVAL: 60000,   // auto-guardar cada 60s
   COLUMNAS_EXCEL: [
-    'Código Actual','Código Antiguo','Descripción','Description','Versión',
-    'Tipo De Documento','Área Generadora','Fecha De Vigencia','Fecha De Vencimiento2',
-    'Estado','Idioma','Extension De Vigencia','Obsoleto','Administrador',
-    'Lider De Proceso','Alcance A Empresas','Mbr','Tipo De Plantilla',
-    'Documentos Relacionados','Doc.Gxp','Doc.Intercompañia','Áreas Aplicables','Proceso',
-    'Historial_Cambios','Correo Electrónico','Descrição (PT)'
+    'Código Actual','Código Antiguo','Descripción','','','Versión',
+    'Tipo De Documento','Área Generadora','Proceso','Fecha De Vigencia','Fecha De Vencimiento2',
+    'Extension De Vigencia','Estado','Obsoleto','Administrador',
+    'Lider De Proceso','Correo Electrónico','Alcance A Empresas','Áreas Aplicables','Idioma',
+    'Doc.Gxp','Documentos Relacionados','Mbr','Tipo De Plantilla','Doc.Intercompañia'
   ],
   COLUMNAS_CLAVE: [
-    'codigoActual','codigoAntiguo','descripcion','descriptionEn','version',
-    'tipoDocumento','areaGeneradora','fechaVigencia','fechaVencimiento',
-    'estado','idioma','extensionVigencia','obsoleto','administrador',
-    'liderProceso','alcanceEmpresas','mbr','tipoPlantilla',
-    'docsRelacionados','docGxP','docIntercompania','areasAplicables','proceso',
-    '_historialTexto','correoElectronico','descriptionPt'
+    'codigoActual','codigoAntiguo','descripcion','descriptionEn','descriptionPt','version',
+    'tipoDocumento','areaGeneradora','proceso','fechaVigencia','fechaVencimiento',
+    'extensionVigencia','estado','obsoleto','administrador',
+    'liderProceso','correoElectronico','alcanceEmpresas','areasAplicables','idioma',
+    'docGxP','docsRelacionados','mbr','tipoPlantilla','docIntercompania'
   ]
 };
 
@@ -17533,18 +17548,17 @@ async function odGuardarListado(silencioso){
     }
 
     // Columnas de fecha (índices 0-based en COLUMNAS_CLAVE)
-    var COLS_FECHA={7:true, 8:true}; // H=fechaVigencia, I=fechaVencimiento
+    var COLS_FECHA={9:true, 10:true}; // J=fechaVigencia, K=fechaVencimiento
 
     // PASO 1: Borrar SOLO las celdas de datos (filas 2 en adelante)
     // que corresponden a nuestras columnas (incluyendo J, que se reescribirá con fórmula).
     var nuestrasCols={}; // índice columna 0-based → true
     OD.COLUMNAS_CLAVE.forEach(function(_,ci){ nuestrasCols[ci]=true; });
     nuestrasCols[9]=true; // columna J también se reescribe con fórmula
-    // Columna Y (índice 24 = correoElectronico): NO borrar automáticamente
+    // Columna Q (índice 16 = correoElectronico): NO borrar automáticamente
     // Solo se escribe si el documento tiene correo asignado
     // Esto preserva correos del Excel que no se hayan cargado en memoria
-    delete nuestrasCols[24];
-    // Columna Z (índice 25 = descriptionPt): escribir normalmente (nueva columna al final)
+    delete nuestrasCols[16];
 
     Object.keys(wsLM).forEach(function(addr){
       if(addr[0]==='!') return;
@@ -17562,9 +17576,9 @@ async function odGuardarListado(silencioso){
 
     // PASO 2: Escribir encabezados fila 1 (solo nuestras columnas, excepto J)
     OD.COLUMNAS_EXCEL.forEach(function(h, ci){
-      if(ci===9) return; // no tocar J1
+      if(!h) return; // no escribir encabezados vacíos (cols D y E sin título)
       var addr=XLSX.utils.encode_cell({r:0,c:ci});
-      if(!wsLM[addr]) wsLM[addr]={v:h,t:'s'}; // solo si no existe
+      if(!wsLM[addr]) wsLM[addr]={v:h,t:'s'}; // solo si no existe ya un encabezado
     });
 
     function calcEstadoParaExcel(d){var obs=String(d.obsoleto||"").toUpperCase().trim();var esObs=obs==="X"||obs==="SI"||obs==="SÍ"||d.estado==="Obsoleto";return esObs?"Obsoleto":calcEst(d.fechaVencimiento,esObs?"X":"No");}
@@ -17575,12 +17589,12 @@ async function odGuardarListado(silencioso){
       var excelRow=row+1; // número fila Excel
 
       OD.COLUMNAS_CLAVE.forEach(function(col, ci){
-        if(ci===9) return; // col J: se maneja aparte
+        // ci===10 = fechaVencimiento: se escribe como texto fecha (ya no es fórmula)
 
         var addr=XLSX.utils.encode_cell({r:row,c:ci});
 
-        // Columna E (índice 4) = Versión → guardar como número con 2 decimales
-        if(ci===4){
+        // Columna F (índice 5) = Versión → guardar como número con 2 decimales
+        if(ci===5){
           var verRaw=String(d[col]!==null&&d[col]!==undefined?d[col]:'').trim();
           var verNum=parseFloat(verRaw);
           if(!isNaN(verNum)){
@@ -17591,30 +17605,20 @@ async function odGuardarListado(silencioso){
           return;
         }
 
-        // Columna X (índice 23) = Historial_Cambios
-        if(ci===23){
-          var h=d.historial;
-          var txt=(h&&h.length)
-            ? h.filter(function(e){return e&&e.c&&String(e.c).trim();}).map(function(e){return '['+e.f+'] '+(e.u||'Sistema')+': '+(e.c||'');}).join('\n')
-            : '';
-          // Excel: máximo 32767 chars por celda — truncar por el inicio (entradas más antiguas)
-          if(txt.length>32700){
-            txt=txt.slice(txt.length-32700);
-            var nl=txt.indexOf('\n');
-            if(nl>0) txt=txt.slice(nl+1); // empezar en línea completa
-            txt='[...historial truncado]\n'+txt;
-          }
-          wsLM[addr]={v:txt,t:'s'};
-          return;
-        }
+        // Historial de cambios: ya no se escribe al Excel (no hay columna para eso)
+        // Se guarda solo en memoria (d.historial) y se exporta vía botones de descarga
 
         var val=d[col];
         if(val===null||val===undefined) val='';
         if(typeof val==='object') val='';
 
-        // Columna Y (correoElectronico, índice 24):
-        // Solo escribir si tiene valor — si no, preservar lo que hay en el Excel
-        if(ci===24 && !String(val).trim()) return;
+        // Proteger campos clave: si el valor en memoria está vacío,
+        // NO borrar lo que tiene el Excel — preservar el original
+        if(!String(val).trim()){
+          if(ci===1)  return; // codigoAntiguo
+          if(ci===15) return; // liderProceso
+          if(ci===16) return; // correoElectronico
+        }
 
         // Columnas de fecha → guardar como texto ISO YYYY-MM-DD
         // Nota: escribir como texto evita problemas de locale en Excel/XLSX
@@ -17632,15 +17636,14 @@ async function odGuardarListado(silencioso){
         wsLM[addr]={v:strVal,t:'s'};
       });
 
-      // Columna J: siempre insertar/actualizar la fórmula
-      // Si ya existía una celda original la reemplazamos con la fórmula actualizada
-      // (el número de fila puede haber cambiado si se reordenaron documentos)
-      var addrJ=XLSX.utils.encode_cell({r:row,c:9});var _estJ=calcEstadoParaExcel(d);d.estado=_estJ;wsLM[addrJ]={v:_estJ,t:'s'};
+      // Recalcular y actualizar d.estado en memoria (para que la app lo muestre correctamente)
+      // El estado ya se escribe en la columna M (ci===12) dentro del loop anterior
+      d.estado = calcEstadoParaExcel(d);
     });
 
     // PASO 4: Actualizar !ref para cubrir todas las filas escritas
     var lastRow=docs.length; // 0-based
-    var lastCol=OD.COLUMNAS_CLAVE.length-1;
+    var lastCol=Math.max(OD.COLUMNAS_CLAVE.length-1, 24); // mínimo 25 columnas (A-Y)
     wsLM['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:lastRow,c:lastCol}});
     // wb.Sheets[wb.SheetNames[0]] ya apunta a wsLM (modificado in-place)
 
