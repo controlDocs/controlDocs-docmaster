@@ -22907,31 +22907,31 @@ var _xlsLang = null;
 
 // Definición maestra de columnas disponibles
 var XLS_COLS_DEF = [
-  {key:'codigoActual',      es:'Código Actual',           en:'Current Code',          pt:'Código Atual',             w:16, defOn:true},
-  {key:'codigoAntiguo',     es:'Código Anterior',         en:'Previous Code',         pt:'Código Anterior',          w:14, defOn:false},
-  {key:'descripcion',       es:'Descripción',             en:'Description',           pt:'Descrição',                w:42, defOn:true, useEn:'descriptionEn', usePt:'descriptionPt'},
-  {key:'descriptionPt',     es:'Descrição (PT)',           en:'Descrição (PT)',         pt:'Descrição (PT)',            w:42, defOn:false},
-  {key:'version',           es:'Versión',                 en:'Version',               pt:'Versão',                   w:9,  defOn:true},
-  {key:'tipoDocumento',     es:'Tipo de Documento',       en:'Document Type',         pt:'Tipo de Documento',        w:20, defOn:true},
-  {key:'areaGeneradora',    es:'Área Generadora',         en:'Generating Area',       pt:'Área Geradora',            w:22, defOn:true},
-  {key:'proceso',           es:'Proceso',                 en:'Process',               pt:'Processo',                 w:22, defOn:true},
-  {key:'fechaVigencia',     es:'Fecha de Vigencia',       en:'Effective Date',        pt:'Data de Vigência',         w:15, defOn:true},
-  {key:'fechaVencimiento',  es:'Fecha de Vencimiento',    en:'Expiration Date',       pt:'Data de Vencimento',       w:15, defOn:true},
-  {key:'extensionVigencia', es:'Extensión de Vigencia',   en:'Validity Extension',    pt:'Extensão de Validade',     w:16, defOn:false},
-  {key:'estado',            es:'Estado',                  en:'Status',                pt:'Status',                   w:14, defOn:true},
-  {key:'obsoleto',          es:'Obsoleto',                en:'Obsolete',              pt:'Obsoleto',                 w:10, defOn:false},
-  {key:'administrador',     es:'Administrador',           en:'Administrator',         pt:'Administrador',            w:24, defOn:true},
-  {key:'liderProceso',      es:'Líder de Proceso',        en:'Process Leader',        pt:'Líder de Processo',        w:24, defOn:false},
-  {key:'correoElectronico', es:'Correo Electrónico',      en:'Email',                 pt:'E-mail',                   w:32, defOn:false},
-  {key:'alcanceEmpresas',   es:'Alcance Empresas',        en:'Company Scope',         pt:'Abrangência de Empresas',  w:20, defOn:false},
-  {key:'areasAplicables',   es:'Áreas Aplicables',        en:'Applicable Areas',      pt:'Áreas Aplicáveis',         w:22, defOn:false},
-  {key:'idioma',            es:'Idioma',                  en:'Language',              pt:'Idioma',                   w:9,  defOn:false},
-  {key:'docGxP',            es:'Doc. GxP',                en:'GxP Doc',               pt:'Doc. GxP',                 w:9,  defOn:false},
-  {key:'docsRelacionados',  es:'Documentos Relacionados', en:'Related Documents',     pt:'Documentos Relacionados',  w:22, defOn:false},
-  {key:'mbr',               es:'MBR',                     en:'MBR',                   pt:'MBR',                      w:8,  defOn:false},
-  {key:'tipoPlantilla',     es:'Tipo Plantilla',          en:'Template Type',         pt:'Tipo de Modelo',           w:14, defOn:false},
-  {key:'docIntercompania',  es:'Doc. Intercompañía',      en:'Intercompany Doc',      pt:'Doc. Intercompanhia',      w:16, defOn:false},
-  {key:'liderProceso',      es:'Líder de Proceso',        en:'Process Leader',        pt:'Líder de Processo',        w:24, defOn:false},
+  {key:'codigoActual',      es:'Código Actual',           en:'Current Code',          pt:'Código Atual',            w:16, defOn:true},
+  {key:'codigoAntiguo',     es:'Código Anterior',         en:'Previous Code',         pt:'Código Anterior',         w:14, defOn:false},
+  {key:'descripcion',       es:'Descripción',             en:'Description',           pt:'Descrição',               w:42, defOn:true, useEn:'descriptionEn', usePt:'descriptionPt'},
+  {key:'descriptionEn',     es:'Description (EN)',        en:'Description (EN)',      pt:'Description (EN)',        w:42, defOn:false},
+  {key:'descriptionPt',     es:'Descrição (PT)',          en:'Descrição (PT)',         pt:'Descrição (PT)',          w:42, defOn:false},
+  {key:'version',           es:'Versión',                 en:'Version',               pt:'Versão',                  w:9,  defOn:true},
+  {key:'tipoDocumento',     es:'Tipo de Documento',       en:'Document Type',         pt:'Tipo de Documento',       w:20, defOn:true},
+  {key:'areaGeneradora',    es:'Área Generadora',         en:'Generating Area',       pt:'Área Geradora',           w:22, defOn:true},
+  {key:'proceso',           es:'Proceso',                 en:'Process',               pt:'Processo',                w:22, defOn:true},
+  {key:'fechaVigencia',     es:'Fecha de Vigencia',       en:'Effective Date',        pt:'Data de Vigência',        w:15, defOn:true},
+  {key:'fechaVencimiento',  es:'Fecha de Vencimiento',    en:'Expiration Date',       pt:'Data de Vencimento',      w:15, defOn:true},
+  {key:'extensionVigencia', es:'Extensión de Vigencia',   en:'Validity Extension',    pt:'Extensão de Validade',    w:16, defOn:false},
+  {key:'estado',            es:'Estado',                  en:'Status',                pt:'Status',                  w:14, defOn:true},
+  {key:'obsoleto',          es:'Obsoleto',                en:'Obsolete',              pt:'Obsoleto',                w:10, defOn:false},
+  {key:'administrador',     es:'Administrador',           en:'Administrator',         pt:'Administrador',           w:24, defOn:true},
+  {key:'liderProceso',      es:'Líder de Proceso',        en:'Process Leader',        pt:'Líder de Processo',       w:24, defOn:false},
+  {key:'correoElectronico', es:'Correo Electrónico',      en:'Email',                 pt:'E-mail',                  w:32, defOn:false},
+  {key:'alcanceEmpresas',   es:'Alcance Empresas',        en:'Company Scope',         pt:'Abrangência de Empresas', w:20, defOn:false},
+  {key:'areasAplicables',   es:'Áreas Aplicables',        en:'Applicable Areas',      pt:'Áreas Aplicáveis',        w:22, defOn:false},
+  {key:'idioma',            es:'Idioma',                  en:'Language',              pt:'Idioma',                  w:9,  defOn:false},
+  {key:'docGxP',            es:'Doc. GxP',                en:'GxP Doc',               pt:'Doc. GxP',                w:9,  defOn:false},
+  {key:'docsRelacionados',  es:'Documentos Relacionados', en:'Related Documents',     pt:'Documentos Relacionados', w:22, defOn:false},
+  {key:'mbr',               es:'MBR',                     en:'MBR',                   pt:'MBR',                     w:8,  defOn:false},
+  {key:'tipoPlantilla',     es:'Tipo Plantilla',          en:'Template Type',         pt:'Tipo de Modelo',          w:14, defOn:false},
+  {key:'docIntercompania',  es:'Doc. Intercompañía',      en:'Intercompany Doc',      pt:'Doc. Intercompanhia',     w:16, defOn:false},
 ];
 
 // Deduplicar por key
@@ -23312,13 +23312,18 @@ function _generarExcelConDatos(data, selectedCols, selectedEstados, lang, tMap){
   }));
 
   // Filas de datos
+  // SheetJS limita a 32767 caracteres por celda — truncar si excede
+  function xlsSafe(v){
+    var s=String(v==null?'':v);
+    return s.length>32767?s.slice(0,32764)+'...':s;
+  }
   data.forEach(function(d,ri){
     var alt=ri%2===1;
     var isVenc=d.estado==='Vencido';
     var isExp=d.estado==='Obsoleto';
     var baseS=isVenc?S_VENC:isExp?S_EXP:alt?S_CELL_A:S_CELL_W;
     var row=selectedCols.map(function(c){
-      return {v:tradVal(c,d),t:'s',s:baseS};
+      return {v:xlsSafe(tradVal(c,d)),t:'s',s:baseS};
     });
     aoa.push(row);
   });
