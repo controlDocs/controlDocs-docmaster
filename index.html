@@ -1237,11 +1237,6 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn gh" onclick="expBak()">Backup JSON</button>
         <button class="btn" onclick="solicitarIdiomaListadoPDF()" style="background:#006860;gap:6px">📄 Descargar Listado Maestro PDF</button>
         <button class="btn" onclick="abrirModalExcelLM()" style="background:#1e7145;gap:6px">📊 Descargar Listado Maestro Excel</button>
-        <button class="btn" id="tp-btn" onclick="traducirTodosPT()" style="background:#009B8D;gap:6px" title="Traduzir automaticamente a Descrição de todos os documentos para Português usando IA">🤖 Traduzir todos ao PT (IA)</button>
-      </div>
-      <div style="margin-top:8px;display:none;align-items:center;gap:8px" id="tp-progress-wrap">
-        <progress id="tp-progress-bar" style="flex:1;height:8px;display:none"></progress>
-        <span id="tp-progress-lbl" style="font-size:10px;color:var(--tx3);display:none"></span>
       </div>
       <div style="font-size:10px;color:var(--tx3);margin-top:7px">📁 Guardar en: <span style="font-family:monospace;background:var(--tl);padding:2px 6px;border-radius:4px">\\elara\SistDoc-Intranet\Listado\PROCAPS\LM-0019.xlsx</span> — reemplaza el archivo anterior.</div>
     </div>
@@ -23065,6 +23060,7 @@ function generarExcelLM(){
   var lang=_xlsLang; if(!lang) return;
   var es=lang==='es';
   var pt=lang==='pt';
+  var en=lang==='en';
 
   var selectedCols=XLS_COLS_DEF.filter(function(_,i){
     var el=document.getElementById('xls-c-'+i); return el&&el.checked;
@@ -23076,17 +23072,125 @@ function generarExcelLM(){
   }).map(function(e){return e.val;});
   if(!selectedEstados.length){toast('Selecciona al menos un estado','er');return;}
 
-  // Incluir Obsoleto si el usuario lo marcó (por campo obsoleto también)
   var incluirObsoletos=selectedEstados.indexOf('Obsoleto')>=0;
-
   var data=(docs||[]).filter(function(d){
     var esObs=d.estado==='Obsoleto'||d.obsoleto==='X'||d.obsoleto==='Si'||d.obsoleto==='Sí';
     if(esObs) return incluirObsoletos;
     return selectedEstados.indexOf(d.estado)>=0;
   });
 
-  if(!data.length){toast(es?'Sin documentos con los estados seleccionados':pt?'Nenhum documento corresponde aos estados selecionados':'No documents match the selected statuses','er');return;}
+  if(!data.length){
+    toast(es?'Sin documentos':pt?'Sem documentos':'No documents','er');
+    return;
+  }
   closeMo('mo-lm-excel');
+
+  if(es){
+    // Español: sin traducción, generar directamente
+    _generarExcelConDatos(data, selectedCols, selectedEstados, lang);
+  } else {
+    // EN o PT: traducir todo el contenido via API antes de generar
+    _generarExcelConTraduccion(data, selectedCols, selectedEstados, lang);
+  }
+}
+
+async function _generarExcelConTraduccion(data, selectedCols, selectedEstados, lang){
+  var pt=lang==='pt';
+  var en=lang==='en';
+  var langName=pt?'Brazilian Portuguese':'English';
+
+  toast((pt?'Traduzindo e gerando Excel...':'Translating and generating Excel...'),'if');
+
+  // ── Recopilar todos los textos únicos que necesitan traducción ──
+  // Solo campos de texto libre (no fechas, versiones, códigos, ni valores booleanos)
+  var TEXTO_LIBRE=['descripcion','tipoDocumento','areaGeneradora','proceso',
+    'administrador','liderProceso','alcanceEmpresas','areasAplicables',
+    'docsRelacionados','tipoPlantilla'];
+  var BOOLEANOS=['obsoleto','docGxP','mbr','docIntercompania'];
+  var IDIOMA=['idioma'];
+
+  // Recopilar textos únicos para traducción vía API
+  var uniqueTexts={};
+  data.forEach(function(d){
+    // Texto libre
+    TEXTO_LIBRE.forEach(function(k){
+      var v=String(d[k]||'').trim();
+      if(v&&v.length>1) uniqueTexts[v]=true;
+    });
+    // Estado (aunque tiene diccionario fijo, incluir por si hay variaciones)
+    var est=String(d.estado||'').trim();
+    if(est) uniqueTexts[est]=true;
+    // Obsoleto como texto (puede venir como 'Si', 'No', 'X', etc.)
+    // Se maneja con booleanos en tradVal; no necesita API
+    // Descripción sin versión traducida
+    if(pt&&!d.descriptionPt&&d.descripcion) uniqueTexts[d.descripcion]=true;
+    if(en&&!d.descriptionEn&&d.descripcion) uniqueTexts[d.descripcion]=true;
+  });
+
+  // También recopilar los encabezados de estados que se traducen
+  var estES={'Vigente':'Vigente','Menos de 15 días':'Menos de 15 días',
+    'Menos de 1 Mes':'Menos de 1 Mes','Menos de 2 Meses':'Menos de 2 Meses',
+    'Menos de 3 Meses':'Menos de 3 Meses','Menos de 4 Meses':'Menos de 4 Meses',
+    'Menos de 5 Meses':'Menos de 5 Meses','Vencido':'Vencido','Obsoleto':'Obsoleto'};
+
+  var textList=Object.keys(uniqueTexts).filter(function(t){return t.length>1;});
+
+  var tMap={}; // mapa de texto original → traducción
+
+  if(textList.length>0){
+    try{
+      var batchSize=80;
+      var totalBatches=Math.ceil(textList.length/batchSize);
+      for(var b=0;b<textList.length;b+=batchSize){
+        var bNum=Math.floor(b/batchSize)+1;
+        if(totalBatches>1){
+          toast((pt?'Traduzindo lote ':en?'Translating batch ':'Traduciendo lote ')+bNum+'/'+totalBatches+'...','if');
+        }
+        var batch=textList.slice(b,b+batchSize);
+        var prompt='Translate each line from Spanish to '+langName+'. '
+          +'Return ONLY the translations, one per line, in the EXACT same order and count. '
+          +'Keep codes, abbreviations (like INST, POL, SOP, NI, DA, COD, CAR, MAN, PRG, SUB), '
+          +'numbers, proper nouns, company names and machine names as-is. '
+          +'Pharmaceutical/quality management context.\n\n'
+          +batch.join('\n');
+
+        var resp=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            model:'claude-sonnet-4-6',
+            max_tokens:3000,
+            messages:[{role:'user',content:prompt}]
+          })
+        });
+        if(!resp.ok){
+          console.warn('[XLS-TR] API error:',resp.status,await resp.text());
+          continue;
+        }
+        var result=await resp.json();
+        if(result.error){console.warn('[XLS-TR] Claude error:',result.error);continue;}
+        var rawText=(result.content&&result.content[0]&&result.content[0].text)||'';
+        var lines=rawText.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+        batch.forEach(function(orig,i){
+          if(lines[i]) tMap[orig]=lines[i];
+        });
+        console.log('[XLS-TR] batch '+bNum+': '+Object.keys(tMap).length+' traducciones acumuladas');
+      }
+    }catch(e){
+      console.error('[XLS-TR] error:',e);
+      toast((pt?'Erro na tradução, gerando com texto original':en?'Translation error, generating with original text':'Error en traducción'),'wa');
+    }
+  }
+  console.log('[XLS-TR] tMap total:',Object.keys(tMap).length,'entradas');
+
+  _generarExcelConDatos(data, selectedCols, selectedEstados, lang, tMap);
+}
+
+function _generarExcelConDatos(data, selectedCols, selectedEstados, lang, tMap){
+  var es=lang==='es';
+  var pt=lang==='pt';
+  var en=lang==='en';
+  tMap=tMap||{};
 
   var estEN={'Vigente':'Active','Menos de 15 días':'< 15 days','Menos de 1 Mes':'< 1 Month',
     'Menos de 2 Meses':'< 2 Months','Menos de 3 Meses':'< 3 Months',
@@ -23096,71 +23200,68 @@ function generarExcelLM(){
     'Menos de 2 Meses':'< 2 Meses','Menos de 3 Meses':'< 3 Meses',
     'Menos de 4 Meses':'< 4 Meses','Menos de 5 Meses':'< 5 Meses',
     'Vencido':'Vencido','Obsoleto':'Obsoleto'};
+
+  // Función auxiliar: traducir un texto via tMap o diccionarios fijos
+  function tr(v){
+    if(!v||es) return v;
+    return tMap[v]||v; // tMap tiene las traducciones de la API
+  }
+
   function tradVal(col,d){
     var v=String(d[col.key]||'');
-    if(pt){
-      // PT: usar descriptionPt si existe; si no, usar descriptionEn; si no, usar descripcion
-      if(col.usePt&&d[col.usePt]) return String(d[col.usePt]);
-      if(col.useEn&&d[col.useEn]) return String(d[col.useEn]);
-      if(col.key==='estado')  return estPT[v]||v;
-      if(col.key==='obsoleto'){
-        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
-        if(v===''||v==='No'||v==='no')             return 'Não';
-        return v;
-      }
-      if(col.key==='idioma'){
+    if(es) return v;
+
+    // Descripción: usar campo nativo si existe
+    if(col.key==='descripcion'){
+      if(pt&&d.descriptionPt) return d.descriptionPt;
+      if(d.descriptionEn)     return d.descriptionEn;
+      return tr(v);
+    }
+    if(col.key==='descriptionPt') return d.descriptionPt||d.descriptionEn||tr(d.descripcion||'');
+    if(col.key==='descriptionEn') return d.descriptionEn||tr(d.descripcion||'');
+
+    // Estado: diccionario fijo; si no coincide, usar tMap (traducciones de la API)
+    if(col.key==='estado'){
+      var estDict=pt?estPT:estEN;
+      return estDict[v]||tMap[v]||v;
+    }
+
+    // Obsoleto: traducir Sí/Si/X → Sim/Yes, No/vacío → Não/No
+    var boolMap=pt?{truthy:'Sim',falsy:'Não'}:{truthy:'Yes',falsy:'No'};
+    if(col.key==='obsoleto'){
+      if(v==='X'||v==='Si'||v==='Sí'||v==='si'||v==='1') return boolMap.truthy;
+      if(v===''||v==='No'||v==='no'||v==='0')             return boolMap.falsy;
+      return v;
+    }
+    if(col.key==='docGxP'||col.key==='mbr'||col.key==='docIntercompania'){
+      if(v==='X'||v==='Si'||v==='Sí'||v==='si'||v==='1') return boolMap.truthy;
+      if(v===''||v==='No'||v==='no'||v==='0')             return boolMap.falsy;
+      return v;
+    }
+
+    // Idioma
+    if(col.key==='idioma'){
+      if(pt){
         if(v==='E'||v==='S') return 'Espanhol';
         if(v==='I')          return 'Inglês';
         if(v==='P')          return 'Português';
-        return v;
-      }
-      if(col.key==='docGxP'){
-        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
-        if(v===''||v==='No'||v==='no')             return 'Não';
-        return v;
-      }
-      if(col.key==='mbr'){
-        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
-        if(v===''||v==='No'||v==='no')             return 'Não';
-        return v;
-      }
-      if(col.key==='docIntercompania'){
-        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Sim';
-        if(v===''||v==='No'||v==='no')             return 'Não';
-        return v;
-      }
-      // Todos los demás campos: usar el valor en español tal cual
-      return v;
-    }
-    if(!es){
-      // EN: usar descriptionEn si existe, y traducir estado/obsoleto/idioma
-      if(col.useEn&&d[col.useEn]) return String(d[col.useEn]);
-      if(col.key==='estado') return estEN[v]||v;
-      if(col.key==='obsoleto'){
-        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Yes';
-        if(v===''||v==='No'||v==='no')             return 'No';
-        return v;
-      }
-      if(col.key==='idioma'){
+      } else {
         if(v==='E'||v==='S') return 'Spanish';
         if(v==='I')          return 'English';
         if(v==='P')          return 'Portuguese';
-        return v;
       }
-      if(col.key==='docGxP'||col.key==='mbr'||col.key==='docIntercompania'){
-        if(v==='X'||v==='Si'||v==='Sí'||v==='si') return 'Yes';
-        if(v===''||v==='No'||v==='no')             return 'No';
-        return v;
-      }
+      return v;
     }
-    return v;
+
+    // Texto libre: usar traducción de la API
+    return tr(v);
   }
 
   var today=new Date();
   var fechaHoy=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   var NC=selectedCols.length;
 
-  //  Estilos 
+  // Estilos
   var S_TITLE={font:{name:'Calibri',sz:13,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'006860'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
   var S_SUB  ={font:{name:'Calibri',sz:10,color:{rgb:'D0F0EC'}},          fill:{fgColor:{rgb:'009B8D'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center'}};
   var S_MLBL ={font:{name:'Calibri',sz:8,bold:true,color:{rgb:'006860'}}, fill:{fgColor:{rgb:'F5F9F9'},patternType:'solid'},alignment:{horizontal:'left',vertical:'center'}};
@@ -23168,60 +23269,64 @@ function generarExcelLM(){
   var S_HDR  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'009B8D'},patternType:'solid'},alignment:{horizontal:'center',vertical:'center',wrapText:true},
                border:{top:{style:'thin',color:{rgb:'FFFFFF'}},bottom:{style:'thin',color:{rgb:'FFFFFF'}},left:{style:'thin',color:{rgb:'FFFFFF'}},right:{style:'thin',color:{rgb:'FFFFFF'}}}};
   var bd={top:{style:'thin',color:{rgb:'C8DEDE'}},bottom:{style:'thin',color:{rgb:'C8DEDE'}},left:{style:'thin',color:{rgb:'C8DEDE'}},right:{style:'thin',color:{rgb:'C8DEDE'}}};
-  var S_CELL_W={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'FFFFFF'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
-  var S_CELL_A={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'F0F4F3'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
-  var S_OBS  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'A02020'}}, fill:{fgColor:{rgb:'FDE8E8'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
-  var S_VENC ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'856404'}}, fill:{fgColor:{rgb:'FFF3CD'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_CELL_W={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'FFFFFF'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center',wrapText:true}};
+  var S_CELL_A={font:{name:'Calibri',sz:9,color:{rgb:'0A2828'}},fill:{fgColor:{rgb:'F0F4F3'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center',wrapText:true}};
+  var S_VENC ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'856404'}},fill:{fgColor:{rgb:'FFF3CD'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
+  var S_EXP  ={font:{name:'Calibri',sz:9,bold:true,color:{rgb:'A02020'}},fill:{fgColor:{rgb:'FDE8E8'},patternType:'solid'},border:bd,alignment:{horizontal:'left',vertical:'center'}};
 
-  function rowStyle(d,alt){
-    var esObs=d.estado==='Obsoleto'||d.obsoleto==='X'||d.obsoleto==='Si'||d.obsoleto==='Sí';
-    if(esObs) return S_OBS;
-    if(d.estado==='Vencido') return S_VENC;
-    return alt?S_CELL_A:S_CELL_W;
-  }
+  // Textos según idioma
+  var T={
+    titulo:     es?'ADMINISTRACIÓN DEL SISTEMA DE DOCUMENTACIÓN':
+                pt?tr('ADMINISTRACIÓN DEL SISTEMA DE DOCUMENTACIÓN')||'ADMINISTRAÇÃO DO SISTEMA DE DOCUMENTAÇÃO':
+                   'DOCUMENTATION SYSTEM MANAGEMENT',
+    subtitulo:  es?'Listado Maestro de Documentos':
+                pt?tr('Listado Maestro de Documentos')||'Lista Mestra de Documentos':
+                   'Master Document List',
+    codLbl:     es?'Código:':pt?'Código:':'Code:',
+    verLbl:     es?'Versión:':pt?'Versão:':'Version:',
+    fechaLbl:   es?'Fecha:':pt?'Data:':'Date:',
+    docsLbl:    es?'Documentos:':pt?'Documentos:':'Documents:'
+  };
 
-  //  AOA 
   var aoa=[];
-
-  // Fila 0: Título
-  var tituloExcel=es?'ADMINISTRACIÓN DEL SISTEMA DE DOCUMENTACIÓN':pt?'ADMINISTRAÇÃO DO SISTEMA DE DOCUMENTAÇÃO':'DOCUMENTATION SYSTEM MANAGEMENT';
-  var r0=[{v:tituloExcel,t:'s',s:S_TITLE}];
+  // Título
+  var r0=[{v:T.titulo,t:'s',s:S_TITLE}];
   for(var ci=1;ci<NC;ci++) r0.push({v:'',t:'s',s:S_TITLE});
   aoa.push(r0);
 
-  // Fila 1: Subtítulo
-  var subExcel=(es?'Listado Maestro de Documentos':pt?'Lista Mestra de Documentos':'Master Document List')+' — LM-0019';
-  var r1=[{v:subExcel,t:'s',s:S_SUB}];
+  // Subtítulo
+  var r1=[{v:T.subtitulo+' — LM-0019',t:'s',s:S_SUB}];
   for(var ci=1;ci<NC;ci++) r1.push({v:'',t:'s',s:S_SUB});
   aoa.push(r1);
 
-  // Fila 2: Metadata
+  // Metadata
   var r2=[]; for(var ci=0;ci<NC;ci++) r2.push({v:'',t:'s',s:S_MVAL});
-  var mPairs=[[es?'Código:':pt?'Código:':'Code:','LM-0019'],[es?'Versión:':pt?'Versão:':'Version:','00'],[es?'Fecha:':pt?'Data:':'Date:',fechaHoy],[es?'Documentos:':pt?'Documentos:':'Documents:',String(data.length)]];
+  var mPairs=[[T.codLbl,'LM-0019'],[T.verLbl,'00'],[T.fechaLbl,fechaHoy],[T.docsLbl,String(data.length)]];
   var mStep=Math.max(1,Math.floor(NC/mPairs.length));
   mPairs.forEach(function(p,mi){var c0=mi*mStep;if(c0<NC)r2[c0]={v:p[0],t:'s',s:S_MLBL};if(c0+1<NC)r2[c0+1]={v:p[1],t:'s',s:S_MVAL};});
   aoa.push(r2);
 
-  // Fila 3: Encabezados
-  aoa.push(selectedCols.map(function(c){return{v:es?c.es:pt?(c.pt||c.es):c.en,t:'s',s:S_HDR};}));
+  // Encabezados
+  aoa.push(selectedCols.map(function(c){
+    return {v:es?c.es:pt?(c.pt||c.es):c.en,t:'s',s:S_HDR};
+  }));
 
-  // Filas datos — ordenadas por estado (vigentes primero, luego próximos, vencidos, obsoletos)
-  var estadoOrder={'Vigente':0,'Menos de 5 Meses':1,'Menos de 4 Meses':2,'Menos de 3 Meses':3,'Menos de 2 Meses':4,'Menos de 1 Mes':5,'Menos de 15 días':6,'Vencido':7,'Obsoleto':8};
-  data.sort(function(a,b){
-    var oa=estadoOrder[a.estado]||9, ob=estadoOrder[b.estado]||9;
-    if(oa!==ob) return oa-ob;
-    return (a.codigoActual||'').localeCompare(b.codigoActual||'');
-  });
+  // Filas de datos
   data.forEach(function(d,ri){
-    var S=rowStyle(d,ri%2===1);
-    aoa.push(selectedCols.map(function(col){return{v:tradVal(col,d),t:'s',s:S};}));
+    var alt=ri%2===1;
+    var isVenc=d.estado==='Vencido';
+    var isExp=d.estado==='Obsoleto';
+    var baseS=isVenc?S_VENC:isExp?S_EXP:alt?S_CELL_A:S_CELL_W;
+    var row=selectedCols.map(function(c){
+      return {v:tradVal(c,d),t:'s',s:baseS};
+    });
+    aoa.push(row);
   });
 
-  //  Workbook 
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(aoa);
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:NC-1}},{s:{r:1,c:0},e:{r:1,c:NC-1}}];
-  ws['!cols']=selectedCols.map(function(c){return{wch:c.w};});
+  ws['!cols']=selectedCols.map(function(c){return{wch:c.w||20};});
   ws['!rows']=[{hpt:34},{hpt:22},{hpt:18},{hpt:28}].concat(data.map(function(){return{hpt:16};}));
   ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:3,c:0},e:{r:3,c:NC-1}})};
   XLSX.utils.book_append_sheet(wb,ws,es?'Listado Maestro':pt?'Lista Mestra':'Master List');
@@ -23229,16 +23334,15 @@ function generarExcelLM(){
   var fname='LM-0019_'+(es?'Listado_Maestro':pt?'Lista_Mestra':'Master_Document_List')+'_'+fechaHoy+'.xlsx';
   try{
     XLSX.writeFile(wb,fname,{cellStyles:true});
-    toast('✅ Excel: '+fname+' — '+data.length+(es?' documentos':pt?' documentos':' documents'),'ok');
-    if(typeof logA==='function') logA('Usuario','Descarga','Excel LM ('+lang+'): '+data.length+' docs, estados: '+selectedEstados.join(','));
+    toast('\u2705 '+(es?'Excel generado':pt?'Excel gerado':'Excel generated')+': '+fname,'ok');
+    if(typeof logA==='function') logA('Usuario','Descarga','Excel LM ('+lang+'): '+data.length+' docs');
   }catch(e){
-    toast('Error: '+e.message,'er'); console.error(e);
+    toast((es?'Error al generar':'Error generating')+': '+e.message,'er');
+    console.error(e);
   }
 }
 
-//  FINALIZAR UNA SUBÁREA: informe + guardar en acumulado 
 
-//  LIMPIAR ACUMULADO GLOBAL 
 function ecc_limpiarAcumulado(){
   if(!eccAcumulado.length&&!eccSesionCodigos.length){
     toast('No hay inspección activa que limpiar','ok'); return;
