@@ -2589,7 +2589,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="fp"><label class="fl">Codigo Antiguo</label><input class="fi" id="d-codant" value="No Aplica"></div>
     <div class="fp fgf"><label class="fl rq">Descripcion (Espanol)</label><input class="fi" id="d-desc" oninput="onDesc()" placeholder="Nombre del documento"><div class="fh">Formato Nombre Propio automatico y traduccion al ingles.</div></div>
     <div class="fp fgf"><label class="fl">Description (English)</label><input class="fi au" id="d-desen" readonly placeholder="Traduccion automatica"></div>
-    <div class="fp fgf" style="position:relative"><label class="fl">Descrição (Português)</label><input class="fi" id="d-despt" placeholder="Tradução em português" oninput="document.getElementById('d-despt')._manual=true"><button type="button" onclick="docTraducirPT()" title="Traduzir com IA (Claude)" style="position:absolute;right:8px;top:24px;background:#009B8D;color:#fff;border:none;border-radius:5px;padding:3px 9px;font-size:10px;cursor:pointer;font-weight:700">🤖 Traduzir</button></div>
+    <div class="fp fgf"><label class="fl">Descrição (Português)</label><input class="fi au" id="d-despt" readonly placeholder="Tradução automática"></div>
   </div>
   <div class="fsec">Clasificacion</div>
   <div class="fg3" style="margin-bottom:3px">
@@ -5206,30 +5206,6 @@ function onCod() {
   el.setSelectionRange(pos, pos);
   document.getElementById('d-tipo').value = detTipo(el.value);
 }
-// ── Traducción individual a PT (manual/reintento) ─────────────────────────────
-async function docTraducirPT(){
-  var descEl=document.getElementById('d-desc');
-  var ptEl=document.getElementById('d-despt');
-  var src=(descEl&&descEl.value.trim());
-  if(!src){toast('Sin texto para traducir','er');return;}
-  ptEl.value='⏳ Traduciendo...'; ptEl.disabled=true;
-  try{
-    var tMap=await traducirTextosAPI([src],'pt');
-    var t=tMap[limpiarTextoExcel(src)]||tMap[src];
-    if(t){
-      ptEl.value=t;
-      ptEl._manual=true;
-      toast('✅ Traducción completada','ok');
-    } else {
-      ptEl.value='';
-      toast('No se pudo traducir — revisa la conexión a internet','er');
-    }
-  }catch(e){
-    ptEl.value='';
-    toast('Error en la traducción: '+e.message,'er');
-  }
-  ptEl.disabled=false;
-}
 
 // ── Traducción masiva a PT ────────────────────────────────────────────────────
 // Traduce todos los docs que no tienen descriptionPt usando el mismo servicio
@@ -5306,23 +5282,42 @@ async function docAutoTraducirDescripcion(v){
   if(!descEl) return;
   var vLimpio=limpiarTextoExcel(v);
 
-  // Inglés: siempre se recalcula (el campo es de solo lectura / automático)
-  if(enEl){
-    try{
-      var tMapEn=await traducirTextosAPI([v],'en');
-      var tEn=tMapEn[v]||tMapEn[vLimpio];
-      // Solo aplicar si el usuario no siguió escribiendo mientras tanto
-      if(tEn && descEl.value.trim()===v) enEl.value=tEn;
-    }catch(e){ console.warn('[doc] fallo auto-traducción EN:',e); }
+  // Mostrar estado "traduciendo" para que quede claro que algo está pasando
+  // (si se queda pegado en este texto, es señal de que el servicio de
+  // traducción no es alcanzable desde este equipo/red — revisar consola F12).
+  if(enEl) enEl.value='⏳ Traduciendo...';
+  if(ptEl) ptEl.value='⏳ Traduzindo...';
+
+  async function traducirCon1Reintento(texto, lang){
+    for(var intento=0; intento<2; intento++){
+      try{
+        var tMap=await traducirTextosAPI([texto],lang);
+        var t=tMap[texto]||tMap[limpiarTextoExcel(texto)];
+        if(t) return t;
+      }catch(e){ console.warn('[doc] intento '+(intento+1)+' fallido ('+lang+'):',e); }
+      if(intento===0) await new Promise(function(res){ setTimeout(res,500); });
+    }
+    return null;
   }
 
-  // Portugués: solo si el usuario no lo editó manualmente él mismo
-  if(ptEl && !ptEl._manual){
-    try{
-      var tMapPt=await traducirTextosAPI([v],'pt');
-      var tPt=tMapPt[v]||tMapPt[vLimpio];
-      if(tPt && descEl.value.trim()===v && !ptEl._manual) ptEl.value=tPt;
-    }catch(e){ console.warn('[doc] fallo auto-traducción PT:',e); }
+  var resultados = await Promise.all([
+    enEl ? traducirCon1Reintento(v,'en') : Promise.resolve(null),
+    ptEl ? traducirCon1Reintento(v,'pt') : Promise.resolve(null)
+  ]);
+  var tEn=resultados[0], tPt=resultados[1];
+
+  // Solo aplicar si el usuario no siguió escribiendo mientras tanto
+  var sigueVigente = descEl.value.trim()===v;
+  if(enEl){
+    if(tEn && sigueVigente) enEl.value=tEn;
+    else if(sigueVigente) enEl.value=autoTr(v); // no se pudo traducir vía servicio: usar respaldo local
+  }
+  if(ptEl){
+    if(tPt && sigueVigente) ptEl.value=tPt;
+    else if(sigueVigente){
+      ptEl.value='';
+      toast('No se pudo traducir automáticamente al portugués — verifica la conexión a internet de este equipo','er');
+    }
   }
 }
 function onArea() {
