@@ -8746,7 +8746,7 @@ function expExcel(){
   toast('✅ Archivo descargado: '+fileName+'. Cópialo a: \\\\elara\\SistDoc-Intranet\\Listado\\PROCAPS (reemplaza el anterior)','if');
 }
 function expCSV(){
-  var cols=['codigoActual','codigoAntiguo','descripcion','descriptionEn','descriptionPt','version','tipoDocumento','areaGeneradora','fechaVigencia','fechaVencimiento','estado','idioma','extensionVigencia','obsoleto','administrador','liderProceso','alcanceEmpresas','mbr','tipoPlantilla','docsRelacionados','docGxP','docIntercompania','areasAplicables','proceso','correoElectronico'];
+  var cols=['codigoActual','codigoAntiguo','descripcion','descriptionEn','version','tipoDocumento','areaGeneradora','fechaVigencia','fechaVencimiento','estado','idioma','extensionVigencia','obsoleto','administrador','liderProceso','alcanceEmpresas','mbr','tipoPlantilla','docsRelacionados','docGxP','docIntercompania','areasAplicables','proceso','correoElectronico','descriptionPt'];
   var hdr=['Codigo Actual','Codigo Antiguo','Descripcion','Description','Version','Tipo De Documento','Area Generadora','Fecha De Vigencia','Fecha De Vencimiento2','Estado','Idioma','Extension De Vigencia','Obsoleto','Administrador','Lider De Proceso','Alcance A Empresas','Mbr','Tipo De Plantilla','Documentos Relacionados','Doc.Gxp','Doc.Intercompania','Areas Aplicables','Proceso','Correo Electronico'];
   var rows=[hdr].concat(docs.map(function(d){return cols.map(function(c){return d[c]||'';});}));
   var csv=rows.map(function(r){return r.map(function(v){return'"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
@@ -15372,20 +15372,20 @@ var OD = {
   saveTimer:     null,
   SYNC_INTERVAL: 60000,   // auto-guardar cada 60s
   COLUMNAS_EXCEL: [
-    'Código Actual','Código Antiguo','Descripción','Description','Descrição (PT)','Versión',
+    'Código Actual','Código Antiguo','Descripción','Description','Versión',
     'Tipo De Documento','Área Generadora','Fecha De Vigencia','Fecha De Vencimiento2',
     'Estado','Idioma','Extension De Vigencia','Obsoleto','Administrador',
     'Lider De Proceso','Alcance A Empresas','Mbr','Tipo De Plantilla',
     'Documentos Relacionados','Doc.Gxp','Doc.Intercompañia','Áreas Aplicables','Proceso',
-    'Historial_Cambios','Correo Electrónico'
+    'Historial_Cambios','Correo Electrónico','Descrição (PT)'
   ],
   COLUMNAS_CLAVE: [
-    'codigoActual','codigoAntiguo','descripcion','descriptionEn','descriptionPt','version',
+    'codigoActual','codigoAntiguo','descripcion','descriptionEn','version',
     'tipoDocumento','areaGeneradora','fechaVigencia','fechaVencimiento',
     'estado','idioma','extensionVigencia','obsoleto','administrador',
     'liderProceso','alcanceEmpresas','mbr','tipoPlantilla',
     'docsRelacionados','docGxP','docIntercompania','areasAplicables','proceso',
-    '_historialTexto','correoElectronico'
+    '_historialTexto','correoElectronico','descriptionPt'
   ]
 };
 
@@ -17544,6 +17544,7 @@ async function odGuardarListado(silencioso){
     // Solo se escribe si el documento tiene correo asignado
     // Esto preserva correos del Excel que no se hayan cargado en memoria
     delete nuestrasCols[24];
+    // Columna Z (índice 25 = descriptionPt): escribir normalmente (nueva columna al final)
 
     Object.keys(wsLM).forEach(function(addr){
       if(addr[0]==='!') return;
