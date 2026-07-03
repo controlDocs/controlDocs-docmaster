@@ -26101,12 +26101,39 @@ async function nfCargarExcelOficial(){
     // ═════════════════════════════════════════════════════════════════
     function setVal(id,v){ var el=document.getElementById(id); if(el&&v) el.value=v; }
 
-    setVal('nf-nombre', nombre);
-    setVal('nf-cargo', cargo);
+    // Nombre del solicitante: buscar coincidencia exacta en la lista de
+    // colaboradores para autocompletar cargo y CORREO igual que si se
+    // hubiera elegido del buscador (nfSelColab) — si no hay coincidencia,
+    // se dejan al menos nombre y cargo tomados del Excel.
+    if(nombre){
+      var nombreNorm = norm(nombre);
+      var colabMatch = (colaboradores||[]).find(function(x){ return norm(x.nombre)===nombreNorm; });
+      if(colabMatch && typeof nfSelColab==='function'){
+        nfSelColab(colabMatch);
+      } else {
+        setVal('nf-nombre', nombre);
+        setVal('nf-cargo', cargo);
+      }
+    }
     setVal('nf-area', area);
-    setVal('nf-origen', origen);
     if(fechaSol) setVal('nf-fecha', fechaSol);
 
+    // Tipo de novedad — se fija ANTES de buscar el documento, porque el
+    // cálculo automático de versión dentro de nfBuscarDoc depende de este
+    // valor (Creación=0, Eliminación=misma versión del LM, Modificación=
+    // versión del LM + 1).
+    if(tipoNov){
+      var tipoEl=document.getElementById('nf-tipo');
+      if(tipoEl){
+        var opt=Array.from(tipoEl.options).find(function(o){return norm(o.text)===norm(tipoNov);});
+        if(opt){ tipoEl.value=opt.value; tipoEl.dispatchEvent(new Event('change')); }
+      }
+    }
+    setVal('nf-origen', origen);
+
+    // Código del documento: dispara nfBuscarDoc, que calcula la versión
+    // automáticamente contra el Listado Maestro (no se sobreescribe con la
+    // versión que traía el Excel importado, que puede estar desactualizada).
     var codLimpio='';
     if(codCompleto){
       codLimpio = codCompleto.split(' ')[0].trim().toUpperCase();
@@ -26118,24 +26145,6 @@ async function nfCargarExcelOficial(){
       if(nomDocEl){ nomDocEl.value=nombreDoc; nomDocEl._manual=true; }
     }
     if(descripcion) setVal('nf-descripcion', descripcion);
-
-    // Tipo de novedad — dispara el listener 'change' (bloque Creación, etc.)
-    if(tipoNov){
-      var tipoEl=document.getElementById('nf-tipo');
-      if(tipoEl){
-        var opt=Array.from(tipoEl.options).find(function(o){return norm(o.text)===norm(tipoNov);});
-        if(opt){ tipoEl.value=opt.value; tipoEl.dispatchEvent(new Event('change')); }
-      }
-    }
-
-    // Versión: extraer de "INST-1320 V00" si viene incluida junto al código
-    if(codCompleto){
-      var mVer=codCompleto.match(/V\s*(\d+)/i);
-      if(mVer){
-        var verEl=document.getElementById('nf-version');
-        if(verEl){ verEl.value=mVer[1].padStart(2,'0'); verEl._manual=true; }
-      }
-    }
 
     // GXP / Copia controlada (indicadores de solo lectura)
     if(esGxp){ var g=document.getElementById('nf-gxp-disp'); if(g) g.textContent=esGxp; }
