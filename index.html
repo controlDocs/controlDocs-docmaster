@@ -2288,6 +2288,7 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn gh sm" onclick="nfLimpiar()">🔄 Nuevo formulario</button>
         <button class="btn gh sm" onclick="nfRecuperarUltimo()" title="Recupera el último formato de novedad generado en esta sesión">📋 Recuperar último</button>
         <button class="btn gh sm" onclick="nfCargarPlantilla()" title="Llenar formulario desde Excel plantilla">📂 Cargar plantilla</button>
+        <button class="btn gh sm" onclick="nfCargarExcelOficial()" title="Cargar el Excel oficial del formato (F-SOP-0001-5) tal como se diligencia, con celdas combinadas">📊 Cargar Excel oficial</button>
         <button class="btn gh sm" onclick="nfCargarPDF()" title="Cargar un PDF de novedad generado previamente para editarlo">📄 Cargar PDF</button>
         <input type="file" id="nf-pdf-input" accept=".pdf" style="display:none" onchange="nfLeerPDF(this)">
         <button class="btn sm" style="background:var(--T)" onclick="nfGuardar()">💾 Guardar solicitud</button>
@@ -25887,6 +25888,304 @@ function nfLimpiar(){
   if(eb){ eb.innerHTML=''; nfEntrenarAgregarFila(); }
   document.getElementById('nf-fecha').value = nfFechaHoy();
   toast('Formulario limpiado','ok');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CARGAR EXCEL OFICIAL DEL FORMATO F-SOP-0001-5 (con celdas combinadas)
+// ══════════════════════════════════════════════════════════════════════════
+// A diferencia de nfCargarPlantilla() (que espera una hoja simplificada
+// "Plantilla_Novedad" col A/B/C), esta función lee el Excel TAL CUAL se
+// genera/diligencia el formato oficial (hoja con el mismo layout visual,
+// celdas combinadas, etc.) y ubica cada dato buscando su etiqueta en la
+// cuadrícula — no depende de posiciones fijas de fila/columna, así que
+// tolera pequeñas variaciones de diseño entre versiones del formato.
+async function nfCargarExcelOficial(){
+  if(!window.showOpenFilePicker){
+    toast('Requiere Chrome o Edge actualizado','er'); return;
+  }
+  var handles;
+  try{
+    handles=await window.showOpenFilePicker({
+      types:[{description:'Formato Novedad de Documento (Excel)',accept:{
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx'],
+        'application/vnd.ms-excel.sheet.macroEnabled.12':['.xlsm']
+      }}],
+      multiple:false
+    });
+  }catch(e){ if(e.name!=='AbortError') toast('Error al seleccionar archivo','er'); return; }
+
+  try{
+    var file=await handles[0].getFile();
+    var buf=await file.arrayBuffer();
+    var wb=XLSX.read(buf,{type:'array',cellDates:false,raw:false});
+    // Lectura paralela con fechas reales (objetos Date) para poder formatear
+    // la fecha de solicitud como AAAA-MM-DD sin importar el formato regional
+    // con el que Excel la muestre (7/3/26, 03-jul-2026, etc.)
+    var wbD=XLSX.read(buf,{type:'array',cellDates:true});
+
+    // Buscar la hoja del formato oficial
+    var wsName=null;
+    wb.SheetNames.forEach(function(n){
+      if(wsName) return;
+      var nu=n.toUpperCase();
+      if(nu.indexOf('F-SOP-0001')>=0 || nu.indexOf('NOVEDAD')>=0) wsName=n;
+    });
+    if(!wsName) wsName=wb.SheetNames[0];
+    var ws=wb.Sheets[wsName];
+    var wsD=wbD.Sheets[wsName];
+    var grid=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+    var gridD=XLSX.utils.sheet_to_json(wsD,{header:1,defval:'',raw:false});
+
+    // ── Utilidades de búsqueda en la cuadrícula ──────────────────────────
+    function norm(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim().toUpperCase(); }
+    function buscarCelda(texto, desdeFila){
+      texto=norm(texto);
+      for(var r=(desdeFila||0); r<grid.length; r++){
+        var fila=grid[r]||[];
+        for(var c=0; c<fila.length; c++){
+          if(norm(fila[c]).indexOf(texto)>=0) return {r:r,c:c};
+        }
+      }
+      return null;
+    }
+    function valorDerecha(r,cDesde){
+      var fila=grid[r]||[];
+      for(var c=cDesde+1; c<fila.length; c++){
+        var v=fila[c];
+        if(v!=null && String(v).trim()!=='') return String(v).trim();
+      }
+      return '';
+    }
+    function valorEtiqueta(texto, desdeFila){
+      var pos=buscarCelda(texto, desdeFila);
+      if(!pos) return '';
+      return valorDerecha(pos.r,pos.c);
+    }
+    // Formatea a AAAA-MM-DD. Busca la etiqueta en la misma posición dentro
+    // de la lectura "con fechas reales" para obtener un objeto Date exacto
+    // (evita depender del texto formateado, que varía según el regional de Excel).
+    function fechaISO(texto){
+      var pos=buscarCelda(texto);
+      if(!pos) return '';
+      var fila=grid[pos.r]||[];
+      var filaD=gridD[pos.r]||[];
+      for(var c=pos.c+1; c<fila.length; c++){
+        var v=fila[c];
+        if(v!=null && String(v).trim()!==''){
+          var vD=filaD[c];
+          var d=(vD instanceof Date)?vD:new Date(v);
+          if(!isNaN(d)){
+            var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+            return y+'-'+m+'-'+dd;
+          }
+          return String(v).trim(); // no se pudo parsear como fecha: dejar el texto original
+        }
+      }
+      return '';
+    }
+    // Campos SI/NO marcados con una "X" junto a la opción elegida
+    function valorSiNo(texto){
+      var pos=buscarCelda(texto);
+      if(!pos) return '';
+      var fila=grid[pos.r]||[];
+      var colSi=-1, colNo=-1;
+      for(var c=pos.c+1; c<fila.length; c++){
+        var v=norm(fila[c]);
+        if((v==='SI'||v==='SÍ') && colSi<0) colSi=c;
+        else if(v==='NO' && colNo<0) colNo=c;
+      }
+      function marcado(col){
+        if(col<0) return false;
+        for(var c2=col+1;c2<fila.length;c2++){
+          var v2=norm(fila[c2]);
+          if(v2==='X') return true;
+          if(v2==='SI'||v2==='SÍ'||v2==='NO'||v2!=='') return false;
+        }
+        return false;
+      }
+      if(colSi>=0 && marcado(colSi)) return 'Si';
+      if(colNo>=0 && marcado(colNo)) return 'No';
+      return '';
+    }
+
+    // ── 1. Datos del solicitante ──────────────────────────────────────
+    var nombre  = valorEtiqueta('NOMBRES Y APELLIDOS');
+    var cargo   = valorEtiqueta('NOMBRE DEL CARGO');
+    var area    = valorEtiqueta('A LA QUE PERT'); // robusto a "pertenece"/"pertence" (typo frecuente en la plantilla)
+    var fechaSol= fechaISO('FECHA DE LA SOLICITUD');
+
+    // ── 2. Información de la novedad ────────────────────────────────
+    var tipoNov   = valorEtiqueta('TIPO DE NOVEDAD');
+    var codCompleto = valorEtiqueta('CÓDIGO DEL DOCUMENTO') || valorEtiqueta('CODIGO DEL DOCUMENTO');
+    var nombreDoc = valorEtiqueta('NOMBRE DEL DOCUMENTO');
+    var origen    = valorEtiqueta('ORIGEN DE LA NOVEDAD');
+    var esGxp     = valorSiNo('ES GXP');
+    var reqCopia  = valorSiNo('COPIA CONTROLADA');
+    var cantCopias= valorEtiqueta('CANTIDAD DE COPIAS');
+
+    // ── 3. Descripción de la novedad ──────────────────────────────────
+    var descPos = buscarCelda('DESCRIPCIÓN DE LA NOVEDAD') || buscarCelda('DESCRIPCION DE LA NOVEDAD');
+    var descripcion='';
+    if(descPos){
+      for(var rr=descPos.r+1; rr<Math.min(descPos.r+6,grid.length) && !descripcion; rr++){
+        var filaD=grid[rr]||[];
+        for(var cc=0; cc<filaD.length; cc++){
+          var vv=filaD[cc];
+          if(vv!=null && String(vv).trim()!==''){ descripcion=String(vv).trim(); break; }
+        }
+      }
+    }
+
+    // ── 4. Matriz de autorización — localizar encabezado NOMBRE/CARGO/ROL ─
+    var mtxHeader=null;
+    for(var rH=0; rH<grid.length && !mtxHeader; rH++){
+      var filaH=grid[rH]||[];
+      var iN=-1,iC=-1,iR=-1;
+      for(var cH=0; cH<filaH.length; cH++){
+        var tH=norm(filaH[cH]);
+        if(tH==='NOMBRE') iN=cH;
+        else if(tH==='CARGO') iC=cH;
+        else if(tH==='ROL') iR=cH;
+      }
+      if(iN>=0&&iC>=0&&iR>=0) mtxHeader={r:rH,cNom:iN,cCar:iC,cRol:iR};
+    }
+    var matriz=[];
+    if(mtxHeader){
+      var blancos=0;
+      for(var rM=mtxHeader.r+1; rM<grid.length && blancos<2; rM++){
+        var filaM=grid[rM]||[];
+        var nom=(filaM[mtxHeader.cNom]!=null?String(filaM[mtxHeader.cNom]):'').trim();
+        if(!nom){ blancos++; continue; }
+        blancos=0;
+        matriz.push({
+          nombre:nom,
+          cargo:(filaM[mtxHeader.cCar]!=null)?String(filaM[mtxHeader.cCar]).trim():'',
+          rol:(filaM[mtxHeader.cRol]!=null)?String(filaM[mtxHeader.cRol]).trim():''
+        });
+      }
+    }
+
+    // ── 5. Cargos a entrenar / divulgar ────────────────────────────────
+    var entPos = buscarCelda('CARGO DEL COLABORADOR A ENTRENAR') || buscarCelda('A ENTRENAR O DIVULGAR');
+    var cargosEntrenar=[];
+    if(entPos){
+      var blancos2=0;
+      for(var rE=entPos.r+1; rE<grid.length && blancos2<3; rE++){
+        var filaE=grid[rE]||[];
+        var val=(filaE[entPos.c]!=null?String(filaE[entPos.c]):'').trim();
+        if(!val){ blancos2++; continue; }
+        blancos2=0;
+        if(/^\d+\.\s/.test(val)) break; // topó con el título de otra sección
+        cargosEntrenar.push(val);
+      }
+    }
+
+    // ── 6. Análisis de criticidad ───────────────────────────────────────
+    var calPos = buscarCelda('CALIFICACIÓN') || buscarCelda('CALIFICACION');
+    var cCal = calPos?calPos.c:-1;
+    function calificacionDe(aspecto){
+      if(cCal<0) return '';
+      var pos=buscarCelda(aspecto, calPos.r);
+      if(!pos) return '';
+      var v=(grid[pos.r]||[])[cCal];
+      return v!=null?String(v).trim():'';
+    }
+    var nc1v=calificacionDe('CALIDAD'),
+        nc2v=calificacionDe('SEGURIDAD DE LAS PERSONAS'),
+        nc3v=calificacionDe('SEGURIDAD DEL PACIENTE'),
+        nc4v=calificacionDe('DESEMPEÑO DEL PROCESO'),
+        nd1v=calificacionDe('DETECCIÓN DE FALLA') || calificacionDe('DETECCION DE FALLA');
+
+    // ═════════════════════════════════════════════════════════════════
+    // Volcar todo al formulario de la app
+    // ═════════════════════════════════════════════════════════════════
+    function setVal(id,v){ var el=document.getElementById(id); if(el&&v) el.value=v; }
+
+    setVal('nf-nombre', nombre);
+    setVal('nf-cargo', cargo);
+    setVal('nf-area', area);
+    setVal('nf-origen', origen);
+    if(fechaSol) setVal('nf-fecha', fechaSol);
+
+    var codLimpio='';
+    if(codCompleto){
+      codLimpio = codCompleto.split(' ')[0].trim().toUpperCase();
+      var codEl=document.getElementById('nf-cod');
+      if(codEl){ codEl.value=codLimpio; nfBuscarDoc(codLimpio); }
+    }
+    if(nombreDoc){
+      var nomDocEl=document.getElementById('nf-nombredoc');
+      if(nomDocEl){ nomDocEl.value=nombreDoc; nomDocEl._manual=true; }
+    }
+    if(descripcion) setVal('nf-descripcion', descripcion);
+
+    // Tipo de novedad — dispara el listener 'change' (bloque Creación, etc.)
+    if(tipoNov){
+      var tipoEl=document.getElementById('nf-tipo');
+      if(tipoEl){
+        var opt=Array.from(tipoEl.options).find(function(o){return norm(o.text)===norm(tipoNov);});
+        if(opt){ tipoEl.value=opt.value; tipoEl.dispatchEvent(new Event('change')); }
+      }
+    }
+
+    // Versión: extraer de "INST-1320 V00" si viene incluida junto al código
+    if(codCompleto){
+      var mVer=codCompleto.match(/V\s*(\d+)/i);
+      if(mVer){
+        var verEl=document.getElementById('nf-version');
+        if(verEl){ verEl.value=mVer[1].padStart(2,'0'); verEl._manual=true; }
+      }
+    }
+
+    // GXP / Copia controlada (indicadores de solo lectura)
+    if(esGxp){ var g=document.getElementById('nf-gxp-disp'); if(g) g.textContent=esGxp; }
+    if(reqCopia){
+      var cdisp=document.getElementById('nf-copia-disp'); if(cdisp) cdisp.textContent=reqCopia;
+      var cw=document.getElementById('nf-cant-wrap');
+      if(reqCopia==='Si'){ if(cw) cw.style.visibility='visible'; if(cantCopias) setVal('nf-cant-copias',cantCopias); }
+    }
+
+    // Matriz de autorización
+    if(matriz.length){
+      var mtxBody=document.getElementById('nf-mtx-body');
+      if(mtxBody){
+        mtxBody.innerHTML='';
+        matriz.forEach(function(){ nfMtxAgregarFila(); });
+        matriz.forEach(function(m,i){
+          var n=document.getElementById('nfm-nom-'+i); if(n) n.value=m.nombre;
+          var c=document.getElementById('nfm-car-'+i); if(c) c.value=m.cargo;
+          var r=document.getElementById('nfm-rol-'+i);
+          if(r){
+            var rolNorm=norm(m.rol);
+            Array.from(r.options).forEach(function(o){ if(norm(o.value)===rolNorm) r.value=o.value; });
+          }
+        });
+      }
+    }
+
+    // Cargos a entrenar / divulgar
+    if(cargosEntrenar.length){
+      var entBody=document.getElementById('nf-entrenar-body');
+      if(entBody){
+        entBody.innerHTML='';
+        cargosEntrenar.forEach(function(c){
+          nfEntrenarAgregarFila();
+          var campos=entBody.querySelectorAll('.nf-ent-cargo');
+          var last=campos[campos.length-1];
+          if(last) last.value=c;
+        });
+      }
+    }
+
+    // Análisis de criticidad
+    setVal('nc1',nc1v); setVal('nc2',nc2v); setVal('nc3',nc3v); setVal('nc4',nc4v); setVal('nd1',nd1v);
+    if(typeof nfCalcCrit==='function') nfCalcCrit();
+
+    toast('✅ Formato cargado desde Excel: '+file.name,'ok');
+  }catch(e){
+    console.error('[nfCargarExcelOficial]', e);
+    toast('Error al leer el Excel: '+e.message,'er');
+  }
 }
 
 // Cerrar autocompletes al clic fuera
