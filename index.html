@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 
 <style>
@@ -2296,6 +2297,14 @@ tbody tr:last-child td{border-bottom:none}
         <span style="font-size:11px;color:var(--tx3);margin-left:8px">N° Solicitud:</span>
         <span style="background:var(--T);color:#fff;border-radius:20px;padding:2px 14px;font-size:13px;font-weight:700" id="nf-consec-badge">—</span>
       </div>
+    </div>
+
+    <!-- Banner permanente: último registro guardado -->
+    <div id="nf-banner-ultimo" style="display:none;margin-bottom:14px;padding:10px 16px;background:var(--bg2);border:1.5px solid var(--brd);border-left:4px solid var(--T);border-radius:8px;font-size:12px;color:var(--tx);align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:16px">🕘</span>
+      <span style="font-weight:700;color:var(--T)">Último registro guardado:</span>
+      <span id="nf-banner-txt" style="color:var(--tx2)">—</span>
+      <button class="btn gh sm" style="margin-left:auto;padding:2px 10px;font-size:11px" onclick="document.getElementById('nf-banner-ultimo').style.display='none'" title="Ocultar">✕</button>
     </div>
 
     <div class="card" style="padding:0;overflow:visible;max-width:980px;margin:0 auto">
@@ -5216,7 +5225,7 @@ async function traducirTodosPT(){
     return !d.descriptionPt&&(d.descripcion||d.descriptionEn);
   });
   if(!pendientes.length){toast('✅ Todos los documentos ya tienen traducción al PT','ok');return;}
-  if(!confirm('Traducir '+pendientes.length+' documentos al portugu\u00e9s.\n\nEsto puede tardar varios minutos seg\u00fan la cantidad.\n\u00bfContinuar?')) return;
+  if(!confirm('Traducir '+pendientes.length+' documentos al portugu\u00e9s usando el diccionario local (instant\u00e1neo, sin internet).\n\n\u00bfContinuar?')) return;
 
   var bar=document.getElementById('tp-progress-bar');
   var lbl=document.getElementById('tp-progress-lbl');
@@ -5226,18 +5235,17 @@ async function traducirTodosPT(){
   if(btn){btn.disabled=true;btn.textContent='⏳ Traduciendo...';}
 
   // Recopilar textos únicos (evita traducir la misma descripción varias veces)
-  // y traducir todo en un solo lote — traducirTextosAPI ya traduce en paralelo.
+  // y traducir con el diccionario local — instantáneo, no depende de internet
+  // (antes se esperaba un servicio externo por cada texto único, lo que podía
+  // tardar minutos/horas o no terminar nunca si la red lo bloquea).
   var textosUnicos={};
   pendientes.forEach(function(d){
     var src=(d.descripcion||d.descriptionEn||'').trim();
     if(src) textosUnicos[src]=true;
   });
-  var textList=Object.keys(textosUnicos);
 
   var tMap={};
-  try{
-    tMap=await traducirTextosAPI(textList,'pt','Traduciendo ');
-  }catch(e){ console.warn('[TPT] error general:',e); }
+  Object.keys(textosUnicos).forEach(function(t){ tMap[t]=traducirLocal(t,'pt'); });
 
   var ok=0;
   pendientes.forEach(function(d,i){
@@ -13773,13 +13781,21 @@ function revdoc_procesarAnalisis(){
 }
 
 
-  // 3. Leyenda
-  var leyendaNorm=revdoc_normalizarTexto('DOCUMENTO PROPIEDAD DE PROCAPS');
-  resultado.leyendaEncontrada=textoNorm.indexOf(leyendaNorm)>=0;
+  // 3. Leyenda — el texto exigido depende de si el código del documento
+  //    termina en "-COR" (Sofgen Pharma) o no (Procaps S.A.)
+  var codigoRef = (codPrincipal && codPrincipal.codigoActual) || codEncontrado || '';
+  var esCOR = /-COR$/i.test(String(codigoRef).trim());
+  var leyendaProp = esCOR
+    ? 'EL PRESENTE DOCUMENTO ES PROPIEDAD DE SOFGEN PHARMA'
+    : 'DOCUMENTO PROPIEDAD DE PROCAPS S.A.';
+  var leyendaProh = 'QUEDA ESTRICTAMENTE PROHIBIDA SU REPRODUCCIÓN, DISTRIBUCIÓN O UTILIZACIÓN TOTAL O PARCIAL SIN LA AUTORIZACIÓN PREVIA Y EXPRESA DE LA ORGANIZACIÓN';
+  var leyendaPropNorm=revdoc_normalizarTexto(leyendaProp);
+  var leyendaProhNorm=revdoc_normalizarTexto(leyendaProh);
+  resultado.leyendaEncontrada = textoNorm.indexOf(leyendaPropNorm)>=0 && textoNorm.indexOf(leyendaProhNorm)>=0;
   if(resultado.leyendaEncontrada){
     resultado.ok.push('✅ Leyenda de propiedad encontrada');
   } else {
-    resultado.fallos.push({campo:'Leyenda',detalle:'No se encontró "DOCUMENTO PROPIEDAD DE PROCAPS S.A. PROHIBIDA SU REPRODUCCIÓN TOTAL O PARCIAL"'});
+    resultado.fallos.push({campo:'Leyenda',detalle:'No se encontró la leyenda de propiedad: "'+leyendaProp+'. '+leyendaProh+'"'});
   }
 
   // 4. Palabras restringidas — con contexto de 50 chars siguientes
@@ -19908,9 +19924,12 @@ async function _buildListadoPDF(lang){
     return;
   }
 
-  //  Traducción de contenido vía API (tipo de documento, proceso y, si no  
-  //  existe el campo nativo, la descripción) — para que TODO el documento  
-  //  quede en el idioma elegido, no solo los encabezados. 
+  //  Traducción de contenido con diccionario local instantáneo (tipo de   
+  //  documento, proceso y, si no existe el campo nativo, la descripción)   
+  //  — para que TODO el documento quede en el idioma elegido, no solo los  
+  //  encabezados. No depende de internet (antes se esperaba un servicio    
+  //  externo por cada texto único, lo que podía tardar minutos/horas o no  
+  //  terminar nunca si la red bloquea ese servicio, e impedía descargar). 
   var tMap={};
   if(!es){
     var textosUnicos={};
@@ -19922,11 +19941,9 @@ async function _buildListadoPDF(lang){
       if(pt && !d.descriptionPt && d.descripcion) textosUnicos[d.descripcion]=true;
       if(en && !d.descriptionEn && d.descripcion) textosUnicos[d.descripcion]=true;
     });
-    var textList=Object.keys(textosUnicos).filter(function(t){return t.length>1;});
-    if(textList.length){
-      toast(pt?'Traduzindo conteúdo do PDF...':'Translating PDF content...','if');
-      tMap = await traducirTextosAPI(textList, lang, pt?'Traduzindo lote ':'Translating batch ');
-    }
+    Object.keys(textosUnicos).forEach(function(t){
+      if(t.length>1) tMap[t]=traducirLocal(t, lang);
+    });
   }
 
   //  Traducciones 
@@ -23319,38 +23336,39 @@ async function traducirTextosAPI(textList, lang, progressLabel){
   return tMap;
 }
 
-async function _generarExcelConTraduccion(data, selectedCols, selectedEstados, lang){
+function _generarExcelConTraduccion(data, selectedCols, selectedEstados, lang){
   var pt=lang==='pt';
   var en=lang==='en';
 
+  // Traducción INSTANTÁNEA con el diccionario local (sin depender de
+  // internet). Antes se esperaba la respuesta de un servicio externo por
+  // cada texto único del listado — con miles de descripciones distintas,
+  // si la red bloquea ese servicio (como ya se confirmó en esta empresa),
+  // la espera podía tardar minutos, horas, o no terminar nunca, y el
+  // archivo jamás llegaba a descargarse.
   toast((pt?'Traduzindo e gerando Excel...':'Translating and generating Excel...'),'if');
 
-  // ── Recopilar todos los textos únicos que necesitan traducción ──
-  // Solo campos de texto libre (no fechas, versiones, códigos, ni valores booleanos)
   var TEXTO_LIBRE=['descripcion','tipoDocumento','areaGeneradora','proceso',
     'administrador','liderProceso','alcanceEmpresas','areasAplicables',
     'docsRelacionados','tipoPlantilla'];
 
-  // Recopilar textos únicos para traducción vía API
   var uniqueTexts={};
   data.forEach(function(d){
-    // Texto libre
     TEXTO_LIBRE.forEach(function(k){
       var v=String(d[k]||'').trim();
       if(v&&v.length>1) uniqueTexts[v]=true;
     });
-    // Estado (aunque tiene diccionario fijo, incluir por si hay variaciones)
     var est=String(d.estado||'').trim();
     if(est) uniqueTexts[est]=true;
-    // Obsoleto y idioma se traducen con diccionario fijo (no necesitan API)
-    // Descripción: solo si NO existe el campo nativo del idioma elegido
     if(pt&&!d.descriptionPt&&d.descripcion) uniqueTexts[d.descripcion]=true;
     if(en&&!d.descriptionEn&&d.descripcion) uniqueTexts[d.descripcion]=true;
   });
 
-  var textList=Object.keys(uniqueTexts).filter(function(t){return t.length>1;});
-  var tMap=await traducirTextosAPI(textList, lang, pt?'Traduzindo lote ':en?'Translating batch ':'Traduciendo lote ');
-  console.log('[XLS-TR] tMap total:',Object.keys(tMap).length,'entradas');
+  var tMap={};
+  Object.keys(uniqueTexts).forEach(function(t){
+    if(t.length>1) tMap[t]=traducirLocal(t, lang);
+  });
+  console.log('[XLS-TR] tMap total:',Object.keys(tMap).length,'entradas (diccionario local, sin red)');
 
   _generarExcelConDatos(data, selectedCols, selectedEstados, lang, tMap);
 }
@@ -24070,6 +24088,7 @@ function nfFechaHoy(){
 
 function nfInit(){
   nfActualizarConsec();
+  nfActualizarBannerUltimo();
   // Fecha hoy
   var fd = document.getElementById('nf-fecha');
   if(fd) fd.value=nfFechaHoy();
@@ -25147,6 +25166,48 @@ function nfGuardar(){
 /* Recuperar último formato de novedad guardado en esta sesión */
 var _nfUltimoGuardado = null;
 
+// Banner permanente que muestra cuál fue el último registro guardado
+// (persiste entre sesiones vía localStorage, igual que _nfUltimoGuardado).
+function nfActualizarBannerUltimo(){
+  var banner=document.getElementById('nf-banner-ultimo');
+  var txt=document.getElementById('nf-banner-txt');
+  if(!banner||!txt) return;
+  var f=_nfUltimoGuardado;
+  if(!f){
+    try{
+      var stored=localStorage.getItem('nf_ultimo_guardado');
+      if(stored) f=_nfUltimoGuardado=JSON.parse(stored);
+    }catch(e){}
+  }
+  // Si tampoco hay nada guardado en este navegador (primera vez que se abre
+  // la app aquí, o se limpió el localStorage), usar el registro con el
+  // consecutivo más alto de las solicitudes ya cargadas desde el archivo
+  // real — así el banner siempre refleja el último registro existente,
+  // no solo lo guardado en esta sesión del navegador.
+  if(!f && solicitudes && solicitudes.length){
+    var ultima=null, maxConsec=-1;
+    solicitudes.forEach(function(s){
+      var n=parseInt(s.consecutivo,10);
+      if(!isNaN(n) && n>maxConsec){ maxConsec=n; ultima=s; }
+    });
+    if(ultima){
+      f={solicitante:ultima.solicitante,area:ultima.areaGeneradora,correo:ultima.correoUsuario,
+        tipoSolicitud:ultima.tipoSolicitud,codigo:ultima.codigo,nombre:ultima.nombreDoc,
+        descripcion:ultima.descripcionModif,consecutivo:ultima.consecutivo,fecha:ultima.fechaSolicitud};
+    }
+  }
+  if(!f){ banner.style.display='none'; return; }
+  var partes=[];
+  if(f.consecutivo) partes.push('N° '+f.consecutivo);
+  if(f.codigo) partes.push(f.codigo);
+  if(f.nombre) partes.push(f.nombre);
+  if(f.tipoSolicitud) partes.push(f.tipoSolicitud);
+  if(f.solicitante) partes.push(f.solicitante);
+  if(f.fecha) partes.push(f.fecha);
+  txt.textContent = partes.length?partes.join(' · '):'—';
+  banner.style.display='flex';
+}
+
 function nfRecuperarUltimo(){
   // Try localStorage first
   try{
@@ -25226,6 +25287,13 @@ function nfGuardarEjecutar(){
     }
     saveArr('sol',solicitudes);
     if(typeof rbRecalcCache==='function') rbRecalcCache();
+    try{
+      _nfUltimoGuardado={solicitante:solData.solicitante,area:solData.areaGeneradora,correo:solData.correoUsuario,
+        tipoSolicitud:solData.tipoSolicitud,codigo:solData.codigo,nombre:solData.nombreDoc,
+        descripcion:solData.descripcionModif,consecutivo:solData.consecutivo,fecha:solData.fechaSolicitud};
+      localStorage.setItem('nf_ultimo_guardado',JSON.stringify(_nfUltimoGuardado));
+      nfActualizarBannerUltimo();
+    }catch(e){}
     logA(currentUser?currentUser.nombre:'Usuario','Novedad de Documento',
       'Solicitud editada (cargada desde PDF): '+solData.codigo+' — Consec. '+solData.consecutivo+' — Tipo: '+solData.tipoSolicitud,'',' Novedad de Documento');
     if((solData.tipoSolicitud==='Eliminación'||solData.tipoSolicitud==='Eliminacion')&&solData.codigo){
@@ -25267,6 +25335,7 @@ function nfGuardarEjecutar(){
       tipoSolicitud:sol.tipoSolicitud,codigo:sol.codigo,nombre:sol.nombreDoc,
       descripcion:sol.descripcionModif,consecutivo:sol.consecutivo,fecha:sol.fechaSolicitud};
     localStorage.setItem('nf_ultimo_guardado',JSON.stringify(_nfUltimoGuardado));
+    nfActualizarBannerUltimo();
   }catch(e){}
   // Si es Eliminación, cerrar automáticamente la solicitud activa en Ruta de Borrador
   if((sol.tipoSolicitud==='Eliminación'||sol.tipoSolicitud==='Eliminacion')&&sol.codigo){
@@ -25312,9 +25381,8 @@ function nfDescargarPDF(){
   nfGenerarPDF();
 }
 
-function nfGenerarPDF(){
-  // Recoger datos del formulario
-  // Leer consecutivo actual (recalcular por si acaso)
+async function nfGenerarPDF(){
+  // ── Recoger datos del formulario ──────────────────────────────────
   var _cBadge=document.getElementById('nf-consec-badge');
   var consec = _cBadge&&_cBadge.textContent&&_cBadge.textContent!=='—'
     ? _cBadge.textContent
@@ -25323,10 +25391,8 @@ function nfGenerarPDF(){
   var nombre  = document.getElementById('nf-nombre').value||'';
   var cargo   = document.getElementById('nf-cargo').value||'';
   var area    = document.getElementById('nf-area').value||'';
-  var correo  = document.getElementById('nf-correo-vis').value||'';
   var tipo    = document.getElementById('nf-tipo').value||'';
   var cod     = document.getElementById('nf-cod').value||'';
-  // Nombre del PDF — se define aquí para usarse en <title> y en descarga
   var nombrePDF='FORMATO NOVEDAD DE DOCUMENTO '+consec+' '+cod;
   var tipodoc = document.getElementById('nf-tipodoc').value||'';
   var ver     = document.getElementById('nf-version').value||'';
@@ -25335,191 +25401,376 @@ function nfGenerarPDF(){
   var gxp     = document.getElementById('nf-gxp-disp').textContent||'—';
   var copia   = document.getElementById('nf-copia-disp').textContent||'—';
   var cantCop = document.getElementById('nf-cant-copias').value||'';
-  var desc    = (document.getElementById('nf-descripcion').value||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-  var obs     = (document.getElementById('nf-obs').value||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var desc    = document.getElementById('nf-descripcion').value||'';
+  var obs     = document.getElementById('nf-obs').value||'';
   var estatus = document.getElementById('nf-estatus').value||'Pendiente';
 
-  // Criticidad
-  var cVals=[1,2,3,4].map(function(n){return parseInt((document.getElementById('nc'+n)||{}).value||0)||'';});
-  var cDet=parseInt((document.getElementById('nd1')||{}).value||0)||'';
+  var cVals=[1,2,3,4].map(function(n){return parseInt((document.getElementById('nc'+n)||{}).value||0)||0;});
+  var cDet=parseInt((document.getElementById('nd1')||{}).value||0)||0;
   var cRes=nfCalcResultado();
   var cConc=nfGetConclusion();
-  var cResColor=cRes>5?'#b71c1c':'#1b5e20';
-  var cResBg=cRes>5?'#ffebee':'#e8f5e9';
+  var cCritico = cRes>5;
 
-  // Filas de la matriz
-  var mtxRows='';
+  var matriz=[];
   var mtx=document.getElementById('nf-mtx-body');
   if(mtx) Array.from(mtx.rows).forEach(function(tr){
     var cells=tr.querySelectorAll('input,select');
-    var nom=(cells[0]||{}).value||'';
-    var car=(cells[1]||{}).value||'';
-    var rol=(cells[2]||{}).value||'';
-    if(nom||car||rol){
-      mtxRows+='<tr>'+'<td style="border:1px solid #ccc;padding:6px 10px;width:40%">'+nom+'</td>'+'<td style="border:1px solid #ccc;padding:6px 10px;width:42%">'+car+'</td>'+'<td style="border:1px solid #ccc;padding:6px 10px;width:18%;text-align:center;font-weight:700">'+rol+'</td>'+'</tr>';
-    }
+    var nom=(cells[0]||{}).value||'', car=(cells[1]||{}).value||'', rol=(cells[2]||{}).value||'';
+    if(nom||car||rol) matriz.push({nom:nom,car:car,rol:rol});
   });
 
-  var html='<!DOCTYPE html><!-- v2026-06-01 13:38:26 --><html lang="es"><head><meta charset="UTF-8">'
-    +'<title>'+nombrePDF+'</title>'
-    +'<style>'
-    +'@page{size:A4 portrait;margin:8mm 10mm}'
-    +'*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}'
-    +'body{background:#fff;color:#111;font-size:8.5px}'
-    +'.wrap{max-width:100%;padding:0}'
-    +'.header{display:flex;justify-content:space-between;align-items:center;background:#006860;color:#fff;padding:5px 10px}'
-    +'.header h1{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}'
-    +'.header .cod{font-size:7.5px;text-align:right;line-height:1.6;opacity:.9}'
-    +'.sec-title{background:#006860;color:#fff;padding:2px 8px;font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-top:4px}'
-    +'.sec-body{border:1px solid #bbb;border-top:none;padding:4px 7px}'
-    +'.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:3px}'
-    +'.grid2{display:grid;grid-template-columns:2fr 1fr;gap:4px;margin-bottom:3px}'
-    +'.field label{display:block;font-size:6.5px;font-weight:700;text-transform:uppercase;color:#555;margin-bottom:1px}'
-    +'.field .val{border-bottom:1px solid #ccc;padding:1px 3px;font-size:8.5px;min-height:14px;color:#111}'
-    +'.field .val.hi{color:#006860;font-weight:600}'
-    +'table{width:100%;border-collapse:collapse;font-size:7.5px}'
-    +'table th{background:#e0f2f1;padding:2px 5px;border:1px solid #aaa;font-weight:700;font-size:7px;text-transform:uppercase}'
-    +'.crit-th{background:#e0f2f1;border:1px solid #aaa;padding:2px 4px;font-weight:700;font-size:7px;text-transform:uppercase;text-align:center}'
-    +'.vr{writing-mode:vertical-rl;transform:rotate(180deg);font-size:7px;font-weight:700;background:#e8e8e8;padding:2px 1px;text-align:center}'
-    +'.concl{text-align:center;font-size:9px;font-weight:700;padding:4px;border-radius:3px;margin-top:4px}'
-    +'@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
-    +'</style></head><body onload="window.print()">'
-    +'<div class="wrap">'
+  var cargosEntrenar=[];
+  var eb=document.getElementById('nf-entrenar-body');
+  if(eb) Array.from(eb.rows).forEach(function(tr){
+    var inp=tr.querySelector('input'); var v=(inp&&inp.value)||''; if(v) cargosEntrenar.push(v);
+  });
+
+  if(typeof PDFLib==='undefined'){ toast('pdf-lib no disponible — recarga la página','er'); return; }
+  toast('📄 Generando PDF...','if');
+
+  // ══════════════════════════════════════════════════════════════════
+  // El formato se dibuja con Canvas 2D (control total, sin depender de
+  // que un motor externo interprete CSS) y cada página se inserta como
+  // imagen dentro de un PDF real con pdf-lib — el mismo método, ya
+  // probado, que usa la descarga del Listado Maestro en PDF.
+  // ══════════════════════════════════════════════════════════════════
+  var SCALE=2;
+  var PW_PT=595.28, PH_PT=841.89;
+  var PW=Math.round(PW_PT*SCALE), PH=Math.round(PH_PT*SCALE);
+  var ML=26*SCALE, MR=26*SCALE, MT=22*SCALE, MB=26*SCALE;
+  var CW=PW-ML-MR;
+  var S=SCALE;
+  var TEAL='#006860', TEAL_BG='#e0f2f1', BORDER='#aaaaaa', BORDER_LT='#cccccc',
+      TXT='#111111', LBL='#555555', HI='#006860';
+
+  var paginas=[], cv, ctx, y;
+
+  function hex2rgb(h){ var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return [r,g,b]; }
+  function setFill(hex){ var c=hex2rgb(hex); ctx.fillStyle='rgb('+c[0]+','+c[1]+','+c[2]+')'; }
+  function setStroke(hex){ var c=hex2rgb(hex); ctx.strokeStyle='rgb('+c[0]+','+c[1]+','+c[2]+')'; }
+  function rect(x,w,yy,h,fill,stroke,sw){
+    ctx.lineWidth=sw||1;
+    if(fill){ setFill(fill); ctx.fillRect(x,yy,w,h); }
+    if(stroke){ setStroke(stroke); ctx.strokeRect(x,yy,w,h); }
+  }
+  function linea(x1,y1,x2,y2,col,sw){
+    ctx.lineWidth=sw||1; setStroke(col||BORDER);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  function txt(t,x,yy,size,col,bold,align){
+    ctx.font=(bold?'bold ':'')+Math.round(size*S)+'px Arial,Helvetica,sans-serif';
+    ctx.fillStyle=col||TXT; ctx.textAlign=align||'left';
+    ctx.fillText(String(t==null?'':t),x,yy);
+    ctx.textAlign='left';
+  }
+  function anchoTexto(t,size,bold){
+    ctx.font=(bold?'bold ':'')+Math.round(size*S)+'px Arial,Helvetica,sans-serif';
+    return ctx.measureText(String(t||'')).width;
+  }
+  function envolver(t,maxW,size,bold){
+    ctx.font=(bold?'bold ':'')+Math.round(size*S)+'px Arial,Helvetica,sans-serif';
+    var palabras=String(t||'').split(/\s+/).filter(Boolean);
+    var lineas=[],actual='';
+    palabras.forEach(function(p){
+      var prueba=actual?actual+' '+p:p;
+      if(ctx.measureText(prueba).width>maxW && actual){ lineas.push(actual); actual=p; }
+      else actual=prueba;
+    });
+    lineas.push(actual);
+    return lineas;
+  }
+  function recortar(t,maxW,size,bold){
+    ctx.font=(bold?'bold ':'')+Math.round(size*S)+'px Arial,Helvetica,sans-serif';
+    var vt=String(t||'');
+    while(vt.length>1 && ctx.measureText(vt).width>maxW) vt=vt.slice(0,-1);
+    if(vt.length<String(t||'').length && vt.length>1) vt=vt.slice(0,-1)+'…';
+    return vt;
+  }
+
+  function nuevaPagina(){
+    if(cv) paginas.push(cv);
+    cv=document.createElement('canvas'); cv.width=PW; cv.height=PH;
+    ctx=cv.getContext('2d');
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,PW,PH);
+    y=MT;
+  }
+  function saltoSiNecesario(alto){
+    if(y+alto > PH-MB){ nuevaPagina(); }
+  }
+
+  nuevaPagina();
+
+  // ── Encabezado del formato ──────────────────────────────────────
+  var HDR_H=26*S;
+  rect(ML,CW,y,HDR_H,TEAL,null);
+  txt('FORMATO NOVEDAD DE DOCUMENTO', ML+10*S, y+HDR_H/2+3*S, 9, '#ffffff', true);
+  txt('CÓDIGO: F-SOP-0001-5', ML+CW-10*S, y+HDR_H/2-3*S, 6.5, '#ffffff', false, 'right');
+  txt('VERSIÓN: 05', ML+CW-10*S, y+HDR_H/2+8*S, 6.5, '#ffffff', false, 'right');
+  y+=HDR_H+5*S;
+
+  function tituloSeccion(t){
+    saltoSiNecesario(15*S+5*S);
+    var h=15*S;
+    rect(ML,CW,y,h,TEAL,null);
+    txt(t.toUpperCase(), ML+7*S, y+h/2+3*S, 6.8, '#ffffff', true);
+    y+=h+3*S;
+  }
+
+  function filaCampos(campos){ // [{lbl,val,hi,frac}]
+    var totalFrac=campos.reduce(function(a,c){return a+(c.frac||1);},0);
+    var alto=28*S;
+    saltoSiNecesario(alto+3*S);
+    rect(ML,CW,y,alto,'#ffffff',BORDER_LT,1);
+    var x=ML;
+    campos.forEach(function(c,i){
+      var w=CW*((c.frac||1)/totalFrac);
+      txt(String(c.lbl||'').toUpperCase(), x+6*S, y+9*S, 5.3, LBL, true);
+      var vt=recortar(c.val, w-12*S, 7.5, !!c.hi);
+      txt(vt, x+6*S, y+21*S, 7.5, c.hi?HI:TXT, !!c.hi);
+      linea(x+4*S, y+24*S, x+w-4*S, y+24*S, BORDER_LT,1);
+      if(i<campos.length-1) linea(x+w, y+3*S, x+w, y+alto-3*S, BORDER_LT,1);
+      x+=w;
+    });
+    y+=alto;
+  }
+
+  // ── 1. Datos del solicitante ─────────────────────────────────────
+  tituloSeccion('1. Datos del solicitante');
+  filaCampos([
+    {lbl:'Nombres y apellidos', val:nombre, frac:1},
+    {lbl:'Cargo', val:cargo, frac:1},
+    {lbl:'Área', val:area, frac:1}
+  ]);
+  filaCampos([
+    {lbl:'Fecha de solicitud', val:fecha, hi:true, frac:1},
+    {lbl:'Tipo de novedad', val:tipo, frac:1},
+    {lbl:'N° Solicitud', val:consec, hi:true, frac:1}
+  ]);
+
+  // ── 2. Información de la novedad ──────────────────────────────────
+  tituloSeccion('2. Información de la novedad');
+  filaCampos([
+    {lbl:'Código del documento', val:cod, hi:true, frac:1},
+    {lbl:'Tipo de documento', val:tipodoc, frac:1},
+    {lbl:'Versión a trabajar', val:ver, frac:1}
+  ]);
+  filaCampos([
+    {lbl:'Nombre del documento', val:nomDoc, hi:true, frac:2},
+    {lbl:'Origen de la novedad', val:origen, frac:1}
+  ]);
+  filaCampos([
+    {lbl:'¿Documento GXP?', val:gxp, hi:true, frac:1},
+    {lbl:'¿Requiere copia controlada?', val:copia, hi:true, frac:1},
+    {lbl:'Cantidad de copias', val:cantCop||'—', frac:1}
+  ]);
+
+  // ── 3. Descripción de la novedad ──────────────────────────────────
+  tituloSeccion('3. Descripción de la novedad');
+  (function(){
+    var lineas=envolver(desc||'—', CW-14*S, 8, false);
+    var alto=Math.max(30*S, lineas.length*11*S+10*S);
+    saltoSiNecesario(alto);
+    rect(ML,CW,y,alto,'#ffffff',BORDER_LT,1);
+    lineas.forEach(function(l,i){ txt(l, ML+7*S, y+14*S+i*11*S, 8, TXT, false); });
+    y+=alto;
+  })();
+
+  // ── 4. Matriz de autorización ─────────────────────────────────────
+  tituloSeccion('4. Matriz de autorización');
+  (function(){
+    var cols=[{lbl:'Nombre',frac:0.40},{lbl:'Cargo',frac:0.42},{lbl:'Rol',frac:0.18,center:true}];
+    var filaAlto=18*S;
+    saltoSiNecesario(filaAlto);
+    var x=ML;
+    cols.forEach(function(c){
+      var w=CW*c.frac;
+      rect(x,w,y,filaAlto,TEAL_BG,BORDER,1);
+      txt(c.lbl.toUpperCase(), c.center?x+w/2:x+6*S, y+filaAlto/2+3*S, 6.3, '#333333', true, c.center?'center':'left');
+      x+=w;
+    });
+    y+=filaAlto;
+    if(!matriz.length){
+      saltoSiNecesario(filaAlto);
+      rect(ML,CW,y,filaAlto,'#ffffff',BORDER,1);
+      txt('Sin registros', ML+6*S, y+filaAlto/2+3*S, 7.3, '#999999', false);
+      y+=filaAlto;
+    } else {
+      matriz.forEach(function(m){
+        saltoSiNecesario(filaAlto);
+        var xx=ML, vals=[m.nom,m.car,m.rol];
+        cols.forEach(function(c,ci){
+          var w=CW*c.frac;
+          rect(xx,w,y,filaAlto,'#ffffff',BORDER,1);
+          var vt=recortar(vals[ci], w-10*S, 7.3, ci===2);
+          txt(vt, ci===2?xx+w/2:xx+6*S, y+filaAlto/2+3*S, 7.3, TXT, ci===2, ci===2?'center':'left');
+          xx+=w;
+        });
+        y+=filaAlto;
+      });
+    }
+  })();
+
+  // ── 5. Cargos a entrenar / divulgar ───────────────────────────────
+  tituloSeccion('5. Nombre del cargo del colaborador a entrenar / divulgar');
+  (function(){
+    if(!cargosEntrenar.length){
+      var h=18*S;
+      saltoSiNecesario(h);
+      rect(ML,CW,y,h,'#ffffff',BORDER_LT,1);
+      txt('Sin cargos registrados', ML+6*S, y+h/2+3*S, 7.3, '#999999', false);
+      y+=h;
+      return;
+    }
+    var lineas=envolver(cargosEntrenar.join('  —  '), CW-14*S, 8, false);
+    var alto=Math.max(18*S, lineas.length*11*S+8*S);
+    saltoSiNecesario(alto);
+    rect(ML,CW,y,alto,'#ffffff',BORDER_LT,1);
+    lineas.forEach(function(l,i){ txt(l, ML+7*S, y+13*S+i*11*S, 8, TXT, false); });
+    y+=alto;
+  })();
+
+  // ── 6. Análisis de criticidad ─────────────────────────────────────
+  tituloSeccion('6. Análisis de criticidad');
+  (function(){
+    var aspectos=[
+      {nombre:'Calidad producto / materiales', criterio:'(3) Parámetro crítico del lote · (2) Parámetros críticos · (1) No afecta calidad', val:cVals[0]},
+      {nombre:'Seguridad de las personas',     criterio:'(3) Muerte o incapacidad permanente · (2) Incapacidad parcial · (1) No genera', val:cVals[1]},
+      {nombre:'Seguridad del paciente',        criterio:'(3) Daño grave o muerte · (2) Efectos adversos · (1) Sin impacto', val:cVals[2]},
+      {nombre:'Desempeño del proceso',         criterio:'(3) Objetivos negocio/regulatorio · (2) Objetivos desempeño · (1) No afecta', val:cVals[3]}
+    ];
+    var maxCons = Math.max(cVals[0]||0,cVals[1]||0,cVals[2]||0,cVals[3]||0);
+
+    var wLbl=CW*0.05, wAsp=CW*0.23, wCrit=CW*0.37, wCal=CW*0.09, wCmax=CW*0.11, wCxd=CW*0.15;
+    var hHdr=20*S, hFila=24*S, hDet=24*S;
+    var altoConsec=hFila*4;
+    var totalAlto=hHdr+altoConsec+hDet;
+
+    // Bloque atómico: si no cabe completo, saltar de página ANTES de
+    // empezar — así ninguna celda fusionada queda partida entre páginas.
+    saltoSiNecesario(totalAlto);
+    var yInicio=y;
 
     // Encabezado
-    +'<div class="header"><h1>Formato Novedad de Documento</h1>'
-    +'<div class="cod">CÓDIGO: F-SOP-0001-5<br>VERSIÓN: 05</div></div>'
+    var x=ML;
+    [['',wLbl],['ASPECTOS',wAsp],['CRITERIOS',wCrit],['CALIFIC.',wCal],
+     ['CONSEC. MÁX.',wCmax],['CONSEC. × DETEC.',wCxd]].forEach(function(c){
+      rect(x,c[1],y,hHdr,TEAL_BG,BORDER,1);
+      if(c[0]) txt(c[0], x+c[1]/2, y+hHdr/2+3*S, 5.3, '#333333', true,'center');
+      x+=c[1];
+    });
+    y+=hHdr;
 
-    // Sec 1
-    +'<div class="sec-title">1. Datos del solicitante</div>'
-    +'<div class="sec-body">'
-    +'<div class="grid3">'
-    +'<div class="field"><label>Nombres y apellidos</label><div class="val">'+nombre+'</div></div>'
-    +'<div class="field"><label>Cargo</label><div class="val">'+cargo+'</div></div>'
-    +'<div class="field"><label>Área</label><div class="val">'+area+'</div></div>'
-    +'</div>'
-    +'<div class="grid3">'
-    +'<div class="field"><label>Fecha de solicitud</label><div class="val hi">'+fecha+'</div></div>'
-    +'<div class="field"><label>Tipo de novedad</label><div class="val">'+tipo+'</div></div>'
-    +'<div class="field"><label>N° Solicitud</label><div class="val hi" style="font-size:15px;font-weight:800">'+consec+'</div></div>'
-    +'</div></div>'
+    // Filas 1–4: grupo "Consecuencia"
+    aspectos.forEach(function(a){
+      var xx=ML+wLbl;
+      rect(xx,wAsp,y,hFila,'#ffffff',BORDER,1);
+      envolver(a.nombre, wAsp-8*S,6.3,true).slice(0,2).forEach(function(l,li){ txt(l, xx+4*S, y+10*S+li*8*S, 6.3, TXT, true); });
+      xx+=wAsp;
+      rect(xx,wCrit,y,hFila,'#ffffff',BORDER,1);
+      envolver(a.criterio, wCrit-8*S,5.8,false).slice(0,3).forEach(function(l,li){ txt(l, xx+4*S, y+9*S+li*7.3*S, 5.8, '#444444', false); });
+      xx+=wCrit;
+      rect(xx,wCal,y,hFila,'#ffffff',BORDER,1);
+      txt(String(a.val||'—'), xx+wCal/2, y+hFila/2+3*S, 8, TXT, true, 'center');
+      y+=hFila;
+    });
 
-    // Sec 2
-    +'<div class="sec-title">2. Información de la novedad</div>'
-    +'<div class="sec-body">'
-    +'<div class="grid3" style="margin-bottom:6px">'
-    +'<div class="field"><label>Código del documento</label><div class="val hi">'+cod+'</div></div>'
-    +'<div class="field"><label>Tipo de documento</label><div class="val">'+tipodoc+'</div></div>'
-    +'<div class="field"><label>Versión a trabajar</label><div class="val">'+ver+'</div></div>'
-    +'</div>'
-    +'<div class="grid2" style="margin-bottom:6px">'
-    +'<div class="field"><label>Nombre del documento</label><div class="val hi">'+nomDoc+'</div></div>'
-    +'<div class="field"><label>Origen de la novedad</label><div class="val">'+origen+'</div></div>'
-    +'</div>'
-    +'<div class="grid3">'
-    +'<div class="field"><label>¿Documento GXP?</label><div class="val hi">'+gxp+'</div></div>'
-    +'<div class="field"><label>¿Requiere copia controlada?</label><div class="val hi">'+copia+'</div></div>'
-    +'<div class="field"><label>Cantidad de copias</label><div class="val">'+(cantCop||'—')+'</div></div>'
-    +'</div></div>'
+    // Fila 5: Detección de falla (fuera del grupo "Consecuencia") — el
+    // rótulo ocupa el ancho combinado de las columnas "Consecuencia" +
+    // "Aspectos" en una sola celda, igual que en el HTML.
+    var xxD=ML;
+    rect(xxD,wLbl+wAsp,y,hDet,'#ffffff',BORDER,1);
+    txt('Detección de falla', xxD+6*S, y+hDet/2+3*S, 6.3, TXT, true);
+    xxD+=wLbl+wAsp;
+    rect(xxD,wCrit,y,hDet,'#ffffff',BORDER,1);
+    envolver('(3) Detectada por externos · (2) Al final del proceso · (1) Durante el proceso', wCrit-8*S,5.8,false).slice(0,2).forEach(function(l,li){ txt(l, xxD+4*S, y+10*S+li*7.3*S, 5.8, '#444444', false); });
+    xxD+=wCrit;
+    rect(xxD,wCal,y,hDet,'#ffffff',BORDER,1);
+    txt(String(cDet||'—'), xxD+wCal/2, y+hDet/2+3*S, 8, TXT, true, 'center');
+    xxD+=wCal;
+    // La fila "Detección de falla" también tiene su propia celda en la
+    // columna "Consec. Máx." (no se deja en blanco, igual que en el HTML).
+    rect(xxD,wCmax,y,hDet,'#f5f5f5',BORDER,1);
+    txt(String(maxCons||'—'), xxD+wCmax/2, y+hDet/2+3*S, 8, TXT, true, 'center');
+    y+=hDet;
 
-    // Sec 3
-    +'<div class="sec-title">3. Descripción de la novedad</div>'
-    +'<div class="sec-body" style="min-height:60px"><div style="font-size:11px;line-height:1.5">'+desc+'</div></div>'
+    // Columna vertical "CONSECUENCIA" — una sola celda fusionada (filas 1–4)
+    rect(ML,wLbl,yInicio+hHdr,altoConsec,'#e8e8e8',BORDER,1);
+    ctx.save();
+    ctx.translate(ML+wLbl/2, yInicio+hHdr+altoConsec/2);
+    ctx.rotate(-Math.PI/2);
+    txt('CONSECUENCIA', 0, 2*S, 5.3, '#333333', true, 'center');
+    ctx.restore();
 
-    // Sec 4+5 Matriz
-    +'<div class="sec-title">4. Matriz de autorización</div>'
-    +'<div class="sec-body" style="padding:0">'
-    +'<table><thead><tr>'
-    +'<th style="width:40%">Nombre</th><th style="width:42%">Cargo</th>'
-    +'<th style="width:18%;text-align:center">Rol</th>'
-    +'</tr></thead><tbody>'
-    +mtxRows
-    +'</tbody></table></div>'
+    // "CONSEC. MÁX." — una sola celda fusionada (filas 1–4)
+    var xCmax=ML+wLbl+wAsp+wCrit+wCal;
+    rect(xCmax,wCmax,yInicio+hHdr,altoConsec,'#f5f5f5',BORDER,1);
+    txt(String(maxCons||'—'), xCmax+wCmax/2, yInicio+hHdr+altoConsec/2+5*S, 13, TXT, true, 'center');
 
-    // Sec 5 — Cargo a entrenar
-    +'<div class="sec-title">5. Nombre del cargo del colaborador a entrenar / divulgar</div>'
-    +'<div class="sec-body" style="padding:0">'
-    +(function(){
-      var rows5='';
-      var eb=document.getElementById('nf-entrenar-body');
-      if(eb) Array.from(eb.rows).forEach(function(tr){
-        var inp=tr.querySelector('input');
-        var val=(inp&&inp.value)||'';
-        if(val) rows5+='<tr><td style="border:1px solid #ccc;padding:5px 8px">'+val+'</td></tr>';
-      });
-      // Obtener todos los cargos como lista inline separada por comas
-      var cargosArr=[];
-      var eb2=document.getElementById('nf-entrenar-body');
-      if(eb2) Array.from(eb2.rows).forEach(function(tr){
-        var inp=tr.querySelector('input'); var v=(inp&&inp.value)||''; if(v) cargosArr.push(v);
-      });
-      return cargosArr.length
-        ?'<div style="padding:8px 12px;font-size:11px;line-height:1.6">'
-          +cargosArr.join(' &nbsp;—&nbsp; ')
-          +'</div>'
-        :'<div style="padding:8px 10px;font-size:11px;color:#aaa">Sin cargos registrados</div>';
-    })()
-    +'</div>'
+    // "CONSEC. × DETEC." — una sola celda fusionada (las 5 filas): es el
+    // resultado final de criticidad, tal como en el formato HTML.
+    var xCxd=xCmax+wCmax;
+    rect(xCxd,wCxd,yInicio+hHdr,totalAlto-hHdr,'#f5f5f5',BORDER,1);
+    txt(String(cRes||'—'), xCxd+wCxd/2, yInicio+hHdr+(totalAlto-hHdr)/2+6*S, 15, cCritico?'#b71c1c':'#1b5e20', true, 'center');
 
-    // Sec 6 Criticidad
-    +'<div class="sec-title">6. Análisis de criticidad</div>'
-    +'<div class="sec-body">'
-    +'<table><thead><tr>'
-    +'<th colspan="2">Aspectos</th><th>Criterios</th>'
-    +'<th style="width:60px">Calific.</th><th style="width:70px">Consec. Máx.</th><th style="width:90px">Consec. × Detec.</th>'
-    +'</tr></thead><tbody>'
-    +'<tr><td rowspan="4" class="vr">Consecuencia</td>'
-    +'<td style="border:1px solid #aaa;padding:4px 6px;font-size:9px;font-weight:600">Calidad producto / materiales</td>'
-    +'<td style="border:1px solid #aaa;padding:4px 6px;font-size:9px">(3) Parámetro crítico del lote &nbsp;·&nbsp; (2) Parámetros críticos &nbsp;·&nbsp; (1) No afecta calidad</td>'
-    +'<td style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">'+cVals[0]+'</td>'
-    +'<td rowspan="4" style="border:1px solid #aaa;text-align:center;font-size:18px;font-weight:700;background:#f5f5f5" id="pvc">'+document.getElementById('nval-c').textContent+'</td>'
-    +'<td rowspan="5" style="border:1px solid #aaa;text-align:center;font-size:20px;font-weight:700;background:#f5f5f5">'+(cRes||'—')+'</td>'
-    +'</tr>'
-    +'<tr><td style="border:1px solid #aaa;padding:4px 6px;font-size:9px;font-weight:600">Seguridad de las personas</td>'
-    +'<td style="border:1px solid #aaa;padding:4px 6px;font-size:9px">(3) Muerte o incapacidad permanente &nbsp;·&nbsp; (2) Incapacidad parcial &nbsp;·&nbsp; (1) No genera</td>'
-    +'<td style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">'+cVals[1]+'</td></tr>'
-    +'<tr><td style="border:1px solid #aaa;padding:4px 6px;font-size:9px;font-weight:600">Seguridad del paciente</td>'
-    +'<td style="border:1px solid #aaa;padding:4px 6px;font-size:9px">(3) Daño grave o muerte &nbsp;·&nbsp; (2) Efectos adversos &nbsp;·&nbsp; (1) Sin impacto</td>'
-    +'<td style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">'+cVals[2]+'</td></tr>'
-    +'<tr><td style="border:1px solid #aaa;padding:4px 6px;font-size:9px;font-weight:600">Desempeño del proceso</td>'
-    +'<td style="border:1px solid #aaa;padding:4px 6px;font-size:9px">(3) Objetivos negocio/regulatorio &nbsp;·&nbsp; (2) Objetivos desempeño &nbsp;·&nbsp; (1) No afecta</td>'
-    +'<td style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">'+cVals[3]+'</td></tr>'
-    +'<tr><td colspan="2" style="border:1px solid #aaa;padding:4px 6px;font-size:9px;font-weight:700;background:#eee">Detección de falla</td>'
-    +'<td style="border:1px solid #aaa;padding:4px 6px;font-size:9px">(3) Detectada por externos &nbsp;·&nbsp; (2) Al final del proceso &nbsp;·&nbsp; (1) Durante el proceso</td>'
-    +'<td style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">'+cDet+'</td>'
-    +'<td style="border:1px solid #aaa;padding:4px;text-align:center;font-weight:700">'+cDet+'</td></tr>'
-    +'</tbody></table>'
-    +'<div class="concl" style="background:'+cResBg+';color:'+cResColor+';border:1px solid '+cResColor+'">'+cConc+'</div>'
-    +'</div>'
+    y=yInicio+totalAlto;
 
-    // Revisión administrador
-    +'<div class="sec-title">7. Revisión de la solicitud — espacio reservado para el administrador</div>'
-    +'<div class="sec-body">'
-    +'<div class="grid2">'
-    +'<div class="field"><label>Solicitud</label><div class="val hi">'+estatus+'</div></div>'
-    +'<div class="field"><label>Observaciones</label><div class="val">'+obs+'</div></div>'
-    +'</div></div>'
+    var hConc=20*S;
+    saltoSiNecesario(hConc+4*S);
+    y+=4*S;
+    rect(ML,CW,y,hConc, cCritico?'#ffebee':'#e8f5e9', cCritico?'#b71c1c':'#1b5e20',1);
+    txt(cConc, ML+CW/2, y+hConc/2+3*S, 7.8, cCritico?'#b71c1c':'#1b5e20', true, 'center');
+    y+=hConc;
+  })();
 
-    +'</div></body></html>';
+  // ── 7. Revisión — espacio reservado para el administrador ─────────
+  tituloSeccion('7. Revisión de la solicitud');
+  filaCampos([
+    {lbl:'Solicitud', val:estatus, hi:true, frac:1},
+    {lbl:'Observaciones', val:obs||'—', frac:2}
+  ]);
 
-  // Descargar como .html — al abrirlo en Chrome e imprimir el título se usa como nombre PDF
-  var nombreFinal=nombrePDF.replace(/[^a-zA-Z0-9 _\-]/g,'_');
-  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
-  a.download=nombreFinal+'.html';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1500);
-  toast('📄 Descargado: '+nombreFinal+'.html — ábrelo en Chrome, presiona Ctrl+P y guarda como PDF','ok');
-  _nfPDFGenerado=true;
-  // Preguntar si desea guardar la solicitud automáticamente
-  setTimeout(function(){
-    if(confirm('✅ PDF generado correctamente.\n\n¿Desea guardar la solicitud ahora?')){
-      nfGuardar();
+  // ── Pie de página en cada hoja ─────────────────────────────────────
+  paginas.push(cv);
+  var totalPaginas=paginas.length;
+  paginas.forEach(function(pc,i){
+    var pctx=pc.getContext('2d');
+    pctx.font='normal '+Math.round(6*S)+'px Arial,Helvetica,sans-serif';
+    pctx.fillStyle='#888888'; pctx.textAlign='right';
+    pctx.fillText('Página '+(i+1)+' de '+totalPaginas, PW-MR, PH-8*S);
+    pctx.textAlign='left';
+  });
+
+  // ── Ensamblar el PDF real con pdf-lib ────────────────────────────
+  try{
+    var PDFDocument=PDFLib.PDFDocument;
+    var pdfDoc=await PDFDocument.create();
+    for(var pi=0; pi<paginas.length; pi++){
+      var dataUrl=paginas[pi].toDataURL('image/jpeg',0.93);
+      var ib=await fetch(dataUrl).then(function(r){return r.arrayBuffer();});
+      var im=await pdfDoc.embedJpg(ib);
+      var pg=pdfDoc.addPage([PW_PT,PH_PT]);
+      pg.drawImage(im,{x:0,y:0,width:PW_PT,height:PH_PT});
     }
-  }, 800);
+    var pdfBytes=await pdfDoc.save();
+    var nombreFinal=nombrePDF.replace(/[^a-zA-Z0-9 _\-]/g,'_');
+    var blob=new Blob([pdfBytes],{type:'application/pdf'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=nombreFinal+'.pdf';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href);},3000);
+    toast('📄 PDF descargado: '+nombreFinal+'.pdf','ok');
+    _nfPDFGenerado=true;
+    setTimeout(function(){
+      if(confirm('✅ PDF generado correctamente.\n\n¿Desea guardar la solicitud ahora?')){
+        nfGuardar();
+      }
+    }, 400);
+  }catch(e){
+    console.error('[nfGenerarPDF]',e);
+    toast('Error al generar el PDF: '+e.message,'er');
+  }
 }
 
 // Modal de alerta cuando el código ya tiene solicitud en RB
