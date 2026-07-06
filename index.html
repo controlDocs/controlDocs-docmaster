@@ -12317,16 +12317,6 @@ function ecc_generarInformeVerif(){
 
 
 
-function eccReopenInforme(idx){
-  var a=(window.actasCopias||[])[idx];
-  if(!a||!a.htmlInforme){toast('El HTML de este informe no está disponible','er');return;}
-  var win=window.open('','_blank','width=920,height=1100,scrollbars=yes');
-  if(!win){toast('Permite ventanas emergentes','er');return;}
-  win.document.write(a.htmlInforme);
-  win.document.close();
-  setTimeout(function(){win.focus();win.print();},600);
-}
-
 function renderEccActas(){
   var box=document.getElementById('ecc-actas-lista');
   if(!box) return;
@@ -12429,7 +12419,7 @@ function renderEccActas(){
         // Botones de acción
         +'<div style="display:flex;gap:7px;margin-top:10px;justify-content:flex-end">'
         +(a.registradoEnInsp?'<span style="font-size:9px;background:#e6f9f3;color:#006860;border:1px solid #9fdfc8;border-radius:4px;padding:4px 9px;font-weight:700">✅ Registrado en inspecciones</span>':'')
-        +(a.htmlInforme?'<button class="btn sm" onclick="eccReopenInforme('+realIdx+')" style="font-size:10px">📄 Ver / Imprimir PDF</button>':'')
+        +(a.htmlInforme?'<button class="btn sm" onclick="eccGenerarPDFActa('+realIdx+')" style="font-size:10px">📄 Descargar PDF</button>':'')
         +'</div>'
         +'</div>'
         +'</div>';
@@ -12463,7 +12453,7 @@ function renderEccActas(){
           +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:#00695C;border-bottom:1px solid #E0F2F1">'+a.total+'</td>'
           +'<td style="padding:6px 10px;font-size:10px;color:var(--tx3);border-bottom:1px solid #E0F2F1">'+docsStr+'</td>'
           +'<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #E0F2F1">'
-          +'<button class="btn sm" style="background:#006860;color:#fff;font-size:10px" onclick="eccReimprimirActa('+realIdx2+')" title="Reimprimir acta '+a.codigo+'">🖨️ Reimprimir</button>'
+          +'<button class="btn sm" style="background:#006860;color:#fff;font-size:10px" onclick="eccGenerarPDFActa('+realIdx2+')" title="Descargar PDF del acta '+a.codigo+'">📄 Descargar PDF</button>'
           +'</td>'
           +'</tr>';
       }).join('')
@@ -12536,21 +12526,329 @@ function eccFiltrarActas(q){
 }
 
 //  REIMPRIMIR ACTA DESDE HISTORIAL 
-function eccReimprimirActa(idx){
+async function eccGenerarPDFActa(idx){
   var todasActas=window.actasCopias||[];
   var a=todasActas[idx];
   if(!a){toast('Acta no encontrada','er');return;}
+  if(typeof PDFLib==='undefined'){toast('pdf-lib no disponible — recarga la página','er');return;}
+  toast('📄 Generando PDF...','if');
 
-  var html=a.htmlActa||eccRegenerarHtmlActa(a);
-  if(!html){toast('No se pudo recuperar el HTML de este acta','er');return;}
+  var esVerif = a.tipo==='verificacion';
+  var tipoObs = (a.tipo||'').toLowerCase()==='obs' || (a.tipo||'').toLowerCase().indexOf('recolecci')>=0;
 
-  var win=window.open('','_blank','width=940,height=1100,scrollbars=yes');
-  if(!win){toast('Permite ventanas emergentes para reimprimir el acta','er');return;}
-  win.document.write(html);
-  win.document.close();
-  setTimeout(function(){ try{win.print();}catch(e){} },800);
-  logA(currentUser?currentUser.nombre:'Usuario','Acta Copias','Reimpresión de '+a.codigo);
+  // ── Mismo método que Novedad de Documento: dibujar con Canvas 2D e
+  // insertar cada página como imagen en un PDF real con pdf-lib — pero
+  // replicando EXACTAMENTE el diseño, colores y estructura del acta tal
+  // como se genera originalmente (generarActaCopias / ecc_generarInformeVerif).
+  var SCALE=2;
+  var PW_PT=595.28, PH_PT=841.89;
+  var PW=Math.round(PW_PT*SCALE), PH=Math.round(PH_PT*SCALE);
+  var ML=26*SCALE, MR=26*SCALE, MT=22*SCALE, MB=26*SCALE;
+  var CW=PW-ML-MR;
+  var S=SCALE;
+  var TEAL='#006860', VERDE='#00A99E', ROJO='#d63b3b', VERDE_BG='#e0f5f3', ROJO_BG='#fde8e8',
+      LBL_BG='#f0f4f3', BORDER='#bbbbbb', TXT='#0a2828', LBL='#336666';
+  var colorBorder = tipoObs?ROJO:VERDE;
+  var colorBg = tipoObs?ROJO_BG:VERDE_BG;
+
+  var paginas=[], cv, ctx, y;
+  function hex2rgb(h){var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return[r,g,b];}
+  function setFill(hex){var c=hex2rgb(hex);ctx.fillStyle='rgb('+c[0]+','+c[1]+','+c[2]+')';}
+  function setStroke(hex){var c=hex2rgb(hex);ctx.strokeStyle='rgb('+c[0]+','+c[1]+','+c[2]+')';}
+  function rect(x,w,yy,h,fill,stroke,sw){ctx.lineWidth=sw||1;if(fill){setFill(fill);ctx.fillRect(x,yy,w,h);}if(stroke){setStroke(stroke);ctx.strokeRect(x,yy,w,h);}}
+  function linea(x1,y1,x2,y2,col,sw){ctx.lineWidth=sw||1;setStroke(col||BORDER);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+  function txt(t,x,yy,size,col,bold,align){ctx.font=(bold?'bold ':'')+Math.round(size*S)+'px Arial,Helvetica,sans-serif';ctx.fillStyle=col||TXT;ctx.textAlign=align||'left';ctx.fillText(String(t==null?'':t),x,yy);ctx.textAlign='left';}
+  function envolver(t,maxW,size,bold){ctx.font=(bold?'bold ':'')+Math.round(size*S)+'px Arial,Helvetica,sans-serif';var palabras=String(t||'').split(/\s+/).filter(Boolean);var lineas=[],actual='';palabras.forEach(function(p){var prueba=actual?actual+' '+p:p;if(ctx.measureText(prueba).width>maxW&&actual){lineas.push(actual);actual=p;}else actual=prueba;});lineas.push(actual);return lineas;}
+  function recortar(t,maxW,size,bold){ctx.font=(bold?'bold ':'')+Math.round(size*S)+'px Arial,Helvetica,sans-serif';var vt=String(t||'');while(vt.length>1&&ctx.measureText(vt).width>maxW)vt=vt.slice(0,-1);if(vt.length<String(t||'').length&&vt.length>1)vt=vt.slice(0,-1)+'…';return vt;}
+  function nuevaPagina(){if(cv)paginas.push(cv);cv=document.createElement('canvas');cv.width=PW;cv.height=PH;ctx=cv.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,PW,PH);y=MT;}
+  function saltoSiNecesario(alto){if(y+alto>PH-MB){nuevaPagina();}}
+
+  nuevaPagina();
+
+  var fechaGen='';try{fechaGen=fDL(a.fecha);}catch(e){fechaGen=a.fecha||'';}
+  var fechaHora='';try{fechaHora=fTS(new Date(a.fecha));}catch(e){fechaHora=fechaGen;}
+
+  if(!esVerif){
+    // ══ ACTA DE ENTREGA / RECOLECCIÓN — igual que generarActaCopias() ══
+    var tipoTxt = tipoObs?'RECOLECCIÓN DE COPIAS CONTROLADAS':'ENTREGA DE COPIAS CONTROLADAS';
+    var accionTxt = tipoObs?'RECOLECTAR Y REEMPLAZAR':'ENTREGAR Y REEMPLAZAR';
+    var lista=a.items||[];
+    var verDoc = (function(){
+      var d=(typeof docs!=='undefined'?docs:[]).find(function(x){return x.codigoActual===(lista[0]?lista[0].codigo:null);});
+      return d?d.version:(lista[0]?lista[0].version:'')||'—';
+    })();
+
+    var HDR_H=30*S;
+    saltoSiNecesario(HDR_H);
+    var wIzq=CW*0.62, wDer=CW*0.38;
+    rect(ML,wIzq,y,HDR_H,null,BORDER,1);
+    txt(tipoTxt, ML+10*S, y+HDR_H/2+3*S, 8.3, TEAL, true);
+    rect(ML+wIzq,wDer,y,HDR_H,'#ffffff',BORDER,1);
+    var xDer=ML+wIzq+wDer-8*S;
+    txt('CÓDIGO: F-SOP-0001-4', xDer, y+8*S, 5.6, TXT, false, 'right');
+    txt('VERSIÓN: 07', xDer, y+15*S, 5.6, TXT, false, 'right');
+    txt('ACTA N°: '+(a.codigo||'—'), xDer, y+22*S, 5.6, TXT, false, 'right');
+    txt('FECHA: '+fechaGen, xDer, y+29*S, 5.6, TXT, false, 'right');
+    y+=HDR_H+6*S;
+
+    var BADGE_H=42*S;
+    saltoSiNecesario(BADGE_H);
+    rect(ML,CW,y,BADGE_H,colorBg,colorBorder,1.6);
+    txt('NÚMERO DE ACTA', ML+12*S, y+11*S, 6, LBL, true);
+    txt(a.codigo||'—', ML+12*S, y+27*S, 15, colorBorder, true);
+    txt('Conserve este número para búsqueda y seguimiento · '+fechaHora, ML+12*S, y+BADGE_H-7*S, 5.6, '#5e9090', false);
+    txt(tipoObs?'📦':'📋', ML+CW-16*S, y+BADGE_H/2+7*S, 15, TXT, false, 'right');
+    y+=BADGE_H+6*S;
+
+    var infoH=22*S;
+    saltoSiNecesario(infoH*2);
+    var wLbl1=CW*0.22, wVal1=CW*0.28, wLbl2=CW*0.18, wVal2=CW*0.32;
+    function filaInfo2(l1,v1,l2,v2,v1Color,v2Color,v1Size,v2Size){
+      var xx=ML;
+      rect(xx,wLbl1,y,infoH,LBL_BG,BORDER,1); txt(l1.toUpperCase(),xx+6*S,y+infoH/2+3*S,5.6,LBL,true); xx+=wLbl1;
+      rect(xx,wVal1,y,infoH,'#ffffff',BORDER,1); txt(recortar(v1,wVal1-10*S,v1Size||7.3,true),xx+6*S,y+infoH/2+3*S,v1Size||7.3,v1Color||TXT,true); xx+=wVal1;
+      rect(xx,wLbl2,y,infoH,LBL_BG,BORDER,1); txt(l2.toUpperCase(),xx+6*S,y+infoH/2+3*S,5.6,LBL,true); xx+=wLbl2;
+      rect(xx,wVal2,y,infoH,'#ffffff',BORDER,1); txt(recortar(v2,wVal2-10*S,v2Size||7.3,true),xx+6*S,y+infoH/2+3*S,v2Size||7.3,v2Color||TXT,true);
+      y+=infoH;
+    }
+    filaInfo2('Tipo de acta',tipoTxt,'Acción requerida',accionTxt,TXT,colorBorder);
+    filaInfo2('Total copias',String(lista.length||a.total||0),'Versión del documento',verDoc,VERDE,TXT,9);
+    y+=6*S;
+
+    var secH=15*S;
+    saltoSiNecesario(secH);
+    rect(ML,CW,y,secH,VERDE,null);
+    txt('RELACIÓN DE COPIAS', ML+8*S, y+secH/2+3*S, 6.3, '#ffffff', true);
+    y+=secH;
+
+    var cols=[
+      {lbl:'#',frac:0.04,center:true},
+      {lbl:'Código',frac:0.14},
+      {lbl:'Área',frac:0.16},
+      {lbl:'Subárea',frac:0.20},
+      {lbl:tipoObs?'Devolución De Copias Nuevas':'Devolución De Copias Obsoletas',frac:0.16,center:true},
+      {lbl:'Ver. Actual',frac:0.10,center:true},
+      {lbl:'Firma Responsable',frac:0.20,center:true}
+    ];
+    var hdrH=20*S, filaAlto=32*S;
+    saltoSiNecesario(hdrH);
+    var xh=ML;
+    cols.forEach(function(c){
+      var w=CW*c.frac;
+      rect(xh,w,y,hdrH,LBL_BG,BORDER,1);
+      envolver(c.lbl.toUpperCase(),w-6*S,5.3,true).slice(0,2).forEach(function(l,li){
+        txt(l, c.center?xh+w/2:xh+4*S, y+8*S+li*7*S, 5.3, '#333333', true, c.center?'center':'left');
+      });
+      xh+=w;
+    });
+    y+=hdrH;
+
+    if(!lista.length){
+      saltoSiNecesario(filaAlto);
+      rect(ML,CW,y,filaAlto,'#ffffff',BORDER,1);
+      txt('Sin copias registradas', ML+8*S, y+filaAlto/2+3*S, 7.5, '#999999', false);
+      y+=filaAlto;
+    } else {
+      lista.forEach(function(it,i){
+        saltoSiNecesario(filaAlto);
+        var xx=ML;
+        var bg = i%2===0?'#ffffff':'#f9f9f9';
+        var vals=[String(i+1), it.codigo||'', it.area||'-', it.subarea||'-', '', it.version||'-', ''];
+        cols.forEach(function(c,ci){
+          var w=CW*c.frac;
+          rect(xx,w,y,filaAlto,bg,BORDER,1);
+          if(ci===6){
+            linea(xx+8*S,y+filaAlto-13*S,xx+w-8*S,y+filaAlto-13*S,'#999999',1);
+            var vt=recortar(it.responsable||'',w-10*S,6,false);
+            txt(vt, xx+w/2, y+filaAlto-5*S, 6, '#555555', false, 'center');
+          } else if(ci===4){
+            txt('☐', xx+w/2, y+filaAlto/2+5*S, 11, '#444444', false, 'center');
+          } else {
+            var vt2=recortar(vals[ci], w-8*S, ci===1?7.5:7, ci===1);
+            txt(vt2, c.center?xx+w/2:xx+5*S, y+filaAlto/2+3*S, ci===1?7.5:7, ci===1?VERDE:TXT, ci===1||ci===5, c.center?'center':'left');
+          }
+          xx+=w;
+        });
+        y+=filaAlto;
+      });
+    }
+
+    var firmaH=50*S;
+    saltoSiNecesario(firmaH);
+    y+=14*S;
+    var wFirma=130*S;
+    var xFirma=ML+CW/2-wFirma/2;
+    linea(xFirma,y+30*S,xFirma+wFirma,y+30*S,TXT,1.4);
+    txt('Entregó / Responsable Sistema De Documentación', ML+CW/2, y+40*S, 7, TXT, true, 'center');
+    y+=firmaH;
+
+    saltoSiNecesario(12*S);
+    linea(ML,y,ML+CW,y,'#eeeeee',1);
+    txt('F-SOP-0001-4 V07 · '+(a.codigo||'—')+' · '+fechaGen, ML+CW/2, y+9*S, 5.6, '#aaaaaa', false, 'center');
+    y+=12*S;
+
+  } else {
+    // ══ INFORME DE VERIFICACIÓN — igual que ecc_generarInformeVerif() ══
+    var tipoInsp=a.tipoInsp||'Copias Controladas';
+    var tipoColor= tipoInsp==='Copias Controladas'?VERDE:'#7c4dcc';
+    var areaLabel=(a.area||a.areaCruda||'Área no especificada')+(a.subarea?' / '+a.subarea:'');
+
+    var HDR_H2=30*S;
+    saltoSiNecesario(HDR_H2);
+    var wIzq2=CW*0.62, wDer2=CW*0.38;
+    rect(ML,wIzq2,y,HDR_H2,TEAL,null);
+    envolver('INFORME DE VERIFICACIÓN DE COPIAS CONTROLADAS', wIzq2-16*S, 7.5, true).slice(0,2).forEach(function(l,li){
+      txt(l, ML+10*S, y+11*S+li*9*S, 7.5, '#ffffff', true);
+    });
+    rect(ML+wIzq2,wDer2,y,HDR_H2,'#ffffff',BORDER,1);
+    var xDer2=ML+wIzq2+wDer2-8*S;
+    txt('CÓDIGO: '+(a.codigo||'—'), xDer2, y+12*S, 5.8, TXT, false, 'right');
+    txt('FECHA: '+fechaGen, xDer2, y+20*S, 5.8, TXT, false, 'right');
+    y+=HDR_H2+6*S;
+
+    var tipoH=24*S;
+    saltoSiNecesario(tipoH);
+    rect(ML,CW,y,tipoH,tipoColor,null);
+    txt(tipoInsp==='Copias Controladas'?'📄':'📒', ML+8*S, y+tipoH/2+5*S, 12, '#ffffff', false);
+    txt('TIPO DE INSPECCIÓN', ML+24*S, y+9*S, 5.6, '#ffffff', false);
+    txt(tipoInsp, ML+24*S, y+18*S, 8, '#ffffff', true);
+    var regTxt = a.registradoEnInsp?'✅ Registrado en programa de inspecciones':'❌ No registrado en programa de inspecciones';
+    txt(regTxt, ML+CW-8*S, y+tipoH/2+3*S, 5.8, '#ffffff', true, 'right');
+    y+=tipoH+6*S;
+
+    var esc=a.escaneosPorSub||{};
+    var itemsFlat=[];
+    Object.keys(esc).forEach(function(k){ (esc[k].items||[]).forEach(function(it){ itemsFlat.push(it); }); });
+    var noEnc=itemsFlat.filter(function(it){return it.estado==='NO_ESCANEADO';}).length;
+    var cumpleCant=a.ok!=null?a.ok:itemsFlat.filter(function(it){return it.estado==='OK';}).length;
+    var noOkCant=a.noOk!=null?a.noOk:(itemsFlat.length-cumpleCant);
+    var totalCant=a.total!=null?a.total:itemsFlat.length;
+    var pct= totalCant? Math.round(cumpleCant/totalCant*100):0;
+
+    var infoH2=22*S;
+    saltoSiNecesario(infoH2*3);
+    var wLblA=CW*0.22, wValA=CW*0.28, wLblB=CW*0.18, wValB=CW*0.32;
+    function filaInfoV(l1,v1,l2,v2,v2Color,v1Color){
+      var xx=ML;
+      rect(xx,wLblA,y,infoH2,LBL_BG,BORDER,1); txt(l1.toUpperCase(),xx+6*S,y+infoH2/2+3*S,5.6,'#333333',true); xx+=wLblA;
+      rect(xx,wValA,y,infoH2,'#ffffff',BORDER,1); txt(recortar(v1,wValA-10*S,7.3,true),xx+6*S,y+infoH2/2+3*S,7.3,v1Color||TXT,true); xx+=wValA;
+      rect(xx,wLblB,y,infoH2,LBL_BG,BORDER,1); txt(l2.toUpperCase(),xx+6*S,y+infoH2/2+3*S,5.6,'#333333',true); xx+=wLblB;
+      rect(xx,wValB,y,infoH2,'#ffffff',BORDER,1); txt(recortar(v2,wValB-10*S,7.3,true),xx+6*S,y+infoH2/2+3*S,7.3,v2Color||TXT,true);
+      y+=infoH2;
+    }
+    filaInfoV('Área / Subárea',areaLabel,'Total esperados',String(totalCant),VERDE);
+    filaInfoV('Verificados',String(itemsFlat.length-noEnc),'No encontrados',String(noEnc),noEnc?ROJO:VERDE);
+    filaInfoV('En cumplimiento',cumpleCant+' ('+pct+'%)','Con observaciones',String(noOkCant),noOkCant?ROJO:VERDE,VERDE);
+    y+=6*S;
+
+    var secH2=15*S;
+    saltoSiNecesario(secH2);
+    rect(ML,CW,y,secH2,tipoColor,null);
+    txt('DETALLE DE VERIFICACIÓN — '+tipoInsp.toUpperCase(), ML+8*S, y+secH2/2+3*S, 6.3, '#ffffff', true);
+    y+=secH2;
+
+    var cols2=[
+      {lbl:'#',frac:0.05,center:true},
+      {lbl:'Código',frac:0.20},
+      {lbl:'Ver. Copia',frac:0.13,center:true},
+      {lbl:'Ver. Maestra',frac:0.15,center:true},
+      {lbl:'Estado',frac:0.22,center:true},
+      {lbl:'Observación',frac:0.25}
+    ];
+    var hdrH2=16*S;
+    saltoSiNecesario(hdrH2);
+    var xh2=ML;
+    cols2.forEach(function(c){
+      var w=CW*c.frac;
+      rect(xh2,w,y,hdrH2,LBL_BG,BORDER,1);
+      txt(c.lbl.toUpperCase(), c.center?xh2+w/2:xh2+4*S, y+hdrH2/2+3*S, 5.5, '#333333', true, c.center?'center':'left');
+      xh2+=w;
+    });
+    y+=hdrH2;
+
+    var estColor={OK:'#006860',VENCIDO:'#7a4e00',OBSOLETO:'#8a1515',VERSION_INCORRECTA:'#7a4e00',NO_ENCONTRADO:'#666666',NO_ESCANEADO:'#8a1515'};
+    var estBg={OK:'#e6f9f3',VENCIDO:'#fff3cd',OBSOLETO:'#fde8e8',VERSION_INCORRECTA:'#fff3cd',NO_ENCONTRADO:'#f0f4f3',NO_ESCANEADO:'#fde8e8'};
+    var estIco={OK:'✅',VENCIDO:'⏰',OBSOLETO:'🚫',VERSION_INCORRECTA:'⚠️',NO_ENCONTRADO:'❓',NO_ESCANEADO:'🔍'};
+    var estObs={OK:'Cumple',VENCIDO:'Documento vencido',OBSOLETO:'Copia obsoleta',VERSION_INCORRECTA:'Versión incorrecta',NO_ENCONTRADO:'No registrado en listado maestro',NO_ESCANEADO:'No encontrada en carpeta'};
+
+    var filaAlto2=18*S;
+    if(!itemsFlat.length){
+      saltoSiNecesario(filaAlto2);
+      rect(ML,CW,y,filaAlto2,'#ffffff',BORDER,1);
+      txt('Sin registros', ML+8*S, y+filaAlto2/2+3*S, 7.3, '#999999', false);
+      y+=filaAlto2;
+    } else {
+      itemsFlat.forEach(function(it,i){
+        saltoSiNecesario(filaAlto2);
+        var xx2=ML;
+        var bg=estBg[it.estado]||'#ffffff';
+        var vals2=[String(i+1), it.codigo||'', it.verLeido||'-', it.verActual||'-',
+          (estIco[it.estado]||'')+' '+(it.estado||'-').replace(/_/g,' '), estObs[it.estado]||''];
+        cols2.forEach(function(c,ci){
+          var w=CW*c.frac;
+          rect(xx2,w,y,filaAlto2,bg,'#cccccc',1);
+          var esColor = ci===4?(estColor[it.estado]||TXT):(ci===1?VERDE:TXT);
+          var vt=recortar(vals2[ci], w-8*S, 6.5, ci===1||ci===4);
+          txt(vt, c.center?xx2+w/2:xx2+4*S, y+filaAlto2/2+3*S, 6.5, esColor, ci===1||ci===4, c.center?'center':'left');
+          xx2+=w;
+        });
+        y+=filaAlto2;
+      });
+    }
+    y+=10*S;
+
+    saltoSiNecesario(40*S);
+    var wCol=CW/2-6*S;
+    linea(ML,y+20*S,ML+wCol,y+20*S,TXT,1.2);
+    txt('Inspector / Responsable verificación', ML+wCol/2, y+30*S, 6.3, '#5e9090', false, 'center');
+    linea(ML+CW-wCol,y+20*S,ML+CW,y+20*S,TXT,1.2);
+    txt('Líder de área', ML+CW-wCol/2, y+30*S, 6.3, '#5e9090', false, 'center');
+    y+=40*S;
+
+    var org=(typeof cfg!=='undefined'&&cfg&&cfg.org)?cfg.org:'Sofgen Pharma';
+    saltoSiNecesario(12*S);
+    linea(ML,y,ML+CW,y,'#eeeeee',1);
+    txt(org+' — '+(a.codigo||'—')+' · '+tipoInsp+' · '+fechaGen, ML+CW/2, y+9*S, 5.6, '#aaaaaa', false, 'center');
+    y+=12*S;
+  }
+
+  paginas.push(cv);
+  var totalPaginas=paginas.length;
+  paginas.forEach(function(pc,i){
+    var pctx=pc.getContext('2d');
+    pctx.font='normal '+Math.round(6*S)+'px Arial,Helvetica,sans-serif';
+    pctx.fillStyle='#888888'; pctx.textAlign='right';
+    pctx.fillText('Página '+(i+1)+' de '+totalPaginas, PW-MR, PH-8*S);
+    pctx.textAlign='left';
+  });
+
+  try{
+    var PDFDocument=PDFLib.PDFDocument;
+    var pdfDoc=await PDFDocument.create();
+    for(var pi=0;pi<paginas.length;pi++){
+      var dataUrl=paginas[pi].toDataURL('image/jpeg',0.95);
+      var ib=await fetch(dataUrl).then(function(r){return r.arrayBuffer();});
+      var im=await pdfDoc.embedJpg(ib);
+      var pg=pdfDoc.addPage([PW_PT,PH_PT]);
+      pg.drawImage(im,{x:0,y:0,width:PW_PT,height:PH_PT});
+    }
+    var pdfBytes=await pdfDoc.save();
+    var nombreFinal=(a.codigo||'Acta').replace(/[^a-zA-Z0-9 _\-]/g,'_');
+    var blob=new Blob([pdfBytes],{type:'application/pdf'});
+    var link=document.createElement('a');
+    link.href=URL.createObjectURL(blob);
+    link.download=nombreFinal+'.pdf';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(function(){document.body.removeChild(link);URL.revokeObjectURL(link.href);},3000);
+    toast('📄 PDF descargado: '+nombreFinal+'.pdf','ok');
+    logA(currentUser?currentUser.nombre:'Usuario','Acta Copias','Reimpresión (PDF) de '+a.codigo);
+  }catch(e){
+    console.error('[eccGenerarPDFActa]',e);
+    toast('Error al generar el PDF: '+e.message,'er');
+  }
 }
+
 
 // Regenerar HTML de un acta desde sus metadatos guardados
 function eccRegenerarHtmlActa(a){
