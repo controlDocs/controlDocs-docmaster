@@ -17830,7 +17830,16 @@ async function odGuardarListado(silencioso){
         var wr   = await fh.createWritable({keepExistingData: false});
         await wr.write(new Uint8Array(bufW));
         await wr.close();
-        console.log('[OD] Guardado OK: '+nombreArchivo+' ('+bufW.length+' bytes)');
+
+        // Verificación real: releer el archivo con el MISMO handle recién
+        // usado para escribir y confirmar que el tamaño coincide. Antes se
+        // asumía éxito solo porque no hubo excepción, sin confirmar que el
+        // disco realmente quedó con el contenido nuevo.
+        var fCheckFinal=await fh.getFile();
+        if(fCheckFinal.size!==bufW.byteLength){
+          throw new Error('Verificación falló: se esperaban '+bufW.byteLength+' bytes y quedó con '+fCheckFinal.size+' bytes');
+        }
+        console.log('[OD] Guardado OK (verificado): '+nombreArchivo+' ('+bufW.length+' bytes)');
 
         // 5. Post-escritura: esperar un momento para que OneDrive detecte el cambio
         //    y empiece a subir. Esto evita que la siguiente escritura llegue antes
@@ -18034,7 +18043,8 @@ async function odGuardarListado(silencioso){
           var _copLow=(_AUDIT_MODULOS_COPIAS||[]).map(function(m){return m.toLowerCase();});
           _auditPendientes=_auditPendientes.filter(function(a){var mod=(a.modulo||'').toLowerCase();return !_copLow.some(function(m){return mod.indexOf(m)>=0;});});
         }
-        await _escribirArchivo(OD_ARCHIVOS.copias,wbCop);
+        var _okCop=await _escribirArchivo(OD_ARCHIVOS.copias,wbCop);
+        if(!_okCop) console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.copias);
       }catch(eCop){console.warn('Error guardando CopiaControladas:',eCop);}
 
       // Inspecciones.xlsx
@@ -18049,7 +18059,8 @@ async function odGuardarListado(silencioso){
           window._dhPendiente=false;
         }
         if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbInsp2,_AUDIT_MODULOS_INSP);
-        await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
+        var _okInsp=await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
+        if(!_okInsp) console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.inspecciones);
       }catch(eInsp){console.warn('Error guardando Inspecciones:',eInsp);}
 
       // Solicitudes.xlsx
@@ -18063,7 +18074,8 @@ async function odGuardarListado(silencioso){
           var _solLow=(_AUDIT_MODULOS_SOL||[]).map(function(m){return m.toLowerCase();});
           _auditPendientes=_auditPendientes.filter(function(a){var mod=(a.modulo||'').toLowerCase();return !_solLow.some(function(m){return mod.indexOf(m)>=0;});});
         }
-        await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2);
+        var _okSol=await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2);
+        if(!_okSol) console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.solicitudes);
       }catch(eSol){console.warn('Error guardando Solicitudes:',eSol);}
 
     } else {
@@ -18163,24 +18175,32 @@ async function odGuardarListado(silencioso){
         if(OD.permisoEscritura){
           // Escribir ListadoMaestro.xlsx
           var writableTarget;
+          var fhParaVerificar;
           if(OD.carpetaHandle){
             var fhLM2=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.lm,{create:false});
             writableTarget=await fhLM2.createWritable({keepExistingData:false}); // evita copias temporales
+            fhParaVerificar=fhLM2;
           } else {
             writableTarget=await OD.fileHandle.createWritable({keepExistingData:false}); // evita copias temporales
+            fhParaVerificar=OD.fileHandle;
           }
           await writableTarget.write(new Uint8Array(buf));
           await writableTarget.close();
-          escrituraOk=true;
-          // Leer el timestamp real del archivo después de escribir
-          try{
-            var filePos=await OD.fileHandle.getFile();
-            _odLastModified=filePos.lastModified;
-            _odTsUltimaCarga=filePos.lastModified;
-            _odUltimoTam=filePos.size||0; // actualizar tamaño tras guardado exitoso
-          }catch(e){
-            _odLastModified=Date.now();
+
+          // Verificación real: releer el archivo con el MISMO handle que se
+          // usó para escribir y confirmar que el tamaño coincide exactamente
+          // con lo que se acaba de guardar. Antes se leía desde OD.fileHandle
+          // aunque la escritura se hubiera hecho por OD.carpetaHandle — si
+          // ambos no apuntaban exactamente al mismo objeto de archivo, el
+          // código podía reportar "guardado" sin haber confirmado nada real.
+          var filePos=await fhParaVerificar.getFile();
+          if(filePos.size!==buf.byteLength){
+            throw new Error('Verificación de guardado falló: se esperaban '+buf.byteLength+' bytes y el archivo quedó con '+filePos.size+' bytes');
           }
+          escrituraOk=true;
+          _odLastModified=filePos.lastModified;
+          _odTsUltimaCarga=filePos.lastModified;
+          _odUltimoTam=filePos.size||0; // actualizar tamaño tras guardado exitoso verificado
         } else {
           break; // sin permiso, no reintentar
         }
