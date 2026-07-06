@@ -3066,7 +3066,7 @@ function saveDocs(arr){
   if(window._odRecienCargado) return;
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
+    OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },20000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
 }
@@ -3492,7 +3492,7 @@ function logA(u,a,d,cambios,modulo){
   // Guardar en SharePoint con debounce
   if(OD.fileHandle&&OD.syncActivo){
     if(window._auditSaveTimer) clearTimeout(window._auditSaveTimer);
-    window._auditSaveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    window._auditSaveTimer=setTimeout(function(){odGuardarListado(true);},20000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
 }
@@ -6627,7 +6627,7 @@ function generarActaCopias() {
   // Guardar en Excel de OneDrive inmediatamente
   if(OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
     if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
   }
   var win=window.open('','_blank','width=940,height=1100,scrollbars=yes');
@@ -6722,7 +6722,7 @@ function delCop(id){
     if(OD.fileHandle&&window.currentUser){
       OD.syncActivo=true;
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
     }
     toast('Copia eliminada — guardando en SharePoint...','if');
     renderCopias();
@@ -12173,7 +12173,7 @@ function ecc_generarInformeVerif(){
       // Disparar guardado inmediato al Excel de OneDrive
       if(OD.fileHandle&&OD.syncActivo){
         if(OD.saveTimer) clearTimeout(OD.saveTimer);
-        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
       }
       renderDashInsp&&renderDashInsp();
       renderTablaProg&&renderTablaProg();
@@ -15700,7 +15700,7 @@ var OD = {
   syncActivo:    false,
   syncTimer:     null,
   saveTimer:     null,
-  SYNC_INTERVAL: 60000,   // auto-guardar cada 60s
+  SYNC_INTERVAL: 20000,   // auto-guardar cada 20s
   COLUMNAS_EXCEL: [
     'Código Actual','Código Antiguo','Descripción','Description','Descrição (PT)','Versión',
     'Tipo De Documento','Área Generadora','Proceso','Fecha De Vigencia','Fecha De Vencimiento2',
@@ -17017,7 +17017,7 @@ function odHookSaveInsp(){
     var SYNC_KEYS=['insp','inspProg','sol','c','p','u','nh'];
     if(SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },20000);
     }
   };
 }
@@ -17033,7 +17033,7 @@ function odHookSaveArr(){
     var OD_SYNC_KEYS=['c','sol','p','u','nh','insp','inspProg'];
     if(OD_SYNC_KEYS.indexOf(k)>=0&&OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },20000);
     }
   };
 }
@@ -18211,9 +18211,9 @@ async function odGuardarListado(silencioso){
         odSetInfo('⚠️ No se pudo guardar — cambios conservados en la app','var(--A)');
         toast('⚠️ El archivo está en uso por otro usuario. Los cambios están guardados en la app y se intentará guardar automáticamente.','er');
       }
-      // Programar reintento automático en 30s
+      // Programar reintento automático en 20s
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},30000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
     }
 
@@ -18237,7 +18237,7 @@ async function odGuardarListado(silencioso){
 async function odGuardarUsuariosEnExcel(){
   if(!OD.fileHandle) return;
   if(OD.saveTimer) clearTimeout(OD.saveTimer);
-  OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
+  OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },20000);
 }
 
 //  HOOK saveDocs → auto-guardar en OneDrive 
@@ -18250,7 +18250,7 @@ function odHookSaveDocs(){
     if(OD.fileHandle&&OD.syncActivo){
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },60000);
+      OD.saveTimer=setTimeout(function(){ odGuardarListado(true); },20000);
     }
   };
 }
@@ -18274,6 +18274,19 @@ function odIniciarSyncAuto(){
     }
   },3600000); // cada 60 minutos
 }
+
+// ── Vigía del guardado automático ──────────────────────────────────────────
+// odIniciarSyncAuto() solo se invocaba desde un punto del código, pero hay
+// varios lugares que activan OD.syncActivo (reconexión de carpeta recordada,
+// SharePoint, etc.) sin pasar por ahí — en esos casos el guardado periódico
+// nunca arrancaba. Esta vigía revisa cada 5s y arranca el temporizador
+// automáticamente en cuanto detecta una sincronización activa sin él.
+setInterval(function(){
+  if(window.OD && OD.syncActivo && OD.fileHandle && !OD.syncTimer){
+    console.log('[OD] Vigía: sincronización activa sin temporizador — arrancando guardado automático');
+    odIniciarSyncAuto();
+  }
+}, 5000);
 
 //  SELECCIONAR ARCHIVO (primera vez) 
 async function odSolicitarPermisoEscritura(handle){
@@ -18396,10 +18409,10 @@ async function odAutoCargar(){
     }
     odOcultarCargando();
     showLogin();
-    // Auto-guardar cada 60s en SharePoint
+    // Auto-guardar cada 20s en SharePoint
     OD.syncTimer=setInterval(function(){
       if(OD.syncActivo&&!window._odCargando) odGuardarListado(true);
-    },60000);
+    },20000);
     return;
   }
 
@@ -21839,7 +21852,7 @@ function rbEditarGuardar(){
     '','Ruta de Borrador');
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer)clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
   }
   toast('✅ Solicitud #'+consecutivo+' actualizada','ok');
   rbRender();
@@ -21888,7 +21901,7 @@ function rbAnularConfirmar(){
     'Solicitud '+desc+' anulada | Motivo: '+motivo,'','Ruta de Borrador');
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
   }
   toast('🚫 Solicitud '+desc+' anulada','ok');
   rbRender();
@@ -21908,7 +21921,7 @@ function rbAprobar(consecutivo){
     'Ruta de Borrador');
   toast('Solicitud #'+consecutivo+' marcada como En proceso de firma','ok');
   rbRender();
-  if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);}
+  if(window.OD&&OD.fileHandle&&OD.syncActivo){if(OD.saveTimer)clearTimeout(OD.saveTimer);OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);}
 }
 
 function rbRetirarPorVencimiento(consecutivo){
@@ -21936,7 +21949,7 @@ function rbRetirarPorVencimiento(consecutivo){
   rbRender();
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer)clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
   }
 }
 
@@ -21958,7 +21971,7 @@ function rbRevertirARevision(consecutivo){
   rbRender();
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer)clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
   }
 }
 
@@ -22219,7 +22232,7 @@ function rbEliminarSolicitud(consecutivo){
   if(OD.fileHandle&&window.currentUser){
     OD.syncActivo=true;
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
   }
   toast('✅ Solicitud eliminada — guardando en SharePoint...','ok');
   rbRender();
@@ -22376,7 +22389,7 @@ function rbActualizarOficializacion(codigo){
   // Guardar en Excel si hay conexión
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
   }
 }
 
@@ -22553,7 +22566,7 @@ function rbFechaDocConfirmar(){
   // Guardar en Excel
   if(window.OD&&OD.fileHandle&&OD.syncActivo){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
   }
   if(typeof rbRender==='function') rbRender();
 }
@@ -23984,7 +23997,7 @@ function ecc_registrarHallazgos(area, subsInspeccionar, tipoInsp, inspector){
     saveArr('insp',inspecciones);
     if(OD.fileHandle&&OD.syncActivo){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
     }
     renderDashInsp&&renderDashInsp();
     renderTablaProg&&renderTablaProg();
@@ -26114,7 +26127,7 @@ function nfRenovarSolicitud(info){
       '','Novedad de Documento');
     if(OD.syncActivo||OD.carpetaHandle){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+      OD.saveTimer=setTimeout(function(){odGuardarListado(true);},20000);
     }
     toast('✅ Solicitud N°'+info.consecutivo+' marcada como Renovada','ok');
   }
