@@ -16141,6 +16141,36 @@ async function odLeerHojaAuditrail(buf, wb){
   return registros;
 }
 
+/* ══ RED DE SEGURIDAD: recortar cualquier celda del workbook que exceda ══
+   32767 caracteres (límite duro de Excel/XLSX) antes de serializar.
+   Esto cubre celdas que ya venían así en el archivo original (por ejemplo,
+   filas de Auditrail guardadas antes de existir la protección de truncado
+   en cada función individual), no solo las que la app escribe activamente. */
+function _saneaCeldasLargasWB(wb){
+  if(!wb||!wb.Sheets) return 0;
+  var LIMITE=32767;
+  var total=0;
+  wb.SheetNames.forEach(function(nombreHoja){
+    var ws=wb.Sheets[nombreHoja];
+    if(!ws) return;
+    Object.keys(ws).forEach(function(addr){
+      if(addr[0]==='!') return;
+      var cell=ws[addr];
+      if(!cell||cell.v==null) return;
+      var s=String(cell.v);
+      if(s.length>LIMITE){
+        console.warn('[OD] Celda demasiado larga recortada: '+nombreHoja+'!'+addr+' ('+s.length+' → '+LIMITE+' caracteres)');
+        cell.v=s.slice(0,LIMITE-3)+'...';
+        cell.t='s';
+        if(cell.w) delete cell.w; // texto formateado obsoleto, se regenera al escribir
+        total++;
+      }
+    });
+  });
+  if(total>0) console.warn('[OD] Total de celdas recortadas antes de guardar: '+total);
+  return total;
+}
+
 function odEscribirCodigosDocNuevos(wb){
   if(!codigosNuevos||!codigosNuevos.length) return;
   // Buscar nombre exacto de la hoja en el workbook
@@ -17843,6 +17873,7 @@ async function odGuardarListado(silencioso){
         }
 
         // 4. Escribir el archivo con keepExistingData:false para reemplazar completamente
+        _saneaCeldasLargasWB(wbToWrite); // red de seguridad: evita "Text length must not exceed 32767"
         var bufW = XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
         var wr   = await fh.createWritable({keepExistingData: false});
         await wr.write(new Uint8Array(bufW));
@@ -18113,6 +18144,7 @@ async function odGuardarListado(silencioso){
     // Auditrail ya escrito con append-only en el bloque de colisión (ver arriba)
 
     // Generar buffer del ListadoMaestro.xlsx
+    _saneaCeldasLargasWB(wb); // red de seguridad: evita "Text length must not exceed 32767"
     var buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
 
     // ── DETECCIÓN DE COLISIÓN REAL ────────────────────────────
@@ -18172,6 +18204,7 @@ async function odGuardarListado(silencioso){
     }
 
     // Regenerar buffer DESPUÉS de escribir el auditrail en wb
+    _saneaCeldasLargasWB(wb); // red de seguridad: evita "Text length must not exceed 32767"
     buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
 
     // Actualizar timestamp de referencia (en SP mode usamos Date.now())
