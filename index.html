@@ -547,6 +547,31 @@ tbody tr:last-child td{border-bottom:none}
       </div>
     </div>
 
+    <!-- Row: Indicadores de Ciclo Documental -->
+    <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px">Indicadores de Ciclo Documental</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+      <div class="kpi" id="kpi-identidad" style="cursor:default">
+        <div class="kl">% DOCUMENTOS NUEVA IDENTIDAD</div>
+        <div class="kv tl" id="dd-k-identidad" style="font-size:28px;font-weight:700">0%</div>
+        <div class="ks" id="dd-k-identidad-sub"></div>
+      </div>
+      <div class="kpi" id="kpi-depuracion" style="cursor:default">
+        <div class="kl">% DOCUMENTOS ELIMINADOS POR DEPURACIÓN</div>
+        <div class="kv a" id="dd-k-depuracion" style="font-size:28px;font-weight:700">0%</div>
+        <div class="ks" id="dd-k-depuracion-sub"></div>
+      </div>
+      <div class="kpi" id="kpi-anticipada" style="cursor:default">
+        <div class="kl">% DOCUMENTOS REVISADOS ANTICIPADAMENTE</div>
+        <div class="kv g" id="dd-k-anticipada" style="font-size:28px;font-weight:700">0%</div>
+        <div class="ks" id="dd-k-anticipada-sub"></div>
+      </div>
+      <div class="kpi" id="kpi-ciclo" style="cursor:default">
+        <div class="kl">ÍNDICE APROVECHAMIENTO CICLO NATURAL</div>
+        <div class="kv" id="dd-k-ciclo" style="font-size:28px;font-weight:700">0%</div>
+        <div class="ks" id="dd-k-ciclo-sub"></div>
+      </div>
+    </div>
+
     <!-- Row 2: Top tipos | Top areas -->
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
@@ -1459,6 +1484,15 @@ tbody tr:last-child td{border-bottom:none}
           </div>
           <div style="background:#fde8e8;border:1px solid #f5a5a5;border-radius:var(--r);padding:10px 13px;margin-bottom:10px;font-size:11px;color:#8a1515">
             Al marcar como Obsoleto se alertarán las copias controladas activas.
+          </div>
+          <div class="fp" style="margin-bottom:10px">
+            <label class="fl rq">Categoría del motivo</label>
+            <select class="fs" id="mo-categoria-obs">
+              <option value="Vencimiento">Vencimiento normal</option>
+              <option value="Reemplazo">Reemplazado por nueva versión</option>
+              <option value="Depuración">Depuración</option>
+              <option value="Otro">Otro</option>
+            </select>
           </div>
           <div class="fp" style="margin-bottom:10px">
             <label class="fl rq">Motivo de obsolescencia</label>
@@ -3605,12 +3639,93 @@ function renderKPI(){
   if(typeof dashActualizarUI==='function') dashActualizarUI();
   else if(typeof dashActualizar==='function') dashActualizar();
   if(typeof renderDashInsp==='function') renderDashInsp();
+  if(typeof renderIndicadoresCiclo==='function') renderIndicadoresCiclo();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// INDICADORES DE CICLO DOCUMENTAL
+// % Documentos nueva identidad · % Eliminados por depuración ·
+// % Revisados anticipadamente · Índice de Aprovechamiento del Ciclo Natural
+// ══════════════════════════════════════════════════════════════════════
+function _icEsOficializada(s){
+  var est=(s.estadoOficializacion||s.estatus||'').toLowerCase();
+  return (est.indexOf('oficial')>=0) && !!s.fechaOficializacion;
+}
+function _icSolicitudesDeCodigo(cod){
+  cod=String(cod||'').toUpperCase().trim();
+  return (solicitudes||[]).filter(function(s){ return (s.codigo||'').toUpperCase().trim()===cod; });
+}
+function renderIndicadoresCiclo(){
+  function esObsoleto(d){ return d.estado==='Obsoleto'||d.obsoleto==='X'||d.obsoleto==='Si'||d.obsoleto==='Sí'; }
+  var base=(typeof dashDocsBase==='function'?dashDocsBase():docs)||[];
+
+  // ── 1. % Documentos nueva identidad ───────────────────────────────────
+  // Fuente: checkbox "Cambio Identidad Corporativa" (cambioIdentidad) de
+  // solicitudes de Ruta de Borrador ya OFICIALIZADAS.
+  var activos=base.filter(function(d){ return !esObsoleto(d); });
+  var conIdentidad=activos.filter(function(d){
+    return _icSolicitudesDeCodigo(d.codigoActual).some(function(s){
+      return _icEsOficializada(s) && s.cambioIdentidad==='SI';
+    });
+  });
+  var pctIdentidad=activos.length?Math.round(conIdentidad.length/activos.length*100):0;
+  var elId=document.getElementById('dd-k-identidad'); if(elId) elId.textContent=pctIdentidad+'%';
+  var elIdS=document.getElementById('dd-k-identidad-sub'); if(elIdS) elIdS.textContent=conIdentidad.length+' de '+activos.length+' documentos activos';
+
+  // ── 2. % Documentos eliminados por depuración ─────────────────────────
+  // Fuente: categoría estandarizada capturada al marcar Obsoleto (motivoObsolescencia).
+  var todos=base;
+  var depurados=todos.filter(function(d){ return d.motivoObsolescencia==='Depuración'; });
+  var pctDepuracion=todos.length?Math.round(depurados.length/todos.length*100):0;
+  var elDep=document.getElementById('dd-k-depuracion'); if(elDep) elDep.textContent=pctDepuracion+'%';
+  var elDepS=document.getElementById('dd-k-depuracion-sub'); if(elDepS) elDepS.textContent=depurados.length+' de '+todos.length+' documentos totales';
+
+  // ── 3. % Documentos revisados anticipadamente ─────────────────────────
+  // Fuente: marca "Solicitar Revisión Inmediata" (revisionComunicada) +
+  // verificación de que exista una solicitud oficializada posterior a esa fecha.
+  var comunicados=todos.filter(function(d){ return d.revisionComunicada&&d.revisionComunicada.fecha; });
+  var atendidos=comunicados.filter(function(d){
+    var fechaCom=d.revisionComunicada.fecha;
+    return _icSolicitudesDeCodigo(d.codigoActual).some(function(s){
+      return _icEsOficializada(s) && s.fechaOficializacion>=fechaCom;
+    });
+  });
+  var pctAnticipada=comunicados.length?Math.round(atendidos.length/comunicados.length*100):0;
+  var elAnt=document.getElementById('dd-k-anticipada'); if(elAnt) elAnt.textContent=pctAnticipada+'%';
+  var elAntS=document.getElementById('dd-k-anticipada-sub'); if(elAntS) elAntS.textContent=comunicados.length?(atendidos.length+' de '+comunicados.length+' solicitudes atendidas'):'Sin solicitudes registradas';
+
+  // ── 4. Índice de Aprovechamiento del Ciclo Natural ────────────────────
+  // Ventana ideal: revisar (oficializar) el documento dentro del último
+  // año antes de su vencimiento — ni con demasiada anticipación (se
+  // desperdicia vigencia restante) ni vencido.
+  // Proxy usado: fechaVigencia (inicio de la versión vigente) aproxima
+  // la fecha en la que vencía el ciclo anterior. Se compara contra
+  // fechaOficializacion de la solicitud que originó esa versión.
+  var VENTANA_DIAS=365;
+  var oficializadasConFechas=[];
+  base.forEach(function(d){
+    if(!d.fechaVigencia) return;
+    _icSolicitudesDeCodigo(d.codigoActual).forEach(function(s){
+      if(_icEsOficializada(s)) oficializadasConFechas.push({doc:d,sol:s});
+    });
+  });
+  function _icDias(a,b){ // b - a, en días
+    try{ return Math.round((new Date(b+'T00:00:00').getTime()-new Date(a+'T00:00:00').getTime())/86400000); }catch(e){ return null; }
+  }
+  var dentroVentana=oficializadasConFechas.filter(function(x){
+    var dias=_icDias(x.sol.fechaOficializacion,x.doc.fechaVigencia); // días entre oficialización y vigencia
+    return dias!==null && dias>=0 && dias<=VENTANA_DIAS;
+  });
+  var pctCiclo=oficializadasConFechas.length?Math.round(dentroVentana.length/oficializadasConFechas.length*100):0;
+  var elCic=document.getElementById('dd-k-ciclo'); if(elCic){ elCic.textContent=pctCiclo+'%'; elCic.style.color=pctCiclo>=70?'var(--G)':pctCiclo>=40?'var(--A)':'var(--R)'; }
+  var elCicS=document.getElementById('dd-k-ciclo-sub'); if(elCicS) elCicS.textContent=oficializadasConFechas.length?(dentroVentana.length+' de '+oficializadasConFechas.length+' revisiones en ventana de 1 año'):'Sin revisiones registradas';
 }
 
 function renderDash(){
   if(typeof homeInit==='function') homeInit();
   // Asegurar estados actualizados antes de calcular KPIs
   try{ recalcEstados(); }catch(e){}
+  if(typeof renderIndicadoresCiclo==='function') renderIndicadoresCiclo();
 
   // Un doc es obsoleto si: estado==='Obsoleto' O campo obsoleto es X/Si/Sí
   function esObsoleto(d){
@@ -4386,6 +4501,15 @@ function dcpRenderDetailPanel(d){
         +'</div></div></div>';
     })()
     +
+    // ── BANNER REVISIÓN INMEDIATA COMUNICADA ──
+    (d.revisionComunicada
+      ? '<div style="background:#fff7ed;border:1.5px solid #c2410c;border-radius:6px;padding:10px 14px;margin:14px 18px 0;display:flex;gap:8px;align-items:flex-start">'
+        +'<span style="font-size:18px;flex-shrink:0">📢</span>'
+        +'<div><div style="font-weight:700;color:#9a3412;font-size:12px">Revisión inmediata solicitada</div>'
+        +'<div style="font-size:11px;color:#9a3412;margin-top:2px">Comunicada el <strong>'+d.revisionComunicada.fecha+'</strong> por <strong>'+(d.revisionComunicada.por||'-')+'</strong></div>'
+        +'</div></div>'
+      : '')
+    +
     // ── HEADER ──
     '<div style="padding:16px 18px;border-bottom:1px solid var(--brd)">'
       + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'
@@ -4431,6 +4555,7 @@ function dcpRenderDetailPanel(d){
         + '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">'
           + '<button class="btn gh sm" onclick="verDoc('+d.id+')">👁 Ver</button>'
           + '<button class="btn gh sm" onclick="editDoc('+d.id+')">✏️ Editar</button>'
+          + '<button class="btn gh sm" style="border-color:#c2410c;color:#c2410c" onclick="solicitarRevisionInmediata('+d.id+')" title="Marcar que se comunicó al responsable la necesidad de actualizar este documento de inmediato">📢 Solicitar Revisión Inmediata</button>'
           + '<button class="btn dn sm" onclick="delDoc('+d.id+')">🗑</button>'
         + '</div>'
       + '</div>'
@@ -4977,6 +5102,23 @@ function dcpBackToLanding(){
   if(land) land.style.display='block';
   if(main) main.style.display='none';
   dcpRenderLanding();
+}
+
+// ── Solicitud de Revisión Inmediata (comunicada) ─────────────────────────
+// Marca que se le comunicó al responsable que debe actualizar el documento
+// de inmediato (fuera del ciclo natural de vencimiento). No envía correo,
+// solo registra la marca + fecha para poder calcular el indicador de
+// "% Documentos revisados anticipadamente".
+function solicitarRevisionInmediata(id){
+  var d=docs.find(function(x){return x.id===id;}); if(!d) return;
+  if(!confirm('¿Marcar '+d.codigoActual+' como solicitud de revisión inmediata?\n\nEsto indica que ya se comunicó al responsable que debe actualizar el documento de inmediato.')) return;
+  d.revisionComunicada={fecha:fD(new Date()),por:(currentUser?(currentUser.nombre||currentUser.login):'Sistema')};
+  if(!d.historial) d.historial=[];
+  d.historial.push({f:fTS(new Date()),c:'📢 Solicitud de revisión inmediata comunicada al responsable',u:(currentUser?(currentUser.nombre||currentUser.login):'Sistema')});
+  saveDocs(docs);
+  if(typeof logA==='function') logA(currentUser?currentUser.nombre:'Sistema','Revisión Documental','Solicitud de revisión inmediata comunicada: '+d.codigoActual);
+  toast('📢 Solicitud de revisión inmediata registrada para '+d.codigoActual,'ok');
+  if(typeof _dcpCurrentDoc!=='undefined' && _dcpCurrentDoc && _dcpCurrentDoc.id===id && typeof dcpRenderDetailPanel==='function') dcpRenderDetailPanel(d);
 }
 
 /* ── Init ───────────────────────────────────────── */
@@ -9854,6 +9996,7 @@ function renderMarObs(){
   var moResult=document.getElementById('mo-result');if(moResult)moResult.style.display='none';
   var moLista=document.getElementById('mo-lista');if(moLista)moLista.innerHTML='';
   var moMot=document.getElementById('mo-motivo');if(moMot)moMot.value='';
+  var moCat=document.getElementById('mo-categoria-obs');if(moCat)moCat.value='Vencimiento';
 }
 
 function moBuscar(){
@@ -9921,6 +10064,7 @@ function moSelDoc(id){
     moBuscarAsociados(d);
   }
   document.getElementById('mo-motivo').value='';
+  var rcat=document.getElementById('mo-categoria-obs'); if(rcat) rcat.value='Vencimiento';
   var rmt=document.getElementById('mo-revert-mot'); if(rmt)rmt.value='';
 }
 
@@ -9985,6 +10129,7 @@ function moConfirmar(){
   var id=window._moDocId; if(!id){toast('Busca y selecciona un documento primero','er');return;}
   var mot=(document.getElementById('mo-motivo').value||'').trim();
   if(!mot){toast('Ingresa el motivo de obsolescencia','er');return;}
+  var categoria=(document.getElementById('mo-categoria-obs')||{}).value||'Otro';
   var d=docs.find(function(x){return x.id===id;}); if(!d)return;
 
   // Recopilar IDs seleccionados (asociados)
@@ -9995,10 +10140,11 @@ function moConfirmar(){
   todosIds.forEach(function(did){
     var doc=docs.find(function(x){return x.id===did;}); if(!doc)return;
     doc.estado='Obsoleto'; doc.obsoleto='X'; doc.extensionVigencia=''; doc.fechaVencimiento='';
+    doc.motivoObsolescencia=categoria;
     if(!doc.historial)doc.historial=[];
-    doc.historial.push({f:fTS(new Date()),c:'Marcado OBSOLETO: '+mot,u:(currentUser?currentUser.nombre||currentUser.login:'Sistema')});
+    doc.historial.push({f:fTS(new Date()),c:'Marcado OBSOLETO ['+categoria+']: '+mot,u:(currentUser?currentUser.nombre||currentUser.login:'Sistema')});
     rbCerrarPorCodigo(doc.codigoActual,'Obsoleto — documento marcado como obsoleto');
-    logA(currentUser?currentUser.nombre:'Usuario','Obsoleto',doc.codigoActual+': '+mot);
+    logA(currentUser?currentUser.nombre:'Usuario','Obsoleto',doc.codigoActual+': ['+categoria+'] '+mot);
     marcados++;
   });
 
