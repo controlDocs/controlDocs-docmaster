@@ -2619,7 +2619,7 @@ tbody tr:last-child td{border-bottom:none}
   </div>
   <div class="fg4" style="margin-bottom:3px">
     <div class="fp"><label class="fl">Obsoleto</label><input class="fi lk" id="d-obs" value="No" readonly><div class="fh">Bloqueado - sistema</div></div>
-    <div class="fp"><label class="fl">MBR</label><select class="fs" id="d-mbr"><option value="">vacio</option><option value="X">X</option></select></div>
+    <div class="fp"><label class="fl">MBR</label><select class="fs" id="d-mbr"><option value="">vacio</option><option value="X">X</option><option value="MBR">MBR</option><option value="No Cambiar">No Cambiar</option></select></div>
     <div class="fp"><label class="fl">Doc. GxP</label><select class="fs" id="d-gxp"><option value="">vacio</option><option value="X">X - GxP</option></select></div>
     <div class="fp" style="position:relative">
       <label class="fl">Intercompañia</label>
@@ -4372,6 +4372,20 @@ function dcpRenderDetailPanel(d){
     : '<div style="font-size:11px;color:var(--tx3);padding:10px 0;text-align:center">Sin historial de cambios registrado</div>';
 
   var html =
+    // ── BANNER IDENTIDAD CORPORATIVA ──
+    (function(){
+      var fb=(typeof docFormatosBloqueadosIdentidad==='function')?docFormatosBloqueadosIdentidad(d.codigoActual):[];
+      var propio=(typeof docEsElMismoBloqueadoIdentidad==='function')?docEsElMismoBloqueadoIdentidad(d.codigoActual):null;
+      if(propio && !fb.some(function(f){return f.codigoActual===propio.codigoActual;})) fb=fb.concat([propio]);
+      if(!fb.length) return '';
+      return '<div style="background:#fff5f5;border:1.5px solid #d63b3b;border-radius:6px;padding:10px 14px;margin:14px 18px 0;display:flex;gap:8px;align-items:flex-start">'
+        +'<span style="font-size:18px;flex-shrink:0">⚠️</span>'
+        +'<div><div style="font-weight:700;color:#8a1515;font-size:12px">No se puede hacer el cambio de identidad corporativa</div>'
+        +'<div style="font-size:11px;color:#8a1515;margin-top:2px">Contiene o corresponde a formato(s) que hacen parte del MBR: '
+        +fb.map(function(f){return '<strong>'+f.codigoActual+'</strong> ('+(lmEsMbr(f)?'MBR':'No Cambiar')+')';}).join(', ')
+        +'</div></div></div>';
+    })()
+    +
     // ── HEADER ──
     '<div style="padding:16px 18px;border-bottom:1px solid var(--brd)">'
       + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'
@@ -4949,6 +4963,8 @@ function dcpOpenMainView(d){
   var nameEl=document.getElementById('dcp-topbar-name');
   if(codeEl) codeEl.textContent=d.codigoActual+' — ';
   if(nameEl) nameEl.textContent=d.descripcion;
+  // Alerta de Identidad Corporativa: MBR/No Cambiar en este doc o sus formatos
+  if(typeof alertaIdentidadCorporativa==='function') alertaIdentidadCorporativa(d.codigoActual);
   // Renderizar
   dcpRenderRelated(d);
   dcpRenderDetailPanel(d);
@@ -4966,6 +4982,77 @@ function dcpBackToLanding(){
 /* ── Init ───────────────────────────────────────── */
 
 function lmEsMbr(d){var v=String(d.mbr||'').toUpperCase().trim();return v==='X'||v==='MBR'||v==='SI'||v==='SÍ';}
+
+// ── Identidad Corporativa: formatos que bloquean el cambio ──────────────
+// Un formato bloquea el cambio de identidad corporativa si su campo MBR
+// está marcado como MBR (X) o como "No Cambiar" / "Ni Cambiar" (variantes
+// de escritura que existen en el Excel real).
+function lmEsNoCambiar(d){var v=String(d.mbr||'').toUpperCase().trim();return v.indexOf('CAMBIAR')>=0;}
+function lmBloqueaIdentidad(d){return lmEsMbr(d)||lmEsNoCambiar(d);}
+
+// Busca los formatos de un documento (código F-<codigoDoc>-N) que estén
+// marcados como MBR o No Cambiar en su campo MBR.
+// Usa SIEMPRE la lista completa "docs" (no docsEmpresa()) porque un
+// formato puede estar registrado con un administrador/empresa distinto
+// al del documento padre, y aun así debe bloquear el cambio.
+function docFormatosBloqueadosIdentidad(codigoDoc){
+  if(!codigoDoc) return [];
+  var cod=String(codigoDoc).toUpperCase().trim();
+  var prefijo='F-'+cod+'-';
+  var lista=(typeof docs!=='undefined'&&docs)?docs:((typeof docsEmpresa==='function')?docsEmpresa():[]);
+  var encontrados=(lista||[]).filter(function(x){
+    var tipo=String(x.tipoDocumento||'').trim().toUpperCase();
+    var xc=String(x.codigoActual||'').toUpperCase().trim();
+    // Aceptar tipoDocumento='Formato' (cualquier mayúscula/minúscula) O,
+    // si el campo tipo viene vacío/distinto, aceptar igual si el código
+    // empieza por "F-" (mismo criterio que usa nTipo() al importar).
+    var esFormato = tipo==='FORMATO' || (tipo===''&&xc.indexOf('F-')===0);
+    if(!esFormato) return false;
+    if(xc.indexOf(prefijo)!==0) return false;
+    // Si el formato marcado como MBR/No Cambiar está Obsoleto, no se tiene en cuenta
+    var estadoX=String(x.estado||'').toUpperCase().trim();
+    var obsX=String(x.obsoleto||'').toUpperCase().trim();
+    var esObsoleto = estadoX==='OBSOLETO' || obsX==='SI'||obsX==='SÍ'||obsX==='X'||obsX==='TRUE';
+    if(esObsoleto) return false;
+    return lmBloqueaIdentidad(x);
+  });
+  console.log('[IdentidadCorp] código='+cod+' prefijo buscado="'+prefijo+'" formatos bloqueantes encontrados='+encontrados.length,encontrados.map(function(f){return f.codigoActual+':'+f.mbr+' (estado='+f.estado+', obsoleto='+f.obsoleto+')';}));
+  return encontrados;
+}
+
+// Si el propio código consultado corresponde a un formato (o cualquier
+// documento) marcado MBR/No Cambiar y no obsoleto, también bloquea —
+// cubre el caso de consultar el formato directamente, no solo su padre.
+function docEsElMismoBloqueadoIdentidad(codigoDoc){
+  if(!codigoDoc) return null;
+  var cod=String(codigoDoc).toUpperCase().trim();
+  var lista=(typeof docs!=='undefined'&&docs)?docs:((typeof docsEmpresa==='function')?docsEmpresa():[]);
+  var d=(lista||[]).find(function(x){return String(x.codigoActual||'').toUpperCase().trim()===cod;});
+  if(!d) return null;
+  var estadoX=String(d.estado||'').toUpperCase().trim();
+  var obsX=String(d.obsoleto||'').toUpperCase().trim();
+  var esObsoleto = estadoX==='OBSOLETO' || obsX==='SI'||obsX==='SÍ'||obsX==='X'||obsX==='TRUE';
+  if(esObsoleto) return null;
+  return lmBloqueaIdentidad(d)?d:null;
+}
+
+// Muestra la alerta de bloqueo de cambio de identidad corporativa si el
+// documento indicado (o alguno de sus formatos hijos) está marcado MBR/No Cambiar.
+// Se usa tanto en el Módulo de Documentos (consulta) como en Revisión de Documentos.
+function alertaIdentidadCorporativa(codigoDoc){
+  var formatos=docFormatosBloqueadosIdentidad(codigoDoc);
+  var propio=docEsElMismoBloqueadoIdentidad(codigoDoc);
+  if(propio && !formatos.some(function(f){return f.codigoActual===propio.codigoActual;})){
+    formatos=formatos.concat([propio]);
+  }
+  if(!formatos.length) return formatos;
+  var detalle=formatos.map(function(f){
+    return f.codigoActual+' ('+(lmEsMbr(f)?'MBR':'No Cambiar')+')';
+  }).join(', ');
+  alert('⚠️ No se puede hacer el cambio de identidad corporativa a '+codigoDoc+'.\n\n'
+    +'Este documento contiene o corresponde a formato(s) que hacen parte del MBR: '+detalle+'.');
+  return formatos;
+}
 function lmEsGxp(d){var v=String(d.docGxP||'').toUpperCase().trim();return v==='X'||v==='GXP'||v==='SI'||v==='SÍ';}
 function lmPoblarAdministradores(){var sel=document.getElementById('lm-f-adm');if(!sel)return;var actual=sel.value,set={};(docsEmpresa()||[]).forEach(function(d){var a=(d.administrador||'').trim();if(a)set[a]=1;});var adms=Object.keys(set).sort();sel.innerHTML='<option value="">Administrador: Todos</option>';adms.forEach(function(a){var op=document.createElement('option');op.value=a;op.textContent=a;if(a===actual)op.selected=true;sel.appendChild(op);});}
 function lmFiltrar(){var q=((document.getElementById('lm-srch-nombre')||{}).value||'').toLowerCase().trim();var fMbr=((document.getElementById('lm-f-mbr')||{}).value||'');var fGxp=((document.getElementById('lm-f-gxp')||{}).value||'');var fAdm=((document.getElementById('lm-f-adm')||{}).value||'');var fEst=((document.getElementById('lm-f-est')||{}).value||'');var clr=document.getElementById('lm-srch-clear');if(clr)clr.style.display=q?'inline':'none';if(!q&&!fMbr&&!fGxp&&!fAdm&&!fEst){lmLimpiarResultados();return;}var hoy=new Date();hoy.setHours(0,0,0,0);var hMs=hoy.getTime();var res=(docsEmpresa()||[]).filter(function(d){if(q&&((d.codigoActual||'')+(d.descripcion||'')+(d.codigoAntiguo||'')).toLowerCase().indexOf(q)<0)return false;if(fMbr==='si'&&!lmEsMbr(d))return false;if(fMbr==='no'&&lmEsMbr(d))return false;if(fGxp==='si'&&!lmEsGxp(d))return false;if(fGxp==='no'&&lmEsGxp(d))return false;if(fAdm&&(d.administrador||'').trim()!==fAdm)return false;if(fEst){var di=d.fechaVencimiento?Math.round((new Date(d.fechaVencimiento+'T00:00:00').getTime()-hMs)/86400000):9999;var est=d.estado==='Obsoleto'?'Obsoleto':di<0?'Vencido':di<=30?'Por vencer':'Vigente';if(est!==fEst)return false;}return true;});res.sort(function(a,b){return(a.codigoActual||'').localeCompare(b.codigoActual||'');});var cnt=document.getElementById('lm-result-count');if(cnt)cnt.textContent=res.length+' resultado'+(res.length!==1?'s':'');lmRenderResultados(res);}
@@ -5102,7 +5189,7 @@ function renderDocsPage(){
   if(!page.length){var r=document.createElement('tr');r.innerHTML='<td colspan="11"><div class="emp"><div style="font-size:22px">\u{1F4ED}</div><div style="font-size:12px">Sin documentos</div></div></td>';f.appendChild(r);}
   else page.forEach(function(d){
     var di=dH(d.fechaVencimiento);var r=document.createElement('tr');
-    r.innerHTML='<td><span class="cd">'+d.codigoActual+'</span></td>'+
+    r.innerHTML='<td><span class="cd" style="cursor:pointer" onclick="verDoc('+d.id+')" title="Ver documento">'+d.codigoActual+'</span></td>'+
       '<td style="font-size:10px;color:var(--tx3)">'+( d.codigoAntiguo||'\u2014')+'</td>'+
       '<td style="max-width:190px"><div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</div><div style="font-size:10px;color:var(--tx3)">'+( d.descriptionEn||'')+'</div></td>'+
       '<td style="text-align:center;font-weight:600">'+( d.version!==null&&d.version!==undefined&&d.version!==''?d.version:'\u2014')+'</td>'+
@@ -5159,7 +5246,7 @@ function renderDocsCards(){
           (sc==='ap'?'var(--G)':sc==='ob'?'var(--R)':sc==='rv'?'var(--A)':'#bbb')+
         '"></div>'+
         '<div class="doc-card-top">'+
-          '<div class="doc-card-code">'+d.codigoActual+'</div>'+
+          '<div class="doc-card-code" style="cursor:pointer" onclick="verDoc('+d.id+')" title="Ver documento">'+d.codigoActual+'</div>'+
           '<div class="doc-card-desc" title="'+d.descripcion+'">'+d.descripcion+'</div>'+
           (d.descriptionEn?'<div class="doc-card-desc-en">'+d.descriptionEn+'</div>':'')+
           '<div class="doc-card-meta">'+
@@ -5608,6 +5695,17 @@ function verDoc(id) {
 
   var d = docs.find(function(x){return x.id===id;}); if (!d) return;
 
+  var _formatosBloqueados=alertaIdentidadCorporativa(d.codigoActual);
+  var bannerIdentidad='';
+  if(_formatosBloqueados&&_formatosBloqueados.length){
+    bannerIdentidad='<div style="background:#fff5f5;border:1.5px solid #d63b3b;border-radius:6px;padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start">'
+      +'<span style="font-size:18px;flex-shrink:0">⚠️</span>'
+      +'<div><div style="font-weight:700;color:#8a1515;font-size:12px">No se puede hacer el cambio de identidad corporativa</div>'
+      +'<div style="font-size:11px;color:#8a1515;margin-top:2px">Este documento contiene formato(s) que hacen parte del MBR: '
+      +_formatosBloqueados.map(function(f){return '<strong>'+f.codigoActual+'</strong> ('+(lmEsMbr(f)?'MBR':'No Cambiar')+')';}).join(', ')
+      +'</div></div></div>';
+  }
+
   var fld = function(l,v){return '<div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--tx3)">'+l+'</div><div style="font-size:12px;margin-top:2px">'+(v||'-')+'</div></div>';};
   var hist = (d.historial||[]).length
     ? (d.historial||[]).slice().reverse().map(function(h){
@@ -5620,7 +5718,7 @@ function verDoc(id) {
           +'</div></div></div>';
       }).join('')
     : '<div style="font-size:11px;color:var(--tx3);padding:8px 0">Sin historial de cambios</div>';
-  document.getElementById('mo-ver-c').innerHTML = '<div style="margin-bottom:12px"><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">'+d.tipoDocumento+'</div><div style="font-size:16px;font-weight:700;margin:4px 0">'+d.descripcion+'</div><div style="font-size:12px;color:var(--tx3);margin-bottom:6px">'+(d.descriptionEn||'')+'</div><div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cd">'+d.codigoActual+'</span>'+eB(d.estado)+gB(d.docGxP)+'<span class="b bl">v'+d.version+'</span></div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px">'+fld('Codigo Antiguo',d.codigoAntiguo)+fld('Area',d.areaGeneradora)+fld('Proceso',d.proceso)+fld('Idioma',d.idioma)+fld('Plantilla',d.tipoPlantilla)+fld('MBR',d.mbr)+fld('Vigencia',fDD(d.fechaVigencia))+fld('Vencimiento',fDD(d.fechaVencimiento)+' '+vB(dH(d.fechaVencimiento)))+fld('Ext. Vigencia',d.extensionVigencia)+fld('Administrador',d.administrador)+fld('Lider Proceso',d.liderProceso)+fld('Correo',d.correoElectronico)+fld('Alcance',d.alcanceEmpresas)+fld('Areas Aplic.',d.areasAplicables)+fld('Docs Rel.',d.docsRelacionados)+fld('Intercompania',d.docIntercompania)+fld('Obsoleto',d.obsoleto)+'</div>'+(function(){var _rbS=typeof rbGetEstadoCodigo==='function'?rbGetEstadoCodigo(d.codigoActual):null;if(!_rbS)return '';var _rbOfic=(_rbS.estadoOficializacion||'').toLowerCase().indexOf('oficial')>=0;return '<div style="background:'+(_rbOfic?'#e8f5e9':'#FFF8E1')+';border:1px solid '+(_rbOfic?'#a5d6a7':'#ffe082')+';border-radius:6px;padding:8px 12px;margin:8px 0;font-size:11px"><span style="font-weight:700;color:'+(_rbOfic?'#2e7d32':'#F57F17')+'">'+(_rbOfic?'✅ Oficializado':'📋 En Ruta de Borrador')+'</span> &nbsp;·&nbsp; Consecutivo: <strong>'+(_rbS.consecutivo||'-')+'</strong> &nbsp;·&nbsp; Estado: <strong>'+(_rbS.estadoOficializacion||_rbS.estatus||'Pendiente')+'</strong>'+(_rbS.fechaOficializacion?' &nbsp;·&nbsp; Fecha: <strong>'+_rbS.fechaOficializacion+'</strong>':'')+'</div>';})()+'<div class="dv"></div><div style="font-size:12px;font-weight:600;margin-bottom:8px">Historial</div>'+hist+'<div style="display:flex;gap:7px;margin-top:12px"><button class="btn gh sm" onclick="closeMo(\'mo-ver\')">Cerrar</button><button class="btn sm" onclick="closeMo(\'mo-ver\');editDoc('+d.id+')">Editar</button></div>';
+  document.getElementById('mo-ver-c').innerHTML = bannerIdentidad+'<div style="margin-bottom:12px"><div style="font-size:10px;color:var(--tx3);text-transform:uppercase">'+d.tipoDocumento+'</div><div style="font-size:16px;font-weight:700;margin:4px 0">'+d.descripcion+'</div><div style="font-size:12px;color:var(--tx3);margin-bottom:6px">'+(d.descriptionEn||'')+'</div><div style="display:flex;gap:5px;flex-wrap:wrap"><span class="cd">'+d.codigoActual+'</span>'+eB(d.estado)+gB(d.docGxP)+'<span class="b bl">v'+d.version+'</span></div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px">'+fld('Codigo Antiguo',d.codigoAntiguo)+fld('Area',d.areaGeneradora)+fld('Proceso',d.proceso)+fld('Idioma',d.idioma)+fld('Plantilla',d.tipoPlantilla)+fld('MBR',d.mbr)+fld('Vigencia',fDD(d.fechaVigencia))+fld('Vencimiento',fDD(d.fechaVencimiento)+' '+vB(dH(d.fechaVencimiento)))+fld('Ext. Vigencia',d.extensionVigencia)+fld('Administrador',d.administrador)+fld('Lider Proceso',d.liderProceso)+fld('Correo',d.correoElectronico)+fld('Alcance',d.alcanceEmpresas)+fld('Areas Aplic.',d.areasAplicables)+fld('Docs Rel.',d.docsRelacionados)+fld('Intercompania',d.docIntercompania)+fld('Obsoleto',d.obsoleto)+'</div>'+(function(){var _rbS=typeof rbGetEstadoCodigo==='function'?rbGetEstadoCodigo(d.codigoActual):null;if(!_rbS)return '';var _rbOfic=(_rbS.estadoOficializacion||'').toLowerCase().indexOf('oficial')>=0;return '<div style="background:'+(_rbOfic?'#e8f5e9':'#FFF8E1')+';border:1px solid '+(_rbOfic?'#a5d6a7':'#ffe082')+';border-radius:6px;padding:8px 12px;margin:8px 0;font-size:11px"><span style="font-weight:700;color:'+(_rbOfic?'#2e7d32':'#F57F17')+'">'+(_rbOfic?'✅ Oficializado':'📋 En Ruta de Borrador')+'</span> &nbsp;·&nbsp; Consecutivo: <strong>'+(_rbS.consecutivo||'-')+'</strong> &nbsp;·&nbsp; Estado: <strong>'+(_rbS.estadoOficializacion||_rbS.estatus||'Pendiente')+'</strong>'+(_rbS.fechaOficializacion?' &nbsp;·&nbsp; Fecha: <strong>'+_rbS.fechaOficializacion+'</strong>':'')+'</div>';})()+'<div class="dv"></div><div style="font-size:12px;font-weight:600;margin-bottom:8px">Historial</div>'+hist+'<div style="display:flex;gap:7px;margin-top:12px"><button class="btn gh sm" onclick="closeMo(\'mo-ver\')">Cerrar</button><button class="btn sm" onclick="closeMo(\'mo-ver\');editDoc('+d.id+')">Editar</button></div>';
   openMo('mo-ver');
 }
 function editDoc(id) {
@@ -9074,7 +9172,7 @@ function renderMPage(){
   var page=mFiltered.slice(mPage*mPSize,(mPage+1)*mPSize);
   var frag=document.createDocumentFragment();
   if(!page.length){var r=document.createElement('tr');r.innerHTML='<td colspan="11"><div class="emp"><div style="font-size:12px">Sin datos. Importa tu listado maestro.</div></div></td>';frag.appendChild(r);}
-  else page.forEach(function(d,i){var r=document.createElement('tr');r.innerHTML='<td style="font-size:10px;color:var(--tx3)">'+(mPage*mPSize+i+1)+'</td><td><span class="cd">'+d.codigoActual+'</span></td><td style="font-size:10px;color:var(--tx3)">'+(d.codigoAntiguo||'-')+'</td><td style="max-width:180px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</td><td style="font-size:11px">'+d.version+'</td><td><span class="b tl" style="font-size:9px">'+(d.tipoDocumento||'-')+'</span></td><td style="font-size:11px">'+(d.areaGeneradora||'-')+'</td><td style="font-size:11px">'+fDD(d.fechaVencimiento)+'</td><td>'+eB(d.estado)+(function(){var _s=typeof rbGetEstadoCodigo==='function'?rbGetEstadoCodigo(d.codigoActual):null;return _s&&_s.estadoOficializacion!=='Oficializado'?'<span style="background:#FFF8E1;color:#F57F17;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">📋</span>':'';})()+'</td><td>'+gB(d.docGxP)+'</td><td style="font-size:11px">'+(d.administrador||'-')+'</td>';frag.appendChild(r);});
+  else page.forEach(function(d,i){var r=document.createElement('tr');r.innerHTML='<td style="font-size:10px;color:var(--tx3)">'+(mPage*mPSize+i+1)+'</td><td><span class="cd" style="cursor:pointer" onclick="verDoc('+d.id+')" title="Ver documento">'+d.codigoActual+'</span></td><td style="font-size:10px;color:var(--tx3)">'+(d.codigoAntiguo||'-')+'</td><td style="max-width:180px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.descripcion+'</td><td style="font-size:11px">'+d.version+'</td><td><span class="b tl" style="font-size:9px">'+(d.tipoDocumento||'-')+'</span></td><td style="font-size:11px">'+(d.areaGeneradora||'-')+'</td><td style="font-size:11px">'+fDD(d.fechaVencimiento)+'</td><td>'+eB(d.estado)+(function(){var _s=typeof rbGetEstadoCodigo==='function'?rbGetEstadoCodigo(d.codigoActual):null;return _s&&_s.estadoOficializacion!=='Oficializado'?'<span style="background:#FFF8E1;color:#F57F17;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">📋</span>':'';})()+'</td><td>'+gB(d.docGxP)+'</td><td style="font-size:11px">'+(d.administrador||'-')+'</td>';frag.appendChild(r);});
   var tb=document.getElementById('m-tb');tb.innerHTML='';tb.appendChild(frag);
   var pg=document.getElementById('m-pg');if(!pg)return;
   var dis0=mPage===0?'disabled':'',disl=mPage>=tpg-1?'disabled':'';
@@ -14378,6 +14476,15 @@ function revdoc_mostrarResultado(r){
   var res=document.getElementById('revdoc-resultado');
   var aprobado=r.fallos.length===0;
   var html='';
+  var _formatosBloqueados=r.codigo?alertaIdentidadCorporativa(r.codigo):[];
+  if(_formatosBloqueados&&_formatosBloqueados.length){
+    html+='<div style="background:#fff5f5;border:1.5px solid #d63b3b;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start">'
+      +'<span style="font-size:24px;flex-shrink:0">⚠️</span>'
+      +'<div><div style="font-weight:800;color:#8a1515;font-size:13px">No se puede hacer el cambio de identidad corporativa a '+r.codigo+'</div>'
+      +'<div style="font-size:11px;color:#8a1515;margin-top:4px">Este documento contiene formato(s) que hacen parte del MBR: '
+      +_formatosBloqueados.map(function(f){return '<strong>'+f.codigoActual+'</strong> ('+(lmEsMbr(f)?'MBR':'No Cambiar')+')';}).join(', ')
+      +'</div></div></div>';
+  }
   html+='<div style="background:'+(aprobado?'#006860':'#dc2626')+';border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px">'
     +'<span style="font-size:32px">'+(aprobado?'✅':'❌')+'</span>'
     +'<div><div style="color:#fff;font-size:15px;font-weight:800">'+(aprobado?'DOCUMENTO APROBADO':'DOCUMENTO CON OBSERVACIONES')+'</div>'
