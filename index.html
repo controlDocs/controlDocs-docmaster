@@ -555,20 +555,35 @@ tbody tr:last-child td{border-bottom:none}
         <div class="kv tl" id="dd-k-identidad" style="font-size:28px;font-weight:700">0%</div>
         <div class="ks" id="dd-k-identidad-sub"></div>
       </div>
-      <div class="kpi" id="kpi-depuracion" style="cursor:default">
+      <div class="kpi" id="kpi-depuracion" style="cursor:pointer" onclick="icVerDetalleDepuracion()" title="Ver el detalle de estos documentos">
         <div class="kl">% DOCUMENTOS ELIMINADOS POR DEPURACIÓN</div>
-        <div class="kv a" id="dd-k-depuracion" style="font-size:28px;font-weight:700">0%</div>
-        <div class="ks" id="dd-k-depuracion-sub"></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="ic-donut-depuracion" style="flex-shrink:0"></div>
+          <div>
+            <div class="kv a" id="dd-k-depuracion" style="font-size:28px;font-weight:700">0%</div>
+            <div class="ks" id="dd-k-depuracion-sub"></div>
+          </div>
+        </div>
       </div>
-      <div class="kpi" id="kpi-anticipada" style="cursor:default">
+      <div class="kpi" id="kpi-anticipada" style="cursor:pointer" onclick="icVerDetalleAnticipada()" title="Ver el detalle de estos documentos">
         <div class="kl">% DOCUMENTOS REVISADOS ANTICIPADAMENTE</div>
-        <div class="kv g" id="dd-k-anticipada" style="font-size:28px;font-weight:700">0%</div>
-        <div class="ks" id="dd-k-anticipada-sub"></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="ic-donut-anticipada" style="flex-shrink:0"></div>
+          <div>
+            <div class="kv g" id="dd-k-anticipada" style="font-size:28px;font-weight:700">0%</div>
+            <div class="ks" id="dd-k-anticipada-sub"></div>
+          </div>
+        </div>
       </div>
-      <div class="kpi" id="kpi-ciclo" style="cursor:default">
+      <div class="kpi" id="kpi-ciclo" style="cursor:pointer" onclick="icVerDetalleCiclo()" title="Ver el detalle de estos documentos">
         <div class="kl">ÍNDICE APROVECHAMIENTO CICLO NATURAL</div>
-        <div class="kv" id="dd-k-ciclo" style="font-size:28px;font-weight:700">0%</div>
-        <div class="ks" id="dd-k-ciclo-sub"></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="ic-donut-ciclo" style="flex-shrink:0"></div>
+          <div>
+            <div class="kv" id="dd-k-ciclo" style="font-size:28px;font-weight:700">0%</div>
+            <div class="ks" id="dd-k-ciclo-sub"></div>
+          </div>
+        </div>
       </div>
       <div class="kpi" id="kpi-renovadas" onclick="nav('rutabor',document.querySelector('[data-p=rutabor]'))">
         <div class="kl">SOLICITUDES RENOVADAS</div>
@@ -3656,74 +3671,510 @@ function _icEsOficializada(s){
   var est=(s.estadoOficializacion||s.estatus||'').toLowerCase();
   return (est.indexOf('oficial')>=0) && !!s.fechaOficializacion;
 }
+// Índice código→solicitudes, construido una sola vez y reutilizado.
+// Evita recorrer TODO el arreglo de solicitudes por cada documento
+// (antes: docs × solicitudes comparaciones — muy lento con datos reales;
+// ahora: una sola pasada de construcción + búsquedas O(1)).
+var _icIndiceSolCache=null;
+var _icIndiceSolCacheLen=-1;
+function _icIndiceSolicitudes(){
+  var n=(solicitudes||[]).length;
+  if(_icIndiceSolCache && _icIndiceSolCacheLen===n) return _icIndiceSolCache;
+  var idx={};
+  (solicitudes||[]).forEach(function(s){
+    var cod=String(s.codigo||'').toUpperCase().trim();
+    if(!cod) return;
+    (idx[cod]||(idx[cod]=[])).push(s);
+  });
+  _icIndiceSolCache=idx;
+  _icIndiceSolCacheLen=n;
+  return idx;
+}
+function _icInvalidarIndiceSolicitudes(){ _icIndiceSolCache=null; }
 function _icSolicitudesDeCodigo(cod){
   cod=String(cod||'').toUpperCase().trim();
-  return (solicitudes||[]).filter(function(s){ return (s.codigo||'').toUpperCase().trim()===cod; });
+  return _icIndiceSolicitudes()[cod]||[];
 }
+function _icEsObsoleto(d){ return d.estado==='Obsoleto'||d.obsoleto==='X'||d.obsoleto==='Si'||d.obsoleto==='Sí'; }
+function _icEsFormato(d){ return d.tipoDocumento==='Formato'; }
+// ¿El documento ya tiene una solicitud RB oficializada marcada como Cambio Identidad Corporativa?
+function _icTieneIdentidadNueva(d){
+  return _icSolicitudesDeCodigo(d.codigoActual).some(function(s){
+    return _icEsOficializada(s) && s.cambioIdentidad==='SI';
+  });
+}
+// ¿El documento nació como documento NUEVO (tipoSolicitud='Creación') y nunca
+// ha tenido una solicitud posterior de modificación/revisión? Estos documentos
+// se excluyen del indicador porque nacen ya con la nueva identidad corporativa
+// y con vencimiento largo por defecto — no representan avance real de revisión.
+function _icEsDocumentoNuevo(d){
+  var sols=_icSolicitudesDeCodigo(d.codigoActual).filter(_icEsOficializada);
+  if(!sols.length) return false; // sin solicitudes registradas — no se excluye
+  sols.sort(function(a,b){ return String(b.fechaOficializacion||'').localeCompare(String(a.fechaOficializacion||'')); });
+  var tipoUltima=(sols[0].tipoSolicitud||'').trim();
+  return tipoUltima==='Creación'||tipoUltima==='Creacion';
+}
+// Fecha límite del indicador "% Documentos revisados anticipadamente"
+var IC_FECHA_LIMITE_ANTICIPADA='2028-07-01';
+// Base del indicador: documentos (sin formatos, sin obsoletos, sin documentos
+// recién creados) cuyo vencimiento es POSTERIOR al 1 de julio de 2028, y que
+// NO están marcados con Cambio de Identidad Corporativa — es decir,
+// documentos de vigencia larga que aún no entran al programa de identidad
+// corporativa.
+// NOTA: se usa "docs" (todo el universo) en vez de dashDocsBase()/docsEmpresa()
+// para que el conteo del KPI sea el total real de la organización, sin
+// aplicar el filtro de visibilidad por administrador/empresa del usuario
+// que tenga la sesión abierta.
+function _icListaAnticipada(){
+  return (docs||[]).filter(function(d){
+    return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
+      && d.fechaVencimiento && d.fechaVencimiento>IC_FECHA_LIMITE_ANTICIPADA
+      && !_icTieneIdentidadNueva(d);
+  });
+}
+// Denominador: documentos (sin formatos, sin obsoletos, sin documentos
+// recién creados) que SÍ están marcados con Cambio de Identidad Corporativa.
+function _icListaConIdentidad(){
+  return (docs||[]).filter(function(d){
+    return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d) && _icTieneIdentidadNueva(d);
+  });
+}
+// Lista combinada para el Excel/tabla: TODOS los documentos aplicables
+// (pendientes + ya completados), cada uno etiquetado con su estado de
+// Cambio de Identidad Corporativa.
+function _icListaCompletaAnticipada(){
+  var pendientes=_icListaAnticipada().map(function(d){ return Object.assign({},d,{_icEstado:'Pendiente'}); });
+  var completados=_icListaConIdentidad().map(function(d){ return Object.assign({},d,{_icEstado:'Completado'}); });
+  return pendientes.concat(completados);
+}
+
+// ══ Índice de Aprovechamiento del Ciclo Natural ══
+// Fecha límite: el complemento de IC_FECHA_LIMITE_ANTICIPADA — documentos
+// cuyo vencimiento es HASTA el 30 de junio de 2028 (el día antes del corte
+// de "revisados anticipadamente"). Estos documentos van a necesitar
+// revisión de todas formas por su propio ciclo natural, así que hacerles
+// el Cambio de Identidad Corporativa "aprovecha" esa revisión que de
+// cualquier forma iba a ocurrir.
+var IC_FECHA_LIMITE_CICLO='2028-06-30';
+// Pendientes: documentos (sin formatos, sin obsoletos, sin recién creados)
+// con vencimiento HASTA el 30/06/2028 que aún NO tienen el Cambio de
+// Identidad Corporativa.
+function _icListaCicloPendiente(){
+  return (docs||[]).filter(function(d){
+    return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
+      && d.fechaVencimiento && d.fechaVencimiento<=IC_FECHA_LIMITE_CICLO
+      && !_icTieneIdentidadNueva(d);
+  });
+}
+// Completados: mismos filtros, pero que YA tienen el Cambio de Identidad
+// Corporativa — es decir, se aprovechó su ciclo natural de revisión.
+function _icListaCicloCompletado(){
+  return (docs||[]).filter(function(d){
+    return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
+      && d.fechaVencimiento && d.fechaVencimiento<=IC_FECHA_LIMITE_CICLO
+      && _icTieneIdentidadNueva(d);
+  });
+}
+// Lista combinada para el Excel/tabla.
+function _icListaCompletaCiclo(){
+  var pendientes=_icListaCicloPendiente().map(function(d){ return Object.assign({},d,{_icEstado:'Pendiente'}); });
+  var completados=_icListaCicloCompletado().map(function(d){ return Object.assign({},d,{_icEstado:'Completado'}); });
+  return pendientes.concat(completados);
+}
+
+// ══ % Documentos eliminados por depuración — listas base ══
+// Depurados: documentos obsoletos cuya categoría de motivo es "Depuración"
+// (sin incluir formatos).
+function _icListaDepurados(){
+  return (docs||[]).filter(function(d){
+    return !_icEsFormato(d) && d.motivoObsolescencia==='Depuración';
+  });
+}
+// Activos actuales: documentos sin formatos ni obsoletos (universo vigente hoy).
+function _icListaActivosDepuracion(){
+  return (docs||[]).filter(function(d){
+    return !_icEsFormato(d) && !_icEsObsoleto(d);
+  });
+}
+// Lista combinada para el Excel/tabla: depurados + activos, cada uno
+// etiquetado con su estado.
+function _icListaCompletaDepuracion(){
+  var depurados=_icListaDepurados().map(function(d){ return Object.assign({},d,{_icEstado:'Depurado'}); });
+  var activos=_icListaActivosDepuracion().map(function(d){ return Object.assign({},d,{_icEstado:'Activo'}); });
+  return depurados.concat(activos);
+}
+
+// ── Drill-down y exportación a Excel para "% Documentos revisados anticipadamente" ──
+var _icFiltroTipoAnticipada='';
+function icVerDetalleAnticipada(){
+  _icFiltroTipoAnticipada='';
+  icRenderDetalleAnticipada();
+}
+function icRenderDetalleAnticipada(){
+  var todaLista=_icListaCompletaAnticipada().slice().sort(function(a,b){
+    return (a.codigoActual||'').localeCompare(b.codigoActual||'');
+  });
+  var tipos=Array.from(new Set(todaLista.map(function(d){return d.tipoDocumento||'(sin tipo)';}))).sort();
+  var lista=_icFiltroTipoAnticipada
+    ? todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===_icFiltroTipoAnticipada;})
+    : todaLista;
+  var det=document.getElementById('dd-detail');
+  var detT=document.getElementById('dd-detail-title');
+  var detB=document.getElementById('dd-detail-body');
+  if(!det||!detT||!detB) return;
+  var nPend=todaLista.filter(function(d){return d._icEstado==='Pendiente';}).length;
+  var nComp=todaLista.filter(function(d){return d._icEstado==='Completado';}).length;
+  detT.textContent='"% Documentos revisados anticipadamente" — vencimiento posterior a '+fDD(IC_FECHA_LIMITE_ANTICIPADA)+', sin formatos/obsoletos/documentos nuevos ('+lista.length+' de '+todaLista.length+': '+nComp+' completados, '+nPend+' pendientes)';
+  detB.innerHTML='<div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    +'<button class="btn sm" onclick="icDescargarAnticipada()">⬇️ Descargar Excel</button>'
+    +'<label style="font-size:11px;color:var(--tx3)">Filtrar por tipo de documento:</label>'
+    +'<select class="fs" style="width:auto;font-size:11px" onchange="_icFiltroTipoAnticipada=this.value;icRenderDetalleAnticipada()">'
+    +'<option value=""'+(_icFiltroTipoAnticipada===''?' selected':'')+'>Todos ('+todaLista.length+')</option>'
+    +tipos.map(function(t){
+      var n=todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===t;}).length;
+      return '<option value="'+t+'"'+(_icFiltroTipoAnticipada===t?' selected':'')+'>'+t+' ('+n+')</option>';
+    }).join('')
+    +'</select>'
+    +'</div>'
+    +'<div style="max-height:480px;overflow-y:auto;overflow-x:auto"><table style="font-size:11px;width:100%;border-collapse:collapse"><thead><tr>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">CÓDIGO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">DESCRIPCIÓN</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">TIPO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">ÁREA</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">VENCIMIENTO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">ESTADO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">CAMBIO IDENTIDAD</th>'
+    +'</tr></thead><tbody>'
+    +lista.map(function(d){
+      var fv=d.fechaVencimiento?fDD(d.fechaVencimiento):'—';
+      var esComp=d._icEstado==='Completado';
+      return '<tr>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)"><span class="cd">'+d.codigoActual+'</span></td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(d.descripcion||'')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+(d.tipoDocumento||'—')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+(d.areaGeneradora||'—')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+fv+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)">'+eB(d.estado)+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:'+(esComp?'#e6f9f3':'#fff8e1')+';color:'+(esComp?'#0f7a50':'#a06000')+'">'+(esComp?'✅ Completado':'⏳ Pendiente')+'</span></td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table></div>';
+  det.style.display='block';
+  det.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function icDescargarAnticipada(){
+  var todaLista=_icListaCompletaAnticipada().slice().sort(function(a,b){
+    return (a.codigoActual||'').localeCompare(b.codigoActual||'');
+  });
+  var lista=_icFiltroTipoAnticipada
+    ? todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===_icFiltroTipoAnticipada;})
+    : todaLista;
+  var aoa=[['Código','Descripción','Tipo de Documento','Área Generadora','Proceso','Versión','Vencimiento','Estado','Administrador','Cambio Identidad Corporativa']];
+  lista.forEach(function(d){
+    aoa.push([
+      d.codigoActual||'', d.descripcion||'', d.tipoDocumento||'', d.areaGeneradora||'', d.proceso||'',
+      d.version||'', d.fechaVencimiento?fDD(d.fechaVencimiento):'', d.estado||'', d.administrador||'',
+      d._icEstado==='Completado'?'Completado':'Pendiente'
+    ]);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:16},{wch:40},{wch:18},{wch:20},{wch:20},{wch:8},{wch:14},{wch:14},{wch:22},{wch:20}];
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:9}})};
+  XLSX.utils.book_append_sheet(wb,ws,'Revisados Anticipadamente');
+  var fname='KPI_Documentos_Revisados_Anticipadamente_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  try{
+    XLSX.writeFile(wb,fname,{cellStyles:true});
+    toast('✅ Excel descargado: '+fname,'ok');
+    logA(currentUser?currentUser.nombre:'Sistema','Descarga','KPI Documentos Revisados Anticipadamente: '+lista.length+' docs');
+  }catch(e){
+    toast('❌ Error al descargar: '+e.message,'er');
+  }
+}
+
+// Dibuja un donut SVG simple con el % de avance (completados vs pendientes)
+function icDibujarDonutAnticipada(pct,completados,pendientes){
+  var cont=document.getElementById('ic-donut-anticipada');
+  if(!cont) return;
+  var R=26,C=2*Math.PI*R;
+  var frac=Math.max(0,Math.min(100,pct))/100;
+  var dash=C*frac;
+  cont.innerHTML=
+    '<svg width="64" height="64" viewBox="0 0 64 64">'
+    +'<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="var(--brd)" stroke-width="8"/>'
+    +'<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="var(--G)" stroke-width="8" '
+      +'stroke-dasharray="'+dash+' '+C+'" stroke-linecap="round" '
+      +'transform="rotate(-90 32 32)"/>'
+    +'<title>'+completados+' completados / '+pendientes+' pendientes</title>'
+    +'</svg>';
+}
+// Dibuja un donut SVG con el % de avance de depuración (depurados vs activos)
+function icDibujarDonutDepuracion(pct,depurados,activos){
+  var cont=document.getElementById('ic-donut-depuracion');
+  if(!cont) return;
+  var R=26,C=2*Math.PI*R;
+  var frac=Math.max(0,Math.min(100,pct))/100;
+  var dash=C*frac;
+  cont.innerHTML=
+    '<svg width="64" height="64" viewBox="0 0 64 64">'
+    +'<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="var(--brd)" stroke-width="8"/>'
+    +'<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="var(--A)" stroke-width="8" '
+      +'stroke-dasharray="'+dash+' '+C+'" stroke-linecap="round" '
+      +'transform="rotate(-90 32 32)"/>'
+    +'<title>'+depurados+' depurados / '+activos+' activos</title>'
+    +'</svg>';
+}
+// Dibuja un donut SVG con el Índice de Aprovechamiento del Ciclo Natural
+// (documentos revisados dentro de la ventana ideal vs fuera de ella)
+function icDibujarDonutCiclo(pct,dentro,fuera){
+  var cont=document.getElementById('ic-donut-ciclo');
+  if(!cont) return;
+  var R=26,C=2*Math.PI*R;
+  var frac=Math.max(0,Math.min(100,pct))/100;
+  var dash=C*frac;
+  var color=pct>=70?'var(--G)':pct>=40?'var(--A)':'var(--R)';
+  cont.innerHTML=
+    '<svg width="64" height="64" viewBox="0 0 64 64">'
+    +'<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="var(--brd)" stroke-width="8"/>'
+    +'<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="'+color+'" stroke-width="8" '
+      +'stroke-dasharray="'+dash+' '+C+'" stroke-linecap="round" '
+      +'transform="rotate(-90 32 32)"/>'
+    +'<title>'+dentro+' completados / '+fuera+' pendientes</title>'
+    +'</svg>';
+}
+
+// ── Drill-down y exportación a Excel para "% Documentos eliminados por depuración" ──
+var _icFiltroTipoDepuracion='';
+function icVerDetalleDepuracion(){
+  _icFiltroTipoDepuracion='';
+  icRenderDetalleDepuracion();
+}
+function icRenderDetalleDepuracion(){
+  var todaLista=_icListaCompletaDepuracion().slice().sort(function(a,b){
+    return (a.codigoActual||'').localeCompare(b.codigoActual||'');
+  });
+  var tipos=Array.from(new Set(todaLista.map(function(d){return d.tipoDocumento||'(sin tipo)';}))).sort();
+  var lista=_icFiltroTipoDepuracion
+    ? todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===_icFiltroTipoDepuracion;})
+    : todaLista;
+  var det=document.getElementById('dd-detail');
+  var detT=document.getElementById('dd-detail-title');
+  var detB=document.getElementById('dd-detail-body');
+  if(!det||!detT||!detB) return;
+  var nDep=todaLista.filter(function(d){return d._icEstado==='Depurado';}).length;
+  var nAct=todaLista.filter(function(d){return d._icEstado==='Activo';}).length;
+  detT.textContent='"% Documentos eliminados por depuración" — sin formatos ('+lista.length+' de '+todaLista.length+': '+nDep+' depurados, '+nAct+' activos)';
+  detB.innerHTML='<div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    +'<button class="btn sm" onclick="icDescargarDepuracion()">⬇️ Descargar Excel</button>'
+    +'<label style="font-size:11px;color:var(--tx3)">Filtrar por tipo de documento:</label>'
+    +'<select class="fs" style="width:auto;font-size:11px" onchange="_icFiltroTipoDepuracion=this.value;icRenderDetalleDepuracion()">'
+    +'<option value=""'+(_icFiltroTipoDepuracion===''?' selected':'')+'>Todos ('+todaLista.length+')</option>'
+    +tipos.map(function(t){
+      var n=todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===t;}).length;
+      return '<option value="'+t+'"'+(_icFiltroTipoDepuracion===t?' selected':'')+'>'+t+' ('+n+')</option>';
+    }).join('')
+    +'</select>'
+    +'</div>'
+    +'<div style="max-height:480px;overflow-y:auto;overflow-x:auto"><table style="font-size:11px;width:100%;border-collapse:collapse"><thead><tr>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">CÓDIGO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">DESCRIPCIÓN</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">TIPO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">ÁREA</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">VENCIMIENTO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">ESTADO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">DEPURACIÓN</th>'
+    +'</tr></thead><tbody>'
+    +lista.map(function(d){
+      var fv=d.fechaVencimiento?fDD(d.fechaVencimiento):'—';
+      var esDep=d._icEstado==='Depurado';
+      return '<tr>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)"><span class="cd">'+d.codigoActual+'</span></td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(d.descripcion||'')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+(d.tipoDocumento||'—')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+(d.areaGeneradora||'—')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+fv+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)">'+eB(d.estado)+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:'+(esDep?'#fef2e6':'#e6f9f3')+';color:'+(esDep?'#c2410c':'#0f7a50')+'">'+(esDep?'🗑️ Depurado':'✅ Activo')+'</span></td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table></div>';
+  det.style.display='block';
+  det.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function icDescargarDepuracion(){
+  var todaLista=_icListaCompletaDepuracion().slice().sort(function(a,b){
+    return (a.codigoActual||'').localeCompare(b.codigoActual||'');
+  });
+  var lista=_icFiltroTipoDepuracion
+    ? todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===_icFiltroTipoDepuracion;})
+    : todaLista;
+  var aoa=[['Código','Descripción','Tipo de Documento','Área Generadora','Proceso','Versión','Vencimiento','Estado','Administrador','Depuración']];
+  lista.forEach(function(d){
+    aoa.push([
+      d.codigoActual||'', d.descripcion||'', d.tipoDocumento||'', d.areaGeneradora||'', d.proceso||'',
+      d.version||'', d.fechaVencimiento?fDD(d.fechaVencimiento):'', d.estado||'', d.administrador||'',
+      d._icEstado==='Depurado'?'Depurado':'Activo'
+    ]);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:16},{wch:40},{wch:18},{wch:20},{wch:20},{wch:8},{wch:14},{wch:14},{wch:22},{wch:14}];
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:9}})};
+  XLSX.utils.book_append_sheet(wb,ws,'Depuración');
+  var fname='KPI_Documentos_Eliminados_Depuracion_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  try{
+    XLSX.writeFile(wb,fname,{cellStyles:true});
+    toast('✅ Excel descargado: '+fname,'ok');
+    logA(currentUser?currentUser.nombre:'Sistema','Descarga','KPI Documentos Eliminados por Depuración: '+lista.length+' docs');
+  }catch(e){
+    toast('❌ Error al descargar: '+e.message,'er');
+  }
+}
+
+// ── Drill-down y exportación a Excel para "Índice de Aprovechamiento del Ciclo Natural" ──
+var _icFiltroTipoCiclo='';
+function icVerDetalleCiclo(){
+  _icFiltroTipoCiclo='';
+  icRenderDetalleCiclo();
+}
+function icRenderDetalleCiclo(){
+  var todaLista=_icListaCompletaCiclo().slice().sort(function(a,b){
+    return (a.codigoActual||'').localeCompare(b.codigoActual||'');
+  });
+  var tipos=Array.from(new Set(todaLista.map(function(d){return d.tipoDocumento||'(sin tipo)';}))).sort();
+  var lista=_icFiltroTipoCiclo
+    ? todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===_icFiltroTipoCiclo;})
+    : todaLista;
+  var det=document.getElementById('dd-detail');
+  var detT=document.getElementById('dd-detail-title');
+  var detB=document.getElementById('dd-detail-body');
+  if(!det||!detT||!detB) return;
+  var nPend=todaLista.filter(function(d){return d._icEstado==='Pendiente';}).length;
+  var nComp=todaLista.filter(function(d){return d._icEstado==='Completado';}).length;
+  detT.textContent='"Índice de Aprovechamiento del Ciclo Natural" — vencimiento hasta '+fDD(IC_FECHA_LIMITE_CICLO)+', sin formatos/obsoletos/documentos nuevos ('+lista.length+' de '+todaLista.length+': '+nComp+' completados, '+nPend+' pendientes)';
+  detB.innerHTML='<div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    +'<button class="btn sm" onclick="icDescargarCiclo()">⬇️ Descargar Excel</button>'
+    +'<label style="font-size:11px;color:var(--tx3)">Filtrar por tipo de documento:</label>'
+    +'<select class="fs" style="width:auto;font-size:11px" onchange="_icFiltroTipoCiclo=this.value;icRenderDetalleCiclo()">'
+    +'<option value=""'+(_icFiltroTipoCiclo===''?' selected':'')+'>Todos ('+todaLista.length+')</option>'
+    +tipos.map(function(t){
+      var n=todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===t;}).length;
+      return '<option value="'+t+'"'+(_icFiltroTipoCiclo===t?' selected':'')+'>'+t+' ('+n+')</option>';
+    }).join('')
+    +'</select>'
+    +'</div>'
+    +'<div style="max-height:480px;overflow-y:auto;overflow-x:auto"><table style="font-size:11px;width:100%;border-collapse:collapse"><thead><tr>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">CÓDIGO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">DESCRIPCIÓN</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">TIPO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">ÁREA</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">VENCIMIENTO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">ESTADO</th>'
+    +'<th style="padding:5px 9px;border-bottom:2px solid var(--brd);background:var(--bg3);text-align:left;color:var(--tx3);position:sticky;top:0">CAMBIO IDENTIDAD</th>'
+    +'</tr></thead><tbody>'
+    +lista.map(function(d){
+      var fv=d.fechaVencimiento?fDD(d.fechaVencimiento):'—';
+      var esComp=d._icEstado==='Completado';
+      return '<tr>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)"><span class="cd">'+d.codigoActual+'</span></td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(d.descripcion||'')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+(d.tipoDocumento||'—')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+(d.areaGeneradora||'—')+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd);font-size:10px">'+fv+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)">'+eB(d.estado)+'</td>'
+        +'<td style="padding:6px 9px;border-bottom:1px solid var(--brd)"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:'+(esComp?'#e6f9f3':'#fff8e1')+';color:'+(esComp?'#0f7a50':'#a06000')+'">'+(esComp?'✅ Completado':'⏳ Pendiente')+'</span></td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table></div>';
+  det.style.display='block';
+  det.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function icDescargarCiclo(){
+  var todaLista=_icListaCompletaCiclo().slice().sort(function(a,b){
+    return (a.codigoActual||'').localeCompare(b.codigoActual||'');
+  });
+  var lista=_icFiltroTipoCiclo
+    ? todaLista.filter(function(d){return (d.tipoDocumento||'(sin tipo)')===_icFiltroTipoCiclo;})
+    : todaLista;
+  var aoa=[['Código','Descripción','Tipo de Documento','Área Generadora','Proceso','Versión','Vencimiento','Estado','Administrador','Cambio Identidad Corporativa']];
+  lista.forEach(function(d){
+    aoa.push([
+      d.codigoActual||'', d.descripcion||'', d.tipoDocumento||'', d.areaGeneradora||'', d.proceso||'',
+      d.version||'', d.fechaVencimiento?fDD(d.fechaVencimiento):'', d.estado||'', d.administrador||'',
+      d._icEstado==='Completado'?'Completado':'Pendiente'
+    ]);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:16},{wch:40},{wch:18},{wch:20},{wch:20},{wch:8},{wch:14},{wch:14},{wch:22},{wch:20}];
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:9}})};
+  XLSX.utils.book_append_sheet(wb,ws,'Ciclo Natural');
+  var fname='KPI_Indice_Aprovechamiento_Ciclo_Natural_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  try{
+    XLSX.writeFile(wb,fname,{cellStyles:true});
+    toast('✅ Excel descargado: '+fname,'ok');
+    logA(currentUser?currentUser.nombre:'Sistema','Descarga','KPI Índice Aprovechamiento Ciclo Natural: '+lista.length+' docs');
+  }catch(e){
+    toast('❌ Error al descargar: '+e.message,'er');
+  }
+}
+
 function renderIndicadoresCiclo(){
-  function esObsoleto(d){ return d.estado==='Obsoleto'||d.obsoleto==='X'||d.obsoleto==='Si'||d.obsoleto==='Sí'; }
-  var base=(typeof dashDocsBase==='function'?dashDocsBase():docs)||[];
+  function esObsoleto(d){ return _icEsObsoleto(d); }
+  // NOTA: se usa "docs" (universo completo) en vez de dashDocsBase()/docsEmpresa()
+  // para que los KPIs reflejen el total real de la organización, sin aplicar
+  // el filtro de visibilidad por administrador/empresa del usuario en sesión.
+  var base=docs||[];
 
   // ── 1. % Documentos nueva identidad ───────────────────────────────────
   // Fuente: checkbox "Cambio Identidad Corporativa" (cambioIdentidad) de
   // solicitudes de Ruta de Borrador ya OFICIALIZADAS.
-  var activos=base.filter(function(d){ return !esObsoleto(d); });
-  var conIdentidad=activos.filter(function(d){
-    return _icSolicitudesDeCodigo(d.codigoActual).some(function(s){
-      return _icEsOficializada(s) && s.cambioIdentidad==='SI';
-    });
-  });
+  // Total: sin formatos, sin obsoletos.
+  var activos=base.filter(function(d){ return !esObsoleto(d) && !_icEsFormato(d); });
+  var conIdentidad=activos.filter(function(d){ return _icTieneIdentidadNueva(d); });
   var pctIdentidad=activos.length?Math.round(conIdentidad.length/activos.length*100):0;
   var elId=document.getElementById('dd-k-identidad'); if(elId) elId.textContent=pctIdentidad+'%';
-  var elIdS=document.getElementById('dd-k-identidad-sub'); if(elIdS) elIdS.textContent=conIdentidad.length+' de '+activos.length+' documentos activos';
+  var elIdS=document.getElementById('dd-k-identidad-sub'); if(elIdS) elIdS.textContent=conIdentidad.length+' de '+activos.length+' documentos activos (sin formatos ni obsoletos)';
 
-  // ── 2. % Documentos eliminados por depuración ─────────────────────────
-  // Fuente: categoría estandarizada capturada al marcar Obsoleto (motivoObsolescencia).
-  var todos=base;
-  var depurados=todos.filter(function(d){ return d.motivoObsolescencia==='Depuración'; });
-  var pctDepuracion=todos.length?Math.round(depurados.length/todos.length*100):0;
+  // ── 2. % Documentos eliminados por depuración (avance real) ──────────
+  // Universo aplicable: documentos depurados (obsoletos por Depuración) +
+  // documentos actualmente activos (sin formatos, sin obsoletos).
+  // % avance = depurados / (depurados + activos) × 100  → 0-100%
+  var listaDepurados=_icListaDepurados();
+  var listaActivosDep=_icListaActivosDepuracion();
+  var universoDepuracion=listaDepurados.length+listaActivosDep.length;
+  var pctDepuracion=universoDepuracion?Math.round(listaDepurados.length/universoDepuracion*100):0;
   var elDep=document.getElementById('dd-k-depuracion'); if(elDep) elDep.textContent=pctDepuracion+'%';
-  var elDepS=document.getElementById('dd-k-depuracion-sub'); if(elDepS) elDepS.textContent=depurados.length+' de '+todos.length+' documentos totales';
+  var elDepS=document.getElementById('dd-k-depuracion-sub'); if(elDepS) elDepS.textContent=universoDepuracion?(listaDepurados.length+' depurados de '+universoDepuracion+' aplicables ('+listaActivosDep.length+' activos)'):'Sin documentos aplicables';
+  if(typeof icDibujarDonutDepuracion==='function') icDibujarDonutDepuracion(pctDepuracion,listaDepurados.length,listaActivosDep.length);
 
-  // ── 3. % Documentos revisados anticipadamente ─────────────────────────
-  // Fuente: marca "Solicitar Revisión Inmediata" (revisionComunicada) +
-  // verificación de que exista una solicitud oficializada posterior a esa fecha.
-  var comunicados=todos.filter(function(d){ return d.revisionComunicada&&d.revisionComunicada.fecha; });
-  var atendidos=comunicados.filter(function(d){
-    var fechaCom=d.revisionComunicada.fecha;
-    return _icSolicitudesDeCodigo(d.codigoActual).some(function(s){
-      return _icEsOficializada(s) && s.fechaOficializacion>=fechaCom;
-    });
-  });
-  var pctAnticipada=comunicados.length?Math.round(atendidos.length/comunicados.length*100):0;
+  // ── 3. % Documentos revisados anticipadamente (avance real) ──────────
+  // Universo aplicable: documentos (sin formatos, sin obsoletos) con
+  // vencimiento posterior al 1 de julio de 2028 = pendientes (base) +
+  // ya cambiados a nueva identidad corporativa.
+  // % avance = completados / (completados + pendientes) × 100  → 0-100%
+  var listaAnticipada=_icListaAnticipada();      // pendientes
+  var listaConIdentidad=_icListaConIdentidad();  // completados
+  var universoAnticipada=listaAnticipada.length+listaConIdentidad.length;
+  var pctAnticipada=universoAnticipada?Math.round(listaConIdentidad.length/universoAnticipada*100):0;
   var elAnt=document.getElementById('dd-k-anticipada'); if(elAnt) elAnt.textContent=pctAnticipada+'%';
-  var elAntS=document.getElementById('dd-k-anticipada-sub'); if(elAntS) elAntS.textContent=comunicados.length?(atendidos.length+' de '+comunicados.length+' solicitudes atendidas'):'Sin solicitudes registradas';
+  var elAntS=document.getElementById('dd-k-anticipada-sub'); if(elAntS) elAntS.textContent=universoAnticipada?(listaConIdentidad.length+' completados de '+universoAnticipada+' aplicables ('+listaAnticipada.length+' pendientes)'):'Sin documentos aplicables';
+  if(typeof icDibujarDonutAnticipada==='function') icDibujarDonutAnticipada(pctAnticipada,listaConIdentidad.length,listaAnticipada.length);
 
   // ── 4. Índice de Aprovechamiento del Ciclo Natural ────────────────────
-  // Ventana ideal: revisar (oficializar) el documento dentro del último
-  // año antes de su vencimiento — ni con demasiada anticipación (se
-  // desperdicia vigencia restante) ni vencido.
-  // Proxy usado: fechaVigencia (inicio de la versión vigente) aproxima
-  // la fecha en la que vencía el ciclo anterior. Se compara contra
-  // fechaOficializacion de la solicitud que originó esa versión.
-  var VENTANA_DIAS=365;
-  var oficializadasConFechas=[];
-  base.forEach(function(d){
-    if(!d.fechaVigencia) return;
-    _icSolicitudesDeCodigo(d.codigoActual).forEach(function(s){
-      if(_icEsOficializada(s)) oficializadasConFechas.push({doc:d,sol:s});
-    });
-  });
-  function _icDias(a,b){ // b - a, en días
-    try{ return Math.round((new Date(b+'T00:00:00').getTime()-new Date(a+'T00:00:00').getTime())/86400000); }catch(e){ return null; }
-  }
-  var dentroVentana=oficializadasConFechas.filter(function(x){
-    var dias=_icDias(x.sol.fechaOficializacion,x.doc.fechaVigencia); // días entre oficialización y vigencia
-    return dias!==null && dias>=0 && dias<=VENTANA_DIAS;
-  });
-  var pctCiclo=oficializadasConFechas.length?Math.round(dentroVentana.length/oficializadasConFechas.length*100):0;
+  // Documentos (sin formatos, sin obsoletos, sin recién creados) cuyo
+  // vencimiento es HASTA el 30 de junio de 2028 — estos necesitan revisión
+  // de todas formas por su propio ciclo natural, así que el % mide cuántos
+  // ya aprovecharon esa revisión para incluir el Cambio de Identidad
+  // Corporativa, frente a los que aún están pendientes de hacerlo.
+  // % avance = completados / (completados + pendientes) × 100 → 0-100%
+  var listaCicloPend=_icListaCicloPendiente();
+  var listaCicloComp=_icListaCicloCompletado();
+  var universoCiclo2=listaCicloPend.length+listaCicloComp.length;
+  var pctCiclo=universoCiclo2?Math.round(listaCicloComp.length/universoCiclo2*100):0;
   var elCic=document.getElementById('dd-k-ciclo'); if(elCic){ elCic.textContent=pctCiclo+'%'; elCic.style.color=pctCiclo>=70?'var(--G)':pctCiclo>=40?'var(--A)':'var(--R)'; }
-  var elCicS=document.getElementById('dd-k-ciclo-sub'); if(elCicS) elCicS.textContent=oficializadasConFechas.length?(dentroVentana.length+' de '+oficializadasConFechas.length+' revisiones en ventana de 1 año'):'Sin revisiones registradas';
+  var elCicS=document.getElementById('dd-k-ciclo-sub'); if(elCicS) elCicS.textContent=universoCiclo2?(listaCicloComp.length+' completados de '+universoCiclo2+' aplicables ('+listaCicloPend.length+' pendientes)'):'Sin documentos aplicables';
+  if(typeof icDibujarDonutCiclo==='function') icDibujarDonutCiclo(pctCiclo,listaCicloComp.length,listaCicloPend.length);
 
   // ── 5. Solicitudes Renovadas (Ruta de Borrador) ───────────────────────
   var totalSol=(solicitudes||[]).length;
