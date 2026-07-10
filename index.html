@@ -15948,6 +15948,8 @@ async function spLeerArchivo(nombre){
 async function spEscribirArchivo(nombre, wbToWrite){
   // Escribir un Excel en la carpeta SharePoint usando la REST API
   try{
+    if(typeof _saneaCeldasLargasWB==='function') _saneaCeldasLargasWB(wbToWrite);
+    if(typeof _protegerTodasHojasWB==='function') _protegerTodasHojasWB(wbToWrite);
     var buf=XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
     var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     var digest=await spObtenerDigest();
@@ -16413,6 +16415,21 @@ async function odLeerHojaAuditrail(buf, wb){
    Esto cubre celdas que ya venían así en el archivo original (por ejemplo,
    filas de Auditrail guardadas antes de existir la protección de truncado
    en cada función individual), no solo las que la app escribe activamente. */
+/* ══ Protección de Hoja (bloqueo de edición manual en Excel) ══
+   Se aplica a TODAS las hojas de cada workbook justo antes de escribirlo,
+   en cada guardado — así nunca se pierde aunque la app reconstruya la
+   hoja desde cero. No afecta la escritura de la propia app (solo la
+   respeta Microsoft Excel cuando alguien abre el archivo manualmente). */
+var OD_PROTECCION_PASSWORD='Sofgenpharma2026+';
+function _protegerTodasHojasWB(wb){
+  if(!wb||!wb.Sheets) return;
+  wb.SheetNames.forEach(function(nombreHoja){
+    var ws=wb.Sheets[nombreHoja];
+    if(!ws) return;
+    ws['!protect']={password:OD_PROTECCION_PASSWORD};
+  });
+}
+
 function _saneaCeldasLargasWB(wb){
   if(!wb||!wb.Sheets) return 0;
   var LIMITE=32767;
@@ -18141,6 +18158,7 @@ async function odGuardarListado(silencioso){
 
         // 4. Escribir el archivo con keepExistingData:false para reemplazar completamente
         _saneaCeldasLargasWB(wbToWrite); // red de seguridad: evita "Text length must not exceed 32767"
+        _protegerTodasHojasWB(wbToWrite); // proteger hoja (bloquear edición manual en Excel)
         var bufW = XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
         var wr   = await fh.createWritable({keepExistingData: false});
         await wr.write(new Uint8Array(bufW));
@@ -18412,6 +18430,7 @@ async function odGuardarListado(silencioso){
 
     // Generar buffer del ListadoMaestro.xlsx
     _saneaCeldasLargasWB(wb); // red de seguridad: evita "Text length must not exceed 32767"
+    _protegerTodasHojasWB(wb); // proteger hoja (bloquear edición manual en Excel)
     var buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
 
     // ── DETECCIÓN DE COLISIÓN REAL ────────────────────────────
@@ -18472,6 +18491,7 @@ async function odGuardarListado(silencioso){
 
     // Regenerar buffer DESPUÉS de escribir el auditrail en wb
     _saneaCeldasLargasWB(wb); // red de seguridad: evita "Text length must not exceed 32767"
+    _protegerTodasHojasWB(wb); // proteger hoja (bloquear edición manual en Excel)
     buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
 
     // Actualizar timestamp de referencia (en SP mode usamos Date.now())
@@ -18819,8 +18839,7 @@ function odMostrarReconectarSinHandle(nombreCarpeta){
     var btn=this;
     btn.textContent='⏳ Abriendo carpeta...'; btn.disabled=true;
     try{
-      var dirHandle=await window.showDirectoryPicker({mode:'readwrite'});
-      // Verificar que es la carpeta correcta o que tiene los archivos
+      var dirHandle=await window.showDirectoryPicker({mode:'readwrite',id:'docControlSofgenDir',startIn:'documents'});
       var tieneExcel=false;
       try{ await dirHandle.getFileHandle(OD_ARCHIVOS.lm,{create:false}); tieneExcel=true; }catch(e){}
       if(!tieneExcel){
@@ -19003,8 +19022,7 @@ async function odSeleccionarDesdeSeleccion(){
   var btn=document.querySelector('#od-seleccion-screen button');
   if(btn){btn.textContent='⏳ Seleccionando carpeta...';btn.disabled=true;}
   try{
-    var dirHandle=await window.showDirectoryPicker({mode:'readwrite'});
-    // Verificar que los archivos requeridos existen en la carpeta
+    var dirHandle=await window.showDirectoryPicker({mode:'readwrite',id:'docControlSofgenDir',startIn:'documents'});
     // Archivos obligatorios (sin estos no puede funcionar la app)
     var archivosObligatorios=[OD_ARCHIVOS.lm,OD_ARCHIVOS.solicitudes,OD_ARCHIVOS.copias,OD_ARCHIVOS.inspecciones];
     // Archivos opcionales (se crean automáticamente si no existen)
