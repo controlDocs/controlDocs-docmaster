@@ -549,7 +549,7 @@ tbody tr:last-child td{border-bottom:none}
 
     <!-- Row: Indicadores de Ciclo Documental -->
     <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px">Indicadores de Ciclo Documental</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
       <div class="kpi" id="kpi-identidad" style="cursor:default">
         <div class="kl">% DOCUMENTOS NUEVA IDENTIDAD</div>
         <div class="kv tl" id="dd-k-identidad" style="font-size:28px;font-weight:700">0%</div>
@@ -569,6 +569,11 @@ tbody tr:last-child td{border-bottom:none}
         <div class="kl">ÍNDICE APROVECHAMIENTO CICLO NATURAL</div>
         <div class="kv" id="dd-k-ciclo" style="font-size:28px;font-weight:700">0%</div>
         <div class="ks" id="dd-k-ciclo-sub"></div>
+      </div>
+      <div class="kpi" id="kpi-renovadas" onclick="nav('rutabor',document.querySelector('[data-p=rutabor]'))">
+        <div class="kl">SOLICITUDES RENOVADAS</div>
+        <div class="kv" style="font-size:28px;font-weight:700;color:#0e7490" id="dd-k-renovadas">0</div>
+        <div class="ks" id="dd-k-renovadas-sub"></div>
       </div>
     </div>
 
@@ -3719,6 +3724,15 @@ function renderIndicadoresCiclo(){
   var pctCiclo=oficializadasConFechas.length?Math.round(dentroVentana.length/oficializadasConFechas.length*100):0;
   var elCic=document.getElementById('dd-k-ciclo'); if(elCic){ elCic.textContent=pctCiclo+'%'; elCic.style.color=pctCiclo>=70?'var(--G)':pctCiclo>=40?'var(--A)':'var(--R)'; }
   var elCicS=document.getElementById('dd-k-ciclo-sub'); if(elCicS) elCicS.textContent=oficializadasConFechas.length?(dentroVentana.length+' de '+oficializadasConFechas.length+' revisiones en ventana de 1 año'):'Sin revisiones registradas';
+
+  // ── 5. Solicitudes Renovadas (Ruta de Borrador) ───────────────────────
+  var totalSol=(solicitudes||[]).length;
+  var renovadas=(solicitudes||[]).filter(function(s){
+    var est=(s.estatus||s.estadoOficializacion||'').toLowerCase();
+    return est.indexOf('renovad')>=0;
+  });
+  var elRen=document.getElementById('dd-k-renovadas'); if(elRen) elRen.textContent=renovadas.length;
+  var elRenS=document.getElementById('dd-k-renovadas-sub'); if(elRenS) elRenS.textContent=totalSol?(Math.round(renovadas.length/totalSol*100)+'% de '+totalSol+' solicitudes totales'):'Sin solicitudes registradas';
 }
 
 function renderDash(){
@@ -21560,11 +21574,12 @@ function rbEstadoInfo(s){
   var esRetirada=est.toLowerCase().indexOf('retirada por vencimiento')>=0;
   var esRevision=est.toLowerCase()==='en revisión'||est.toLowerCase()==='en revision'||est.toLowerCase()==='aceptada';
   var esFirma=est.toLowerCase().indexOf('proceso de firma')>=0||est.toLowerCase()==='en proceso';
-  var color=esRetirada?'#7c2d12':esAnulado?'#6d28d9':esOfic?'var(--G)':esRechazo?'var(--R)':esFirma?'var(--T)':esRevision?'var(--A)':'#aaa';
-  var bg=esRetirada?'#fef2e6':esAnulado?'#f3e8ff':esOfic?'#e6f9f3':esRechazo?'#fde8e8':esFirma?'#e0f5f3':esRevision?'#fff8e1':'#f0f0f0';
-  var tc=esRetirada?'#7c2d12':esAnulado?'#5b21b6':esOfic?'#0f7a50':esRechazo?'#a02020':esFirma?'var(--T3)':esRevision?'#a06000':'#666';
-  var label=esRetirada?'Retirada por vencimiento':esAnulado?'Anulada':esOfic?'Oficializado':esRechazo?'Rechazada':esFirma?'En proceso de firma':esRevision?'En revisión':est||'Pendiente';
-  return{color:color,bg:bg,tc:tc,label:label,esOfic:esOfic,esAnulado:esAnulado,esRechazo:esRechazo,esRetirada:esRetirada,esRevision:esRevision,esFirma:esFirma};
+  var esRenovada=est.toLowerCase().indexOf('renovad')>=0;
+  var color=esRenovada?'#0e7490':esRetirada?'#7c2d12':esAnulado?'#6d28d9':esOfic?'var(--G)':esRechazo?'var(--R)':esFirma?'var(--T)':esRevision?'var(--A)':'#aaa';
+  var bg=esRenovada?'#ecfeff':esRetirada?'#fef2e6':esAnulado?'#f3e8ff':esOfic?'#e6f9f3':esRechazo?'#fde8e8':esFirma?'#e0f5f3':esRevision?'#fff8e1':'#f0f0f0';
+  var tc=esRenovada?'#155e75':esRetirada?'#7c2d12':esAnulado?'#5b21b6':esOfic?'#0f7a50':esRechazo?'#a02020':esFirma?'var(--T3)':esRevision?'#a06000':'#666';
+  var label=esRenovada?'Solicitud Renovada':esRetirada?'Retirada por vencimiento':esAnulado?'Anulada':esOfic?'Oficializado':esRechazo?'Rechazada':esFirma?'En proceso de firma':esRevision?'En revisión':est||'Pendiente';
+  return{color:color,bg:bg,tc:tc,label:label,esOfic:esOfic,esAnulado:esAnulado,esRechazo:esRechazo,esRetirada:esRetirada,esRevision:esRevision,esFirma:esFirma,esRenovada:esRenovada};
 }
 
 function rbSplitStageBar(s){
@@ -22146,6 +22161,9 @@ function rbRenderDetail(s){
         :'')      +(!info.esAnulado&&!info.esOfic&&!info.esRechazo&&!info.esRetirada
         ?'<button class="btn sm" style="background:#78350f;color:#fff;border-color:#78350f" onclick="rbRetirarPorVencimiento(\''+s.consecutivo+'\')" title="Marcar como Retirada por vencimiento de tiempo — el documento no fue oficializado en el plazo">⌛ Retirada por vencimiento</button>'
         :'')
+      +(!info.esAnulado&&!info.esOfic&&!info.esRenovada
+        ?'<button class="btn sm" style="background:#0e7490;color:#fff;border-color:#0e7490" onclick="rbMarcarRenovada(\''+s.consecutivo+'\')" title="Marcar esta solicitud como Solicitud Renovada">🔄 Marcar como Solicitud Renovada</button>'
+        :'')
       +(!info.esAnulado&&!info.esOfic
         ?'<button class="btn gh sm" style="border-color:var(--T);color:var(--T)" onclick="rbEditarSolicitud(\''+s.consecutivo+'\')" title="Editar datos de esta solicitud">✏️ Editar</button>'
         :'')
@@ -22692,6 +22710,31 @@ function rbVerDetalle(consecutivo){
 
 // Oficializar
 var _rbOficIdx=-1;
+// Marcar una solicitud como Solicitud Renovada directamente desde
+// el módulo de Ruta de Borrador (mismo efecto que la renovación
+// automática que ofrece Novedad de Documento, pero manual).
+function rbMarcarRenovada(consecutivo){
+  var idx=(solicitudes||[]).findIndex(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(idx<0){ toast('Solicitud no encontrada','er'); return; }
+  var s=solicitudes[idx];
+  if(!confirm('¿Marcar la solicitud #'+consecutivo+' ('+(s.codigo||'?')+') como Solicitud Renovada?\n\nEsto indica que esta solicitud fue reemplazada por una nueva.')) return;
+  s.estatus='Solicitud Renovada';
+  s.estadoOficializacion='Solicitud Renovada';
+  if(!s.historial) s.historial=[];
+  s.historial.push({f:fTS(new Date()),c:'Marcada manualmente como Solicitud Renovada desde Ruta de Borrador',u:(currentUser?currentUser.nombre||currentUser.login:'Sistema')});
+  saveArr('sol',solicitudes);
+  if(typeof rbRecalcCache==='function') rbRecalcCache();
+  logA(currentUser?currentUser.nombre:'Usuario','Solicitud RB','Solicitud marcada como Renovada: '+s.codigo+' — Consec. '+consecutivo,'','Ruta de Borrador');
+  if(OD.syncActivo||OD.carpetaHandle){
+    if(OD.saveTimer) clearTimeout(OD.saveTimer);
+    OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500);
+  }
+  toast('✅ Solicitud N°'+consecutivo+' marcada como Solicitud Renovada','ok');
+  if(typeof rbVerDetalle==='function') rbVerDetalle(consecutivo);
+  if(typeof rbRender==='function') rbRender();
+  if(typeof renderIndicadoresCiclo==='function') renderIndicadoresCiclo();
+}
+
 function rbAbrirOficializar(consecutivo){
   var idx=rbGetIdx(iFiltered);
     var s=solicitudes.find(function(x){return String(x.consecutivo)===String(consecutivo);}); _rbOficIdx=idx;
@@ -25781,17 +25824,21 @@ function nfVerificarRutaBorrador(cod){
     return fb.localeCompare(fa);
   });
   if(!coincidencias.length) return null;
-  // Solo generar alerta si la solicitud más reciente está en estado Pendiente
-  // Estados que NO generan alerta: Oficializado, En revisión, En proceso de firma, Rechazada, Aceptada
+  // Solo se consideran "cerrados" (no generan alerta) estos estados:
+  // Oficializado, Anulado, Retirado por Vencimiento.
+  // Cualquier otro estado (Pendiente, En revisión, En proceso de firma,
+  // Aceptada, etc.) se considera una solicitud VIGENTE y genera alerta.
+  var CERRADOS=['oficializado','anulado','retirado por vencimiento'];
   var ultima=coincidencias[0];
   var estatus=(ultima.estatus||ultima.estadoOficializacion||'').toLowerCase().trim();
-  var esPendiente = estatus===''||estatus==='pendiente';
-  if(!esPendiente) return null;
+  var esCerrada = CERRADOS.indexOf(estatus)>=0;
+  if(esCerrada) return null;
   return {
+    solicitud: ultima, // referencia directa al objeto real, para poder marcarlo como renovado
     solicitante: ultima.solicitante||'(desconocido)',
     fecha: ultima.fechaSolicitud||ultima.fechaRutaBorrador||'(sin fecha)',
     motivo: ultima.descripcionModif||ultima.tipoSolicitud||'(sin descripción)',
-    estatus: ultima.estatus||'Pendiente',
+    estatus: ultima.estatus||ultima.estadoOficializacion||'(sin estado)',
     consecutivo: ultima.consecutivo||''
   };
 }
@@ -25832,19 +25879,17 @@ function nfGuardar(){
     alert('⚠️ Campos obligatorios sin diligenciar:\n\n• '+faltantes.join('\n• '));
     return;
   }
-  // Verificar si el código ya tiene solicitud pendiente en Ruta de Borrador
+  // Verificar si el código ya tiene solicitud vigente en Ruta de Borrador
+  // (cualquier estado distinto de Oficializado, Anulado o Retirado por Vencimiento)
   var codCheckG=(document.getElementById('nf-cod')||{}).value||'';
   var rbAlertaG=nfVerificarRutaBorrador(codCheckG);
   if(rbAlertaG){
-    // Al guardar: solo confirmar o cancelar, sin opción de renovar
-    var msgGuard='ATENCIÓN: Este código ya tiene una solicitud en Ruta de Borrador no oficializada.'
-      +'\n\nSolicitante: '+rbAlertaG.solicitante
-      +'\nFecha: '+rbAlertaG.fecha
-      +'\nMotivo: '+rbAlertaG.motivo
-      +'\nEstado: '+rbAlertaG.estatus
-      +'\n\n¿Desea guardar esta nueva solicitud de todas formas?';
-    if(confirm(msgGuard)) nfGuardarEjecutar();
-    return;
+    nfMostrarAlertaRB(rbAlertaG, function(accion){
+      if(accion==='cancelar') return;
+      if(accion==='renovar') nfRenovarSolicitud(rbAlertaG);
+      nfGuardarEjecutar();
+    });
+    return; // esperar decisión del usuario
   }
   nfGuardarEjecutar();
 }
@@ -26475,7 +26520,7 @@ function nfMostrarAlertaRB(info, callback){
     +'<b>Motivo:</b> '+info.motivo+'<br>'
     +'<b>Estado:</b> <span style="color:#e65100;font-weight:600">'+info.estatus+'</span>'
     +'</div>'
-    +'<div style="font-size:12px;color:#555;margin-bottom:18px">Este código ya tiene una solicitud que no ha sido oficializada. ¿Qué desea hacer?</div>'
+    +'<div style="font-size:12px;color:#555;margin-bottom:18px">Este código ya cuenta con una solicitud VIGENTE (no está Oficializada, Anulada ni Retirada por Vencimiento). ¿Qué desea hacer?</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
     +'<button id="nf-rb-btn-renovar" style="flex:1;padding:10px;background:#006860;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 Renovar solicitud existente</button>'
     +'<button id="nf-rb-btn-continuar" style="flex:1;padding:10px;background:#e0f2f1;color:#006860;border:1px solid #006860;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">➕ Crear nueva solicitud</button>'
@@ -26488,15 +26533,17 @@ function nfMostrarAlertaRB(info, callback){
   document.getElementById('nf-rb-btn-cancelar').onclick=function(){overlay.remove();callback('cancelar');};
 }
 
-// Renovar la solicitud existente: actualiza fecha y cambia estado a Renovado
+// Renovar la solicitud existente: actualiza fecha y cambia estado a Solicitud Renovada
 function nfRenovarSolicitud(info){
   var idx=solicitudes.findIndex(function(s){
     return String(s.consecutivo)===String(info.consecutivo);
   });
   if(idx>=0){
     // Conservar TODAS las fechas originales — solo actualizar estados
-    solicitudes[idx].estatus='Renovado';
-    solicitudes[idx].estadoOficializacion='Renovado';
+    solicitudes[idx].estatus='Solicitud Renovada';
+    solicitudes[idx].estadoOficializacion='Solicitud Renovada';
+    if(!solicitudes[idx].historial) solicitudes[idx].historial=[];
+    solicitudes[idx].historial.push({f:fTS(new Date()),c:'Marcada como Solicitud Renovada — reemplazada por nueva solicitud',u:(currentUser?currentUser.nombre||currentUser.login:'Sistema')});
     saveArr('sol',solicitudes);
     logA(currentUser?currentUser.nombre:'Usuario','Solicitud RB',
       'Solicitud renovada: '+solicitudes[idx].codigo+' — Consec. '+info.consecutivo,
@@ -26505,7 +26552,7 @@ function nfRenovarSolicitud(info){
       if(OD.saveTimer) clearTimeout(OD.saveTimer);
       OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
     }
-    toast('✅ Solicitud N°'+info.consecutivo+' marcada como Renovada','ok');
+    toast('✅ Solicitud N°'+info.consecutivo+' marcada como Solicitud Renovada','ok');
   }
 }
 
