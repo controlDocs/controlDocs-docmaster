@@ -3733,10 +3733,21 @@ function _icListaAnticipada(){
   });
 }
 // Denominador: documentos (sin formatos, sin obsoletos, sin documentos
-// recién creados) que SÍ están marcados con Cambio de Identidad Corporativa.
+// recién creados) que SÍ están marcados con Cambio de Identidad Corporativa
+// Y que ADEMÁS pertenecen al grupo de códigos ya identificados con
+// vencimiento posterior al 01/07/2028. Este filtro de fecha es obligatorio:
+// un documento con Cambio de Identidad Corporativa marcado, pero cuyo
+// vencimiento actual NO es posterior al 01/07/2028, no forma parte de los
+// códigos ya identificados para este indicador (pertenece, en su caso, al
+// grupo del Índice de Aprovechamiento del Ciclo Natural) y por lo tanto NO
+// debe contarse aquí — solo se tienen en cuenta las actualizaciones de
+// documentos que ya hacían parte de los códigos identificados con esta
+// condición de vencimiento.
 function _icListaConIdentidad(){
   return (docs||[]).filter(function(d){
-    return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d) && _icTieneIdentidadNueva(d);
+    return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
+      && d.fechaVencimiento && d.fechaVencimiento>IC_FECHA_LIMITE_ANTICIPADA
+      && _icTieneIdentidadNueva(d);
   });
 }
 // Lista combinada para el Excel/tabla: TODOS los documentos aplicables
