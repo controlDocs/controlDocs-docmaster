@@ -23319,6 +23319,34 @@ function rbCerrarPorCodigo(codigo, motivo){
   toast('🔒 Solicitud RB #'+reciente.consecutivo+' ('+codUp+') cerrada automáticamente','if');
 }
 
+// ── Helper compartido: oficializar automáticamente una solicitud de
+// Eliminación en Ruta de Borrador. A diferencia de rbCerrarPorCodigo (que la
+// deja como "Eliminación Cerrada" y se muestra como Anulada), esta función
+// deja la solicitud como "Oficializado" — porque una Eliminación tramitada
+// por Novedad de Documento se considera formalmente oficializada, no anulada.
+function rbOficializarPorCodigo(codigo, motivo){
+  if(!codigo) return;
+  var codUp=codigo.toUpperCase();
+  var estadosCerrados=['solicitud anulada','oficializado','eliminación cerrada','eliminacion cerrada','retirada por vencimiento'];
+  var abiertas=(solicitudes||[]).filter(function(x){
+    var est=(x.estadoOficializacion||x.estatus||'').toLowerCase();
+    return x.codigo&&x.codigo.toUpperCase()===codUp&&estadosCerrados.indexOf(est)<0;
+  });
+  if(!abiertas.length) return;
+  var reciente=abiertas.reduce(function(best,x){
+    return parseInt(x.consecutivo||0)>parseInt(best.consecutivo||0)?x:best;
+  },abiertas[0]);
+  reciente.estadoOficializacion='Oficializado';
+  reciente.estatus='Oficializado';
+  reciente.fechaOficializacion=reciente.fechaOficializacion||new Date().toISOString().split('T')[0];
+  saveArr('sol',solicitudes);
+  if(typeof rbRecalcCache==='function') rbRecalcCache();
+  logA(currentUser?currentUser.nombre:'Sistema','Oficialización ruta',
+    'Solicitud RB #'+reciente.consecutivo+' — '+codUp+' oficializada automáticamente (Eliminación). Motivo: '+(motivo||''),
+    '','Ruta de Borrador');
+  toast('✅ Solicitud RB #'+reciente.consecutivo+' ('+codUp+') oficializada automáticamente','ok');
+}
+
 function rbRecalcCache(){
   _rbCache={};
   if(!solicitudes||!solicitudes.length){_rbCacheLen=0;return;}
@@ -26509,7 +26537,7 @@ function nfGuardarEjecutar(){
     logA(currentUser?currentUser.nombre:'Usuario','Novedad de Documento',
       'Solicitud editada (cargada desde PDF): '+solData.codigo+' — Consec. '+solData.consecutivo+' — Tipo: '+solData.tipoSolicitud,'',' Novedad de Documento');
     if((solData.tipoSolicitud==='Eliminación'||solData.tipoSolicitud==='Eliminacion')&&solData.codigo){
-      rbCerrarPorCodigo(solData.codigo,'Eliminación — solicitud editada desde PDF N°'+solData.consecutivo);
+      rbOficializarPorCodigo(solData.codigo,'Eliminación — solicitud editada desde PDF N°'+solData.consecutivo);
     }
     if(OD.fileHandle){ OD.syncActivo=true; if(OD.saveTimer)clearTimeout(OD.saveTimer); OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500); }
     toast('✅ Solicitud N° '+solData.consecutivo+' actualizada en SharePoint','ok');
@@ -26551,7 +26579,7 @@ function nfGuardarEjecutar(){
   }catch(e){}
   // Si es Eliminación, cerrar automáticamente la solicitud activa en Ruta de Borrador
   if((sol.tipoSolicitud==='Eliminación'||sol.tipoSolicitud==='Eliminacion')&&sol.codigo){
-    rbCerrarPorCodigo(sol.codigo,'Eliminación — solicitud de novedad N°'+sol.consecutivo);
+    rbOficializarPorCodigo(sol.codigo,'Eliminación — solicitud de novedad N°'+sol.consecutivo);
   }
   // Si es Creación, también registrar en codigosNuevos (se guardará en Codigo_Doc_Nuevos)
   if(sol.tipoSolicitud==='Creación'&&sol.codigo){
