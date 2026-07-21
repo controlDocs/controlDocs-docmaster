@@ -16454,14 +16454,16 @@ var OD = {
     'Tipo De Documento','Área Generadora','Proceso','Fecha De Vigencia','Fecha De Vencimiento2',
     'Extension De Vigencia','Estado','Obsoleto','Administrador',
     'Lider De Proceso','Correo Electrónico','Alcance A Empresas','Áreas Aplicables','Idioma',
-    'Doc.Gxp','Documentos Relacionados','Mbr','Tipo De Plantilla','Doc.Intercompañia'
+    'Doc.Gxp','Documentos Relacionados','Mbr','Tipo De Plantilla','Doc.Intercompañia',
+    'Motivo Obsolescencia'
   ],
   COLUMNAS_CLAVE: [
     'codigoActual','codigoAntiguo','descripcion','descriptionEn','descriptionPt','version',
     'tipoDocumento','areaGeneradora','proceso','fechaVigencia','fechaVencimiento',
     'extensionVigencia','estado','obsoleto','administrador',
     'liderProceso','correoElectronico','alcanceEmpresas','areasAplicables','idioma',
-    'docGxP','docsRelacionados','mbr','tipoPlantilla','docIntercompania'
+    'docGxP','docsRelacionados','mbr','tipoPlantilla','docIntercompania',
+    'motivoObsolescencia'
   ]
 };
 
@@ -18016,7 +18018,9 @@ async function odCargarListado(){
       'Proceso':'proceso',
       'Correo':'correoElectronico','Correo Electrónico':'correoElectronico',
       'Correo Electronico':'correoElectronico','Email':'correoElectronico','E-mail':'correoElectronico',
-      'Historial_Cambios':'_historialTexto'
+      'Historial_Cambios':'_historialTexto',
+      'Motivo Obsolescencia':'motivoObsolescencia','Motivo De Obsolescencia':'motivoObsolescencia',
+      'Categoría Obsolescencia':'motivoObsolescencia','Categoria Obsolescencia':'motivoObsolescencia'
     };
 
     var hdrs=rows[hdrIdx].map(function(h){return String(h||'').trim();});
