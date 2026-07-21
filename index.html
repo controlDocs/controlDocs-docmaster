@@ -26304,15 +26304,15 @@ function nfVerificarRutaBorrador(cod){
     return fb.localeCompare(fa);
   });
   if(!coincidencias.length) return null;
-  // Solo se consideran "cerrados" (no generan alerta) estos estados:
-  // Oficializado, Anulado, Retirado por Vencimiento.
-  // Cualquier otro estado (Pendiente, En revisión, En proceso de firma,
-  // Aceptada, etc.) se considera una solicitud VIGENTE y genera alerta.
-  var CERRADOS=['oficializado','anulado','retirado por vencimiento'];
+  // Solo se genera alerta si la última solicitud está ACTIVAMENTE en trámite:
+  // En revisión o En proceso de firma. Cualquier otro estado (Oficializado,
+  // Solicitud Anulada, Retirada por vencimiento, Solicitud Renovada,
+  // Rechazada, Pendiente, etc.) NO debe generar alerta.
+  var ABIERTOS=['en revisión','en revision','en proceso de firma'];
   var ultima=coincidencias[0];
   var estatus=(ultima.estatus||ultima.estadoOficializacion||'').toLowerCase().trim();
-  var esCerrada = CERRADOS.indexOf(estatus)>=0;
-  if(esCerrada) return null;
+  var esAbierta = ABIERTOS.indexOf(estatus)>=0;
+  if(!esAbierta) return null;
   return {
     solicitud: ultima, // referencia directa al objeto real, para poder marcarlo como renovado
     solicitante: ultima.solicitante||'(desconocido)',
