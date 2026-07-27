@@ -3655,7 +3655,147 @@ var PR={dash:renderDash,kpi:function(){renderKPI();renderKpiHallazgos();},docs:f
 
 var _navPgNodes=null,_navNiNodes=null;
 function _navGetNodes(){if(!_navPgNodes)_navPgNodes=Array.from(document.querySelectorAll('.pg'));if(!_navNiNodes)_navNiNodes=Array.from(document.querySelectorAll('.ni'));}
+// ============================================================
+// BLOQUEO DE MÓDULOS ENTRE USUARIOS (uso exclusivo)
+// ============================================================
+// La app no tiene servidor: para coordinar entre navegadores de distintos
+// usuarios se usa un archivo pequeño y liviano ("BloqueosModulos.json") en
+// la MISMA carpeta compartida de OneDrive/SharePoint del Listado Maestro
+// (no se reescribe el Excel grande para esto). Cada módulo "editable" queda
+// marcado con quién lo tiene abierto y un "latido" que se refresca cada
+// cierto tiempo; si el latido se vence (mismo tiempo que el cierre de
+// sesión por inactividad), el bloqueo se considera abandonado y se libera
+// automáticamente para que otro usuario pueda entrar.
+var LOCKABLE_MODULES = ['docs','copias','entregacc','insp','usrs','cfg','extvigor','marobs','fextvig','rutabor','novedad','correos'];
+var _miSesionId = 'ses_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+var _moduloConBloqueoActual = null;
+var _lockHeartbeatTimer = null;
+
+function _lockTimeoutMs(){
+  return Math.max(1,(_inactividadMinutos||5))*60*1000;
+}
+async function _lockLeer(){
+  try{
+    if(OD && OD.carpetaHandle){
+      var fh=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.bloqueos,{create:false});
+      var file=await fh.getFile();
+      var txt=await file.text();
+      return txt ? JSON.parse(txt) : {};
+    }
+    if(SP && SP.activo){
+      var r=await spLeerArchivoTexto(OD_ARCHIVOS.bloqueos);
+      return r ? JSON.parse(r) : {};
+    }
+  }catch(e){ /* archivo aún no existe u otro error de lectura — se trata como "sin bloqueos" */ }
+  return {};
+}
+async function _lockEscribir(obj){
+  try{
+    var txt=JSON.stringify(obj);
+    if(OD && OD.carpetaHandle){
+      var fh=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.bloqueos,{create:true});
+      var w=await fh.createWritable({keepExistingData:false});
+      await w.write(txt); await w.close();
+      return true;
+    }
+    if(SP && SP.activo){
+      return await spEscribirArchivoTexto(OD_ARCHIVOS.bloqueos, txt, 'application/json');
+    }
+  }catch(e){ console.warn('[LOCK] Error escribiendo bloqueos:',e.message); }
+  return false;
+}
+// Intenta tomar el bloqueo de un módulo. Devuelve true si se puede entrar.
+async function _lockIntentarEntrar(modulo){
+  if(LOCKABLE_MODULES.indexOf(modulo)<0) return true; // módulo no requiere bloqueo
+  if(!(OD&&OD.carpetaHandle) && !(SP&&SP.activo)) return true; // sin carpeta compartida, no se puede coordinar
+
+  var locks=await _lockLeer();
+  var actual=locks[modulo];
+  var ahora=Date.now();
+  if(actual && actual.sesion!==_miSesionId){
+    var edad=ahora-(new Date(actual.latido||actual.inicio).getTime()||0);
+    if(edad < _lockTimeoutMs()){
+      var mismoUsuario = currentUser && actual.usuario===currentUser.nombre;
+      _mostrarModuloBloqueado(modulo, actual, mismoUsuario);
+      return false; // bloqueado por otro usuario (o por ti mismo en otra pestaña)
+    }
+    // Bloqueo vencido/abandonado — se libera y se continúa
+  }
+  locks[modulo]={
+    usuario: currentUser?currentUser.nombre:'Usuario',
+    sesion: _miSesionId,
+    inicio: (actual&&actual.sesion===_miSesionId)?actual.inicio:new Date().toISOString(),
+    latido: new Date().toISOString()
+  };
+  await _lockEscribir(locks);
+  return true;
+}
+async function _lockLiberar(modulo){
+  if(!modulo || LOCKABLE_MODULES.indexOf(modulo)<0) return;
+  if(!(OD&&OD.carpetaHandle) && !(SP&&SP.activo)) return;
+  try{
+    var locks=await _lockLeer();
+    if(locks[modulo] && locks[modulo].sesion===_miSesionId){
+      delete locks[modulo];
+      await _lockEscribir(locks);
+    }
+  }catch(e){}
+}
+function _lockIniciarLatido(modulo){
+  _lockDetenerLatido();
+  _lockHeartbeatTimer=setInterval(function(){
+    if(_moduloConBloqueoActual!==modulo) return;
+    _lockLeer().then(function(locks){
+      locks[modulo]=locks[modulo]||{};
+      locks[modulo].usuario=currentUser?currentUser.nombre:'Usuario';
+      locks[modulo].sesion=_miSesionId;
+      locks[modulo].inicio=locks[modulo].inicio||new Date().toISOString();
+      locks[modulo].latido=new Date().toISOString();
+      _lockEscribir(locks);
+    });
+  }, Math.max(20000, _lockTimeoutMs()/4));
+}
+function _lockDetenerLatido(){
+  if(_lockHeartbeatTimer){ clearInterval(_lockHeartbeatTimer); _lockHeartbeatTimer=null; }
+}
+function _mostrarModuloBloqueado(modulo, actual, mismoUsuario){
+  var nombreMod = (typeof PT!=='undefined' && PT[modulo]) ? PT[modulo] : modulo;
+  var mins = Math.max(0, Math.round((Date.now()-(new Date(actual.latido||actual.inicio).getTime()||Date.now()))/60000));
+  var msg = mismoUsuario
+    ? '🔒 Ya tienes el módulo "'+nombreMod+'" abierto en otra pestaña o ventana.'
+    : '🔒 El módulo "'+nombreMod+'" está siendo usado por '+(actual.usuario||'otro usuario')+' en este momento. Intenta de nuevo en unos minutos.';
+  toast(msg, 'er');
+}
+// Libera el bloqueo del módulo actual al salir/cerrar (best-effort, en silencio)
+function _lockLiberarModuloActual(){
+  if(_moduloConBloqueoActual){
+    _lockDetenerLatido();
+    _lockLiberar(_moduloConBloqueoActual);
+    _moduloConBloqueoActual=null;
+  }
+}
+
 function nav(p,el){
+  // Si el módulo destino requiere uso exclusivo y hay carpeta compartida
+  // conectada, se valida el bloqueo ANTES de navegar (asíncrono); mientras
+  // tanto la app se queda en la pantalla actual.
+  if(LOCKABLE_MODULES.indexOf(p)>=0 && ((OD&&OD.carpetaHandle)||(SP&&SP.activo)) && p!==_moduloConBloqueoActual){
+    _lockIntentarEntrar(p).then(function(ok){
+      if(!ok) return;
+      if(_moduloConBloqueoActual && _moduloConBloqueoActual!==p) _lockLiberarModuloActual();
+      _moduloConBloqueoActual=p;
+      _lockIniciarLatido(p);
+      _navReal(p,el);
+    });
+    return;
+  }
+  // Módulo destino no requiere bloqueo (o ya lo tenemos nosotros): si veníamos
+  // de un módulo bloqueado distinto, lo liberamos al salir de él.
+  if(_moduloConBloqueoActual && _moduloConBloqueoActual!==p) _lockLiberarModuloActual();
+  _navReal(p,el);
+}
+
+function _navReal(p,el){
   _navGetNodes();
   _navPgNodes.forEach(function(x){x.classList.remove('act');x.style.display='none';x.style.minHeight='';x.style.width='';x.style.position='';x.style.top='';x.style.left='';x.style.right='';x.style.bottom='';x.style.zIndex='';});
   _navNiNodes.forEach(function(x){x.classList.remove('act');});
@@ -16817,6 +16957,8 @@ function canDelete(){
 
 function doLogout(){
  detenerTimerInactividad();
+  // Liberar el bloqueo de uso exclusivo del módulo actual, si lo había
+  if(typeof _lockLiberarModuloActual==='function') _lockLiberarModuloActual();
   // Cancelar cualquier guardado automático pendiente
   if(window.OD && OD.saveTimer){ clearTimeout(OD.saveTimer); OD.saveTimer=null; }
   // Proteger la hoja Detalle de Hallazgos: al volver a loguear
@@ -16863,7 +17005,8 @@ var OD_ARCHIVOS = {
   solicitudes:  'Solicitudes.xlsx',
   inspecciones: 'Inspecciones.xlsx',
   colaboradores:'Colaboradores.xlsx',
-  actividades:  'Actividadesdeldia.xlsx'
+  actividades:  'Actividadesdeldia.xlsx',
+  bloqueos:     'BloqueosModulos.json'
 };
 
 // ── MODO SHAREPOINT ───────────────────────────────────────────────────────────
@@ -16965,6 +17108,41 @@ async function spEscribirArchivo(nombre, wbToWrite){
   }catch(e){
     console.error('[SP] Error escribiendo '+nombre+':',e.message);
     toast('⚠️ Error guardando '+nombre+': '+e.message,'er');
+    return false;
+  }
+}
+
+// Variante genérica para archivos de texto/JSON pequeños (no Excel), como el
+// archivo de bloqueos de módulos entre usuarios.
+async function spLeerArchivoTexto(nombre){
+  var url=SP.carpetaUrl+'/'+nombre;
+  try{
+    var r=await fetch(url,{credentials:'include',cache:'no-cache'});
+    if(!r.ok) throw new Error('HTTP '+r.status+' al leer '+nombre);
+    return await r.text();
+  }catch(e){
+    return null; // archivo aún no existe u otro error — se trata como vacío
+  }
+}
+async function spEscribirArchivoTexto(nombre, texto, mime){
+  try{
+    var blob=new Blob([texto],{type:mime||'text/plain'});
+    var digest=await spObtenerDigest();
+    var serverRelUrl=SP.carpetaUrl+'/'+nombre;
+    var apiUrl=SP.siteUrl+"/_api/web/getfilebyserverrelativeurl('"+encodeURIComponent(serverRelUrl)+"')/$value";
+    var headers={'Content-Type':mime||'text/plain','Content-Length':String(blob.size)};
+    if(digest) headers['X-RequestDigest']=digest;
+    var r=await fetch(apiUrl,{method:'PUT',credentials:'include',headers:headers,body:blob});
+    if(!r.ok){
+      var apiUrl2=SP.siteUrl+"/_api/web/getfolderbyserverrelativeurl('"+encodeURIComponent(SP.carpetaUrl)+"')"+
+                  "/files/add(url='"+encodeURIComponent(nombre)+"',overwrite=true)";
+      if(digest) headers['X-RequestDigest']=digest;
+      var r2=await fetch(apiUrl2,{method:'POST',credentials:'include',headers:headers,body:blob});
+      if(!r2.ok) throw new Error('HTTP '+r2.status+' al escribir '+nombre);
+    }
+    return true;
+  }catch(e){
+    console.warn('[SP] Error escribiendo '+nombre+':',e.message);
     return false;
   }
 }
@@ -24237,6 +24415,9 @@ function _flushGuardadoPendiente(){
       if(typeof odGuardarListado==='function') odGuardarListado(true);
     }
   }catch(e){ console.log('flush guardado pendiente error: '+e.message); }
+  // Liberar también el bloqueo de uso exclusivo del módulo actual, para que
+  // otro usuario pueda entrar sin tener que esperar a que venza el "latido".
+  try{ if(typeof _lockLiberarModuloActual==='function') _lockLiberarModuloActual(); }catch(e2){}
 }
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState==='hidden') _flushGuardadoPendiente();
