@@ -1444,17 +1444,22 @@ tbody tr:last-child td{border-bottom:none}
     <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;line-height:1.6">
       El módulo de <strong>Novedad de Documento</strong> puede revisar — al crear o modificar un documento — si ya existe
       un nombre igual o similar en el Listado Maestro de cualquiera de las empresas, y alertar al usuario antes de
-      continuar. Elige UNA de las dos formas de conectar los datos de las demás empresas (se usa la carpeta local si
-      está conectada; si no, se usa la tabla de rutas de SharePoint de más abajo).
+      continuar. <strong>Solo un Administrador necesita conectar la carpeta madre</strong> (más abajo) para generar el
+      consolidado; una vez generado, la app lo publica automáticamente dentro de la carpeta de cada empresa, así que
+      <strong>el resto de los usuarios lo reciben solos, sin entrar a Configuración ni conectar nada</strong> — solo con
+      la carpeta de su propia empresa, que ya usan a diario.
     </div>
 
     <div style="border:1px solid var(--brd);border-radius:8px;padding:12px;margin-bottom:14px;background:var(--bg3)">
-      <div style="font-weight:700;font-size:12px;margin-bottom:6px">✅ Opción recomendada — Carpeta local (una sola conexión)</div>
+      <div style="font-weight:700;font-size:12px;margin-bottom:6px">✅ Paso de generación (solo lo hace un Administrador, de vez en cuando)</div>
       <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;line-height:1.6">
         Conecta <strong>una sola vez</strong> la carpeta madre que contiene las carpetas de todas las empresas (ej. <code>LM_SofgenPharma</code>).
         El permiso se extiende automáticamente a todo lo que hay adentro, así que la app descubre sola cada carpeta de
-        empresa y lee su <code>ListadoMaestro.xlsx</code> directamente — sin tener que configurar ni mantener ninguna ruta.
-        Cada Administrador que quiera usar el chequeo debe conectarla una vez en su propio navegador (igual que hiciste con Colaboradores).
+        empresa, lee su <code>ListadoMaestro.xlsx</code>, arma el consolidado y lo <strong>publica dentro de cada carpeta
+        de empresa</strong> (archivo <code>_CacheConsolidadoListados.json</code>). Como esas carpetas ya se sincronizan
+        solas por OneDrive/SharePoint, cualquier usuario de cualquier empresa recibe el consolidado en su propia carpeta
+        automáticamente — sin tener que conectar la carpeta madre ellos mismos. Con la sesión abierta, esto también se
+        repite solo cada 30 minutos para mantenerlo al día.
         <strong>La configuración de esta sección (rutas, nombres de empresa, formatos oficiales) también queda guardada dentro de
         esta misma carpeta</strong>, así que cualquier Administrador que la conecte ve automáticamente la misma configuración,
         sin tener que repetirla.
@@ -1514,39 +1519,6 @@ tbody tr:last-child td{border-bottom:none}
       <button class="btn gh sm" onclick="cfgCarpetasProbar()" title="Intenta leer el Listado Maestro de cada empresa configurada, para validar que las rutas y permisos son correctos">🔎 Probar conexión</button>
     </div>
     <div id="cfg-carpetas-resultado" style="margin-top:10px;font-size:11px;display:none"></div>
-  </div>
-
-  <div class="card" style="margin-top:14px;border-top:3px solid var(--T)" id="cfg-colab-card">
-    <div class="sh" style="margin-bottom:10px">
-      <div class="st">👥 Carpeta Única Compartida de Colaboradores</div>
-    </div>
-    <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;line-height:1.6">
-      El archivo <code>Colaboradores.xlsx</code> es solo de consulta (nunca se edita desde la app), así que puede vivir en
-      <strong>una sola carpeta compartida para todas las empresas</strong>, en vez de una copia en cada carpeta.
-      Configura cualquiera de las dos opciones (o ambas — se intenta primero la ruta de SharePoint):
-    </div>
-    <div id="cfg-colab-diagnostico" style="font-size:11px;font-weight:600;margin-bottom:8px;padding:8px 10px;border-radius:6px;background:var(--bg3)"></div>
-    <div style="margin-bottom:14px">
-      <button class="btn gh sm" onclick="cfgColabRecargarAhora()">🔄 Recargar colaboradores ahora</button>
-    </div>
-    <div style="margin-bottom:14px">
-      <label class="fl" style="display:block;margin-bottom:4px">Ruta relativa en SharePoint (recomendado)</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input class="fi" id="cfg-colab-ruta" style="flex:1;min-width:220px" placeholder="/sites/Documentacion/LM_SofgenPharma/Colaboradores">
-        <button class="btn sm" onclick="cfgColabGuardarRuta()">💾 Guardar</button>
-        <button class="btn gh sm" onclick="cfgColabDetectarAutomatico()" title="Prueba rutas cercanas a donde corre esta sesión, buscando una carpeta llamada Colaboradores">🔍 Detectar automáticamente</button>
-      </div>
-      <div id="cfg-colab-ruta-actual" style="font-size:10px;color:var(--tx3);margin-top:6px"></div>
-      <div id="cfg-colab-resultado" style="font-size:11px;margin-top:8px;display:none"></div>
-    </div>
-    <div>
-      <label class="fl" style="display:block;margin-bottom:4px">O carpeta local (si no corres dentro de SharePoint) — se conecta una vez por navegador</label>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="btn gh sm" onclick="cfgColabConectarCarpetaLocal()">📁 Conectar carpeta local</button>
-        <button class="btn gh sm" onclick="cfgColabDesconectarCarpetaLocal()">✕ Desconectar</button>
-        <span id="cfg-colab-estado-local" style="font-size:11px">—</span>
-      </div>
-    </div>
   </div>
 
   </div>
@@ -10455,7 +10427,7 @@ function limpM(){
 // ============================================================
 // CONFIGURACION
 // ============================================================
-function renderCfg(){document.getElementById('c-org').value=cfg.org||'Sofgen Pharma';document.getElementById('c-rev').value=cfg.revDias||365;document.getElementById('c-aler').value=cfg.alertDias||30;if(typeof cfgFormatosRender==='function')cfgFormatosRender();if(typeof cfgCarpetasRender==='function')cfgCarpetasRender();if(typeof cfgColabRender==='function')cfgColabRender();}
+function renderCfg(){document.getElementById('c-org').value=cfg.org||'Sofgen Pharma';document.getElementById('c-rev').value=cfg.revDias||365;document.getElementById('c-aler').value=cfg.alertDias||30;if(typeof cfgFormatosRender==='function')cfgFormatosRender();if(typeof cfgCarpetasRender==='function')cfgCarpetasRender();}
 function saveConf(){cfg={org:document.getElementById('c-org').value||'Sofgen Pharma',revDias:parseInt(document.getElementById('c-rev').value)||365,alertDias:parseInt(document.getElementById('c-aler').value)||30};saveArr('cfg',cfg);toast('Configuracion guardada');}
 function clearAll(){
   if(!confirm('Borrar TODOS los datos?'))return;
@@ -16797,7 +16769,6 @@ async function guardarConfigCompartida(){
   var payload={
     empresasCarpetas: EMPRESAS_CARPETAS,
     nombresCarpetasEmpresa: NOMBRES_CARPETAS_EMPRESA,
-    colaboradoresRutaSharePoint: CONFIG_COLABORADORES.rutaSharePoint||'',
     formatosOficiales: (typeof FORMATOS_OFICIALES!=='undefined')?FORMATOS_OFICIALES:undefined,
     _actualizado: new Date().toISOString(),
     _actualizadoPor: currentUser?currentUser.nombre:''
@@ -16812,12 +16783,10 @@ async function cargarConfigCompartida(silencioso){
   if(!datos) return false;
   if(datos.empresasCarpetas){ EMPRESAS_CARPETAS=datos.empresasCarpetas; guardarEmpresasCarpetas(); }
   if(datos.nombresCarpetasEmpresa){ NOMBRES_CARPETAS_EMPRESA=datos.nombresCarpetasEmpresa; guardarNombresCarpetasEmpresa(); }
-  if(datos.colaboradoresRutaSharePoint!==undefined){ CONFIG_COLABORADORES.rutaSharePoint=datos.colaboradoresRutaSharePoint; guardarConfigColaboradores(); }
   if(datos.formatosOficiales){ FORMATOS_OFICIALES=datos.formatosOficiales; guardarFormatosOficiales(); }
   _nfCacheGlobal={timestamp:0,porEmpresa:{},fallidas:[]};
   if(typeof cfgCarpetasRender==='function') cfgCarpetasRender();
   if(typeof cfgFormatosRender==='function') cfgFormatosRender();
-  if(typeof cfgColabRender==='function') cfgColabRender();
   if(!silencioso) toast('🔄 Configuración compartida cargada'+(datos._actualizadoPor?' (actualizada por '+datos._actualizadoPor+')':''),'ok');
   return true;
 }
@@ -16853,8 +16822,14 @@ async function cfgEmpresasConectarCarpetaMadre(){
     await idbSaveDirEmpresas(h);
     _nfCacheGlobal={timestamp:0,porEmpresa:{},fallidas:[]}; // invalidar caché tras conectar
     var traida=await cargarConfigCompartida(true);
-    toast('📁 Carpeta madre de empresas conectada'+(traida?' — configuración compartida cargada':' en este navegador'),'ok');
+    toast('📁 Carpeta madre conectada — generando y publicando el consolidado en cada empresa...','if');
     cfgCarpetasRender();
+    // Disparar de una vez la generación y publicación del consolidado en
+    // cada carpeta de empresa, para no dejarle ese paso pendiente al
+    // Administrador (antes había que hacer clic aparte en "Probar conexión").
+    var datosGen=await nfObtenerDatosGlobales(true);
+    var nEmpresas=Object.keys(datosGen.porEmpresa||{}).length;
+    toast((traida?'✅ Configuración compartida cargada. ':'')+'✅ Consolidado generado y publicado en '+nEmpresas+' empresa(s)'+((datosGen.fallidas&&datosGen.fallidas.length)?' ('+datosGen.fallidas.length+' con error, ver consola)':''),'ok');
   }catch(e){ if(e && e.name!=='AbortError') toast('No se pudo conectar la carpeta: '+e.message,'er'); }
 }
 function cfgEmpresasDesconectarCarpetaMadre(){
@@ -16936,102 +16911,20 @@ function cfgEmpresasGuardarNombres(){
 }
 
 // ============================================================
-// CARPETA ÚNICA COMPARTIDA DE COLABORADORES
+// COLABORADORES — cada empresa tiene su propio listado
 // ============================================================
-// El archivo Colaboradores.xlsx (solo de consulta, nunca se escribe desde
-// la app) puede vivir en UNA sola carpeta compartida para todas las
-// empresas, en vez de estar duplicado dentro de la carpeta de cada una.
-// Soporta dos formas de conexión, según cómo esté corriendo la app:
-//   1) Ruta de SharePoint (modo SP.activo, o cualquier fetch autenticado
-//      contra el mismo origen) — se configura UNA sola vez, para todos.
-//   2) Carpeta local (File System Access API) — cada navegador/dispositivo
-//      debe concederle acceso una sola vez (limitación de seguridad del
-//      navegador; no se puede centralizar como la ruta de SharePoint).
-// Se intenta primero la ruta de SharePoint; si no está configurada o falla,
-// se intenta la carpeta local conectada; si tampoco hay, se cae al
-// comportamiento anterior (archivo o pestaña dentro de la carpeta propia
-// de la empresa).
-var CONFIG_COLABORADORES_DEFAULT = { rutaSharePoint:'' };
-var CONFIG_COLABORADORES = loadObj('colaboradoresConfig', CONFIG_COLABORADORES_DEFAULT);
-function guardarConfigColaboradores(){ saveArr('colaboradoresConfig', CONFIG_COLABORADORES); }
-
-var OD_COLAB = {carpetaHandle:null};
-// Al cargar la página, intentar recuperar en silencio el handle de la
-// carpeta local compartida (si el navegador aún recuerda el permiso). Si no
-// hay permiso o no hay handle guardado, simplemente queda desconectada
-// hasta que alguien la conecte de nuevo desde Configuración.
-(async function _odColabInit(){
-  try{
-    var h=await idbLoadDirColab();
-    if(h){
-      var perm = window.location.protocol==='file:' ? 'granted' : await h.queryPermission({mode:'read'});
-      if(perm==='granted') OD_COLAB.carpetaHandle=h;
-    }
-  }catch(e){}
-})();
-
-// Leer un archivo desde una ruta de SharePoint distinta a la carpeta
-// conectada de la empresa (ruta fija, configurada por el Administrador).
-async function spLeerArchivoDeRuta(ruta, nombre){
-  try{
-    var url=(ruta||'').replace(/\/$/,'')+'/'+nombre;
-    var r=await fetch(url,{credentials:'include',cache:'no-cache'});
-    if(!r.ok) throw new Error('HTTP '+r.status+' al leer '+nombre);
-    var buf=await r.arrayBuffer();
-    return {buf:buf,lastModified:Date.now(),handle:null};
-  }catch(e){
-    console.warn('[Colaboradores] Error leyendo '+nombre+' desde ruta compartida:',e.message);
-    return null;
-  }
-}
-// Leer un archivo desde un FileSystemDirectoryHandle distinto al de la
-// carpeta de la empresa (la carpeta local compartida de Colaboradores).
-async function _leerArchivoDeCarpetaLocal(carpetaHandle, nombre){
-  if(!carpetaHandle) return null;
-  try{
-    var fh=await carpetaHandle.getFileHandle(nombre,{create:false});
-    var file=await fh.getFile();
-    return {buf:await file.arrayBuffer(), lastModified:file.lastModified, handle:fh};
-  }catch(e){ console.warn('[Colaboradores] Error leyendo '+nombre+' de carpeta local compartida:',e.message); return null; }
-}
-// Punto de entrada usado por odCargarListado(): intenta SharePoint primero,
-// luego carpeta local compartida, y devuelve null si ninguna aplica (en
-// cuyo caso el llamador cae al comportamiento anterior por empresa).
-async function odLeerColaboradoresCompartido(){
-  var ruta=(CONFIG_COLABORADORES.rutaSharePoint||'').trim();
-  // La ruta de SharePoint solo tiene sentido si esta sesión realmente está
-  // corriendo dentro de SharePoint (SP.activo) — si la app se abrió como
-  // archivo local o desde otro origen, un fetch a esa ruta siempre va a
-  // fallar (apunta a un origen equivocado), así que ni se intenta: se va
-  // directo a la carpeta local, que es la fuente real en ese caso.
-  if(ruta && SP.activo){
-    var data=await spLeerArchivoDeRuta(ruta, OD_ARCHIVOS.colaboradores);
-    if(data) return data;
-    console.warn('[Colaboradores] No se pudo leer desde la ruta SharePoint configurada: '+ruta);
-  }
-  if(OD_COLAB.carpetaHandle){
-    var data2=await _leerArchivoDeCarpetaLocal(OD_COLAB.carpetaHandle, OD_ARCHIVOS.colaboradores);
-    if(data2) return data2;
-  }
-  return null;
-}
-// Lee y parsea Colaboradores.xlsx (carpeta compartida → carpeta local →
-// respaldo anterior por empresa) y actualiza el array global `colaboradores`.
+// El archivo Colaboradores.xlsx (o una pestaña "Colaboradores" dentro del
+// mismo Listado Maestro) vive DENTRO de la carpeta propia de cada empresa,
+// igual que el resto de sus archivos. Al abrir la app, cada usuario carga
+// automáticamente el listado de su propia empresa — no requiere ningún
+// paso adicional en Configuración.
 // Devuelve {ok, cantidad, fuente, error}. wbFallback es el workbook del
-// Listado Maestro ya cargado, usado solo en el último caso de respaldo
-// (buscar una pestaña "Colaboradores" dentro de ese mismo archivo).
+// Listado Maestro ya cargado, usado cuando no hay archivo aparte y los
+// colaboradores están en una pestaña de ese mismo archivo.
 async function odRecargarColaboradores(wbFallback){
   try{
     var wsColab=null; var fuente='';
-    var colabCompartido=await odLeerColaboradoresCompartido();
-    if(colabCompartido){
-      var wbColabC=XLSX.read(colabCompartido.buf,{type:'array',cellDates:false,raw:false});
-      var wsColabNombreC=['Listado de Colaboradores','Colaboradores'];
-      wsColabNombreC.forEach(function(n){if(!wsColab&&wbColabC.Sheets[n])wsColab=wbColabC.Sheets[n];});
-      if(!wsColab&&wbColabC.SheetNames[0]) wsColab=wbColabC.Sheets[wbColabC.SheetNames[0]];
-      fuente = wsColab ? 'carpeta compartida (SharePoint o local)' : '';
-      if(!wsColab) return {ok:false, cantidad:0, error:'Se leyó el archivo pero no se encontró ninguna hoja "Colaboradores" o "Listado de Colaboradores" dentro de él.'};
-    } else if(OD.carpetaHandle){
+    if(OD.carpetaHandle){
       var colabData=await odLeerArchivo(OD_ARCHIVOS.colaboradores);
       if(colabData){
         var wbColab=XLSX.read(colabData.buf,{type:'array',cellDates:false,raw:false});
@@ -17040,7 +16933,8 @@ async function odRecargarColaboradores(wbFallback){
         if(!wsColab&&wbColab.SheetNames[0]) wsColab=wbColab.Sheets[wbColab.SheetNames[0]];
         fuente='carpeta propia de la empresa';
       }
-    } else if(wbFallback){
+    }
+    if(!wsColab && wbFallback){
       ['Listado de Colaboradores','Listado_de_Colaboradores','Colaboradores'].forEach(function(n){
         if(!wsColab&&wbFallback.Sheets[n]) wsColab=wbFallback.Sheets[n];
       });
@@ -17050,7 +16944,7 @@ async function odRecargarColaboradores(wbFallback){
       fuente='pestaña dentro del Listado Maestro';
     }
     if(!wsColab){
-      return {ok:false, cantidad:0, error:'No se encontró ninguna fuente de Colaboradores configurada o conectada (ni carpeta compartida, ni carpeta propia, ni pestaña en el Listado Maestro).'};
+      return {ok:false, cantidad:0, error:'No se encontró Colaboradores.xlsx en la carpeta de la empresa, ni una pestaña "Colaboradores" dentro del Listado Maestro.'};
     }
     var rowsColab=XLSX.utils.sheet_to_json(wsColab,{header:1,defval:'',range:0});
     colaboradores=[];
@@ -17065,103 +16959,6 @@ async function odRecargarColaboradores(wbFallback){
     console.warn('OD: no se pudo leer Colaboradores:',eCol.message);
     return {ok:false, cantidad:0, error:eCol.message};
   }
-}
-
-// ── Administración (pantalla Configuración) de la carpeta de Colaboradores ──
-async function cfgColabRecargarAhora(){
-  var diag=document.getElementById('cfg-colab-diagnostico');
-  if(diag){ diag.style.color='var(--tx3)'; diag.textContent='🔄 Probando lectura de Colaboradores...'; }
-  var res=await odRecargarColaboradores(typeof wb!=='undefined'?wb:null);
-  if(diag){
-    if(res.ok){
-      diag.textContent='✅ '+res.cantidad+' colaboradores cargados (fuente: '+res.fuente+')';
-      diag.style.color='#0a7a3d';
-    } else {
-      diag.textContent='⚠️ 0 colaboradores cargados — '+(res.error||'motivo desconocido');
-      diag.style.color='#a02020';
-    }
-  }
-}
-
-function cfgColabRender(){
-  var esAdmin = !!(currentUser && currentUser.rol==='Administrador');
-  var card=document.getElementById('cfg-colab-card');
-  if(card) card.style.display = esAdmin ? '' : 'none';
-  if(!esAdmin) return;
-  var inp=document.getElementById('cfg-colab-ruta');
-  if(inp) inp.value = CONFIG_COLABORADORES.rutaSharePoint||'';
-  var actual=document.getElementById('cfg-colab-ruta-actual');
-  if(actual){
-    actual.textContent = (SP.activo && SP.carpetaUrl) ? ('Ruta actual de esta sesión (para referencia): '+SP.carpetaUrl) : 'Esta sesión no está corriendo dentro de SharePoint.';
-  }
-  var estLocal=document.getElementById('cfg-colab-estado-local');
-  if(estLocal){
-    estLocal.textContent = OD_COLAB.carpetaHandle ? '✅ Conectada en este navegador' : '— No conectada en este navegador';
-    estLocal.style.color = OD_COLAB.carpetaHandle ? '#0a7a3d' : 'var(--tx3)';
-  }
-  var diag=document.getElementById('cfg-colab-diagnostico');
-  if(diag){
-    var n=(typeof colaboradores!=='undefined'&&colaboradores)?colaboradores.length:0;
-    diag.textContent = n>0 ? ('✅ '+n+' colaboradores cargados actualmente en esta sesión') : '⚠️ 0 colaboradores cargados en esta sesión — revisa la ruta/carpeta configurada, o vuelve a cargar el listado';
-    diag.style.color = n>0 ? '#0a7a3d' : '#a02020';
-  }
-}
-// Prueba rutas candidatas cercanas a SP.carpetaUrl, reemplazando cada nivel
-// (desde el más profundo hacia la raíz) por "Colaboradores", hasta encontrar
-// una donde exista Colaboradores.xlsx. Cubre el caso típico de que la
-// carpeta "Colaboradores" sea hermana de las carpetas de cada empresa,
-// dentro de una carpeta raíz compartida (p.ej. LM_SofgenPharma).
-async function cfgColabDetectarAutomatico(){
-  if(!(currentUser && currentUser.rol==='Administrador')){ toast('Solo un Administrador puede hacer esto','er'); return; }
-  if(!SP.activo || !SP.carpetaUrl){ toast('Esta sesión no está corriendo dentro de SharePoint','er'); return; }
-  var out=document.getElementById('cfg-colab-resultado');
-  var partes=SP.carpetaUrl.split('/').filter(Boolean);
-  var candidatos=[];
-  for(var i=partes.length-1;i>=1;i--){
-    var base=partes.slice(0,i);
-    var candidata='/'+base.concat('Colaboradores').join('/');
-    if(candidatos.indexOf(candidata)<0) candidatos.push(candidata);
-  }
-  if(out){ out.style.display='block'; out.innerHTML='🔄 Probando '+candidatos.length+' rutas posibles cerca de tu carpeta actual...'; }
-  var encontrado=null;
-  for(var c=0;c<candidatos.length;c++){
-    var data=await spLeerArchivoDeRuta(candidatos[c], OD_ARCHIVOS.colaboradores);
-    if(data){ encontrado=candidatos[c]; break; }
-  }
-  if(encontrado){
-    var inp2=document.getElementById('cfg-colab-ruta'); if(inp2) inp2.value=encontrado;
-    CONFIG_COLABORADORES.rutaSharePoint=encontrado;
-    guardarConfigColaboradores();
-    if(out) out.innerHTML='✅ Encontrada y guardada automáticamente: <code>'+homeEscape(encontrado)+'</code>';
-    toast('✅ Ruta de Colaboradores detectada y guardada','ok');
-  } else {
-    if(out) out.innerHTML='✗ No se encontró "Colaboradores.xlsx" probando rutas cercanas a la actual ('+candidatos.length+' probadas). Verifica que la carpeta "Colaboradores" esté dentro del mismo sitio de SharePoint, o escribe la ruta manualmente copiándola de la barra de direcciones al abrir esa carpeta en SharePoint.';
-    toast('No se pudo detectar automáticamente — revisa el mensaje o escribe la ruta a mano','er');
-  }
-}
-function cfgColabGuardarRuta(){
-  if(!(currentUser && currentUser.rol==='Administrador')){ toast('Solo un Administrador puede modificar esta configuración','er'); return; }
-  var inp=document.getElementById('cfg-colab-ruta');
-  CONFIG_COLABORADORES.rutaSharePoint = inp ? inp.value.trim().replace(/\/$/,'') : '';
-  guardarConfigColaboradores();
-  guardarConfigCompartida();
-  toast('✅ Ruta de Colaboradores guardada'+(OD_EMPRESAS.carpetaHandle?' y sincronizada en la carpeta compartida':''),'ok');
-}
-async function cfgColabConectarCarpetaLocal(){
-  if(!window.showDirectoryPicker){ toast('Tu navegador no soporta selección de carpetas locales (usa Chrome o Edge)','er'); return; }
-  try{
-    var h=await window.showDirectoryPicker();
-    OD_COLAB.carpetaHandle=h;
-    await idbSaveDirColab(h);
-    toast('📁 Carpeta local de Colaboradores conectada en este navegador','ok');
-    cfgColabRender();
-  }catch(e){ if(e && e.name!=='AbortError') toast('No se pudo conectar la carpeta: '+e.message,'er'); }
-}
-function cfgColabDesconectarCarpetaLocal(){
-  OD_COLAB.carpetaHandle=null;
-  idbSaveDirColab(null);
-  toast('Carpeta local de Colaboradores desconectada de este navegador','ok');
-  cfgColabRender();
 }
 
 // ── Administración (pantalla Configuración) de EMPRESAS_CARPETAS ───────
@@ -17265,20 +17062,24 @@ function _nfParsearListadoLigero(wb){
 // Descarga (o reutiliza de caché) el Listado Maestro "ligero" de cada
 // empresa configurada en EMPRESAS_CARPETAS. forzar=true ignora la caché.
 async function nfObtenerDatosGlobales(forzar){
+  var CACHE_CONSOLIDADO='_CacheConsolidadoListados.json';
   var ahora=Date.now();
   if(!forzar && (ahora-_nfCacheGlobal.timestamp)<_NF_CACHE_TTL_MS && Object.keys(_nfCacheGlobal.porEmpresa).length){
     return _nfCacheGlobal;
   }
-  var porEmpresa={}; var fallidas=[];
+  var porEmpresa={}; var fallidas=[]; var subcarpetasHandles=[];
   if(OD_EMPRESAS.carpetaHandle){
-    // Modo carpeta local: recorrer las subcarpetas de la carpeta madre y
-    // leer el Listado Maestro de cada una directamente — sin necesidad de
-    // configurar ni mantener ninguna ruta por empresa.
+    // Modo generación (Administrador con la carpeta madre conectada): recorre
+    // las subcarpetas de empresa y lee el Listado Maestro de cada una. Guarda
+    // también el handle de cada subcarpeta para poder publicar el consolidado
+    // DENTRO de cada una (ver más abajo) — así cualquier usuario lo recibe
+    // solo con su propia carpeta conectada, sin pasar por Configuración.
     try{
       for await (var entry of OD_EMPRESAS.carpetaHandle.entries()){
         var nombreSub=entry[0], handleSub=entry[1];
         if(!handleSub || handleSub.kind!=='directory') continue;
         if(nombreSub.toLowerCase()==='colaboradores') continue; // esa carpeta no es una empresa
+        subcarpetasHandles.push(handleSub);
         try{
           var fh=await handleSub.getFileHandle(OD_ARCHIVOS.lm,{create:false});
           var file=await fh.getFile();
@@ -17297,25 +17098,50 @@ async function nfObtenerDatosGlobales(forzar){
     }catch(eEnum){
       console.warn('[NF-Global] Error recorriendo la carpeta madre de empresas:',eEnum.message);
     }
-  } else {
-    // Modo SharePoint (alternativa): leer según EMPRESAS_CARPETAS configurado
-    var mapa=EMPRESAS_CARPETAS||{};
-    await Promise.all(Object.keys(mapa).map(async function(empresa){
-      var ruta=(mapa[empresa]||'').trim();
-      if(!ruta) return; // sin carpeta configurada para esta empresa — se omite
-      try{
-        var url=ruta.replace(/\/$/,'')+'/'+OD_ARCHIVOS.lm;
-        var r=await fetch(url,{credentials:'include',cache:'no-cache'});
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        var buf=await r.arrayBuffer();
-        var wb=XLSX.read(buf,{type:'array',cellDates:false,raw:false});
-        porEmpresa[empresa]=_nfParsearListadoLigero(wb);
-      }catch(e){
-        fallidas.push(empresa);
-        console.warn('[NF-Global] No se pudo leer Listado Maestro de '+empresa+':',e.message);
-      }
-    }));
+    if(Object.keys(porEmpresa).length){
+      // Publicar el consolidado DENTRO de cada carpeta de empresa (no solo en
+      // la carpeta madre). Como cada usuario ya conecta la carpeta de su
+      // propia empresa para su trabajo diario, y esa carpeta se sincroniza
+      // sola por OneDrive/SharePoint, el consolidado le llega automáticamente
+      // sin que tenga que entrar a Configuración ni conectar nada más.
+      var payloadPublicar={porEmpresa:porEmpresa, fallidas:fallidas, _actualizado:new Date().toISOString()};
+      subcarpetasHandles.forEach(function(h){
+        _escribirArchivoJSONEnCarpeta(h, CACHE_CONSOLIDADO, payloadPublicar);
+      });
+      _escribirArchivoJSONEnCarpeta(OD_EMPRESAS.carpetaHandle, CACHE_CONSOLIDADO, payloadPublicar);
+      _nfCacheGlobal={timestamp:ahora, porEmpresa:porEmpresa, fallidas:fallidas};
+      return _nfCacheGlobal;
+    }
   }
+  // Camino normal para la gran mayoría de usuarios (sin carpeta madre
+  // conectada): leer el consolidado publicado dentro de la carpeta de SU
+  // PROPIA empresa — ya está ahí gracias al paso anterior, sin necesidad de
+  // ninguna configuración adicional.
+  if(OD.carpetaHandle){
+    var datosCachePropia=await _leerArchivoJSONDeCarpeta(OD.carpetaHandle, CACHE_CONSOLIDADO);
+    if(datosCachePropia && datosCachePropia.porEmpresa && Object.keys(datosCachePropia.porEmpresa).length){
+      console.log('[NF-Global] Usando consolidado publicado en la carpeta propia ('+(datosCachePropia._actualizado||'?')+')');
+      _nfCacheGlobal={timestamp:ahora, porEmpresa:datosCachePropia.porEmpresa, fallidas:datosCachePropia.fallidas||[], _deCache:true, _actualizado:datosCachePropia._actualizado};
+      return _nfCacheGlobal;
+    }
+  }
+  // Alternativa (modo SharePoint): leer según EMPRESAS_CARPETAS configurado
+  var mapa=EMPRESAS_CARPETAS||{};
+  await Promise.all(Object.keys(mapa).map(async function(empresa){
+    var ruta=(mapa[empresa]||'').trim();
+    if(!ruta) return; // sin carpeta configurada para esta empresa — se omite
+    try{
+      var url=ruta.replace(/\/$/,'')+'/'+OD_ARCHIVOS.lm;
+      var r=await fetch(url,{credentials:'include',cache:'no-cache'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      var buf=await r.arrayBuffer();
+      var wb=XLSX.read(buf,{type:'array',cellDates:false,raw:false});
+      porEmpresa[empresa]=_nfParsearListadoLigero(wb);
+    }catch(e){
+      fallidas.push(empresa);
+      console.warn('[NF-Global] No se pudo leer Listado Maestro de '+empresa+':',e.message);
+    }
+  }));
   _nfCacheGlobal={timestamp:ahora, porEmpresa:porEmpresa, fallidas:fallidas};
   return _nfCacheGlobal;
 }
@@ -21106,6 +20932,20 @@ function odIniciarSyncAuto(){
       toast('⚡ '+cambios+' documento(s) actualizaron su estado automáticamente','if');
     }
   },3600000); // cada 60 minutos
+
+  // Refrescar Colaboradores y el consolidado de Listados Maestro (verificación
+  // cruzada de Novedad) cada 30 minutos, en segundo plano — así se mantienen
+  // al día sin depender de que alguien abra esos módulos manualmente, y la
+  // caché que se publica en la carpeta (ver odRecargarColaboradores /
+  // nfObtenerDatosGlobales) también queda actualizada para otras sesiones.
+  if(window._colabRefreshTimer) clearInterval(window._colabRefreshTimer);
+  window._colabRefreshTimer=setInterval(function(){
+    if(typeof odRecargarColaboradores==='function') odRecargarColaboradores(null);
+  },1800000); // cada 30 minutos
+  if(window._nfConsolidadoTimer) clearInterval(window._nfConsolidadoTimer);
+  window._nfConsolidadoTimer=setInterval(function(){
+    if(typeof nfObtenerDatosGlobales==='function') nfObtenerDatosGlobales(true);
+  },1800000); // cada 30 minutos
 }
 
 // ── Vigía del guardado automático ──────────────────────────────────────────
