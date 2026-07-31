@@ -4232,10 +4232,13 @@ function _icListaDepurados(){
     return !_icEsFormato(d) && d.motivoObsolescencia==='Depuración';
   });
 }
-// Activos actuales: documentos sin formatos ni obsoletos (universo vigente hoy).
+// Activos actuales: documentos sin formatos ni obsoletos (universo vigente hoy),
+// excluyendo los recién creados (Creación sin modificaciones posteriores), ya
+// que estos nacen con la nueva identidad corporativa y no son candidatos a
+// depuración — igual criterio que usan los indicadores de Cambio de Identidad.
 function _icListaActivosDepuracion(){
   return (docs||[]).filter(function(d){
-    return !_icEsFormato(d) && !_icEsObsoleto(d);
+    return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d);
   });
 }
 // Lista combinada para el Excel/tabla: depurados + activos, cada uno
@@ -4573,15 +4576,20 @@ function renderIndicadoresCiclo(){
   var elIdS=document.getElementById('dd-k-identidad-sub'); if(elIdS) elIdS.textContent=conIdentidad.length+' de '+activos.length+' documentos activos (sin formatos ni obsoletos)';
 
   // ── 2. % Documentos eliminados por depuración (avance real) ──────────
-  // Universo aplicable: documentos depurados (obsoletos por Depuración) +
-  // documentos actualmente activos (sin formatos, sin obsoletos).
-  // % avance = depurados / (depurados + activos) × 100  → 0-100%
+  // Universo aplicable (base): documentos activos HOY (sin formatos, sin
+  // obsoletos, sin recién creados — estos ya nacen con la nueva identidad
+  // y no son candidatos). Este número es el total "opcionado" a depurar;
+  // NO se le vuelven a sumar los ya depurados (eso duplicaría el conteo,
+  // ya que un documento depurado dejó de estar "activo" al pasar a Obsoleto).
+  // Un documento nuevo que se cree después no cambia este número porque
+  // queda excluido por _icEsDocumentoNuevo.
+  // % avance = depurados / activos × 100
   var listaDepurados=_icListaDepurados();
   var listaActivosDep=_icListaActivosDepuracion();
-  var universoDepuracion=listaDepurados.length+listaActivosDep.length;
+  var universoDepuracion=listaActivosDep.length;
   var pctDepuracion=universoDepuracion?Math.round(listaDepurados.length/universoDepuracion*100):0;
   var elDep=document.getElementById('dd-k-depuracion'); if(elDep) elDep.textContent=pctDepuracion+'%';
-  var elDepS=document.getElementById('dd-k-depuracion-sub'); if(elDepS) elDepS.textContent=universoDepuracion?(listaDepurados.length+' depurados de '+universoDepuracion+' aplicables ('+listaActivosDep.length+' activos)'):'Sin documentos aplicables';
+  var elDepS=document.getElementById('dd-k-depuracion-sub'); if(elDepS) elDepS.textContent=universoDepuracion?(listaDepurados.length+' depurados de '+universoDepuracion+' aplicables'):'Sin documentos aplicables';
   if(typeof icDibujarDonutDepuracion==='function') icDibujarDonutDepuracion(pctDepuracion,listaDepurados.length,listaActivosDep.length);
 
   // ── 3. % Documentos revisados anticipadamente (avance real) ──────────
