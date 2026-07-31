@@ -17288,19 +17288,45 @@ function _nfCoincidenciasContinuar(){
 // Arma un correo (mailto:) con el listado de coincidencias detectadas y lo
 // envía a los destinatarios fijos de revisión de duplicidad de documentos.
 var NF_COINCIDENCIAS_DESTINATARIOS = ['omadrid@sofgenpharma.com','lfsanchez@sofgenpharma.com','jarevalo@sofgenpharma.com'];
+// Devuelve el saludo apropiado según la hora local del equipo (mañana/tarde/noche).
+function nfSaludoSegunHora(){
+  var h=new Date().getHours();
+  if(h>=5&&h<12) return 'Buenos días';
+  if(h>=12&&h<19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
 function _nfCoincidenciasEnviarCorreo(){
   var datos=window._nfUltimasCoincidencias;
   if(!datos || !datos.resultados || !datos.resultados.length){ toast('No hay coincidencias para enviar','er'); return; }
   var nombre=datos.nombre||'';
-  var lineas=datos.resultados.map(function(r){
-    return '- '+r.codigo+' | '+r.descripcion+' | Versión: '+r.version+' | Área: '+r.area+' | Proceso: '+r.proceso+' | Empresa: '+r.empresa+' | Coincidencia: '+r.score+'%';
+  var total=datos.resultados.length;
+  var altas=datos.resultados.filter(function(r){return r.score>=80;}).length;
+  var saludo=nfSaludoSegunHora();
+  var solicitante=(currentUser?currentUser.nombre:'')||'No identificado';
+  var fechaHoy=typeof fDL==='function'?fDL(new Date()):(new Date()).toLocaleDateString();
+  var lineas=datos.resultados.map(function(r,i){
+    var nivel = r.score>=80 ? 'Alta' : (r.score>=60 ? 'Media' : 'Baja');
+    return (i+1)+'. '+r.codigo+' — '+r.descripcion+'\n'
+      +'   Versión: '+r.version+'   |   Área: '+r.area+'   |   Proceso: '+r.proceso+'   |   Empresa: '+r.empresa+'\n'
+      +'   Nivel de coincidencia: '+r.score+'% ('+nivel+')';
   });
-  var asunto=encodeURIComponent('Novedad de Documento — posibles coincidencias para "'+nombre+'"');
-  var cuerpo='Se encontraron los siguientes documentos con nombre igual o similar a "'+nombre+'" en el Listado Maestro de una o más empresas:\n\n'
-    +lineas.join('\n')
-    +'\n\nSolicitante: '+(currentUser?currentUser.nombre:'')
-    +'\n\nPor favor revisar antes de continuar con la solicitud de Novedad.';
+  var asunto=encodeURIComponent('⚠ Revisión requerida: posible documento duplicado — "'+nombre+'"');
+  var cuerpo=saludo+',\n\n'
+    +'Al registrar una solicitud de Novedad para el documento "'+nombre+'", el sistema de Gestión Documental '
+    +'encontró '+total+' documento(s) ya existente(s) en el Listado Maestro con nombre igual o similar'
+    +(altas?' ('+altas+' de ellos con coincidencia alta):':' :')+'\n\n'
+    +lineas.join('\n\n')
+    +'\n\n────────────────────────────\n'
+    +'Solicitante : '+solicitante+'\n'
+    +'Fecha       : '+fechaHoy+'\n'
+    +'Documento   : "'+nombre+'"\n'
+    +'────────────────────────────\n\n'
+    +'Por favor validar si se trata de un documento ya existente antes de aprobar la continuidad de este trámite, '
+    +'con el fin de evitar duplicidad documental.\n\n'
+    +'Saludos cordiales,\n'
+    +'Sistema de Gestión Documental';
   window.location.href='mailto:'+NF_COINCIDENCIAS_DESTINATARIOS.join(';')+'?subject='+asunto+'&body='+encodeURIComponent(cuerpo);
+  toast('📧 Correo de revisión generado con saludo de '+saludo.toLowerCase(),'ok');
 }
 function _nfCoincidenciasCancelar(){
   closeMo('mo-nf-coincidencias');
