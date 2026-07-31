@@ -6475,12 +6475,16 @@ function onArea() {
     return;
   }
 
-  // Área existente en el Listado Maestro: ocultar campo manual y autocompletar (solo lectura)
+  // Área existente en el Listado Maestro: ocultar campo manual y autocompletar
+  // proceso/líder/correo (solo lectura). El Administrador se sugiere según el
+  // área, pero se deja SIEMPRE habilitado (con todas las empresas disponibles
+  // en el listado) para que el usuario pueda cambiarlo si lo desea.
   if (manualInput) { manualInput.style.display='none'; manualInput.value=''; }
   if (manualHint)  manualHint.style.display='none';
   camposAuto.forEach(function(c){
     var el=document.getElementById(c.id);
     if(!el) return;
+    if(c.id==='d-adm'){ bloquear(el, false); el.classList.remove('au'); return; }
     bloquear(el, true);
     el.classList.add('au');
   });
@@ -6587,6 +6591,11 @@ function openNewDoc() {
   document.getElementById('d-fvenc').dataset = document.getElementById('d-fvenc').dataset || {};
   document.getElementById('d-fvenc').dataset.iso = '';
   document.getElementById('d-est').value = '';
+  // Área generadora: siempre vacía al crear un documento nuevo, para que el
+  // usuario deba elegirla del listado (o crear una nueva) en vez de heredar
+  // la selección que haya quedado de una edición anterior.
+  var selAreaNew=document.getElementById('d-area');
+  if(selAreaNew) selAreaNew.value='';
   // Restaurar campo de área manual y bloqueo de proceso/admin/lider/correo
   // (por si quedaron habilitados de una edición anterior de área nueva)
   var manualInput=document.getElementById('d-area-manual');
@@ -6596,6 +6605,7 @@ function openNewDoc() {
   ['d-proc','d-adm','d-lid','d-cor'].forEach(function(id){
     var el=document.getElementById(id);
     if(!el) return;
+    if(id==='d-adm'){ el.disabled=false; el.classList.remove('au'); return; }
     if(el.tagName==='SELECT'){ el.disabled=true; } else { el.readOnly=true; el.placeholder=''; }
     el.classList.add('au');
   });
@@ -6910,14 +6920,19 @@ function editDoc(id) {
     var manualInput=document.getElementById('d-area-manual');
     var manualHint=document.getElementById('d-area-manual-hint');
     var camposManual=['d-proc','d-adm','d-lid','d-cor'];
-    function bloquear(el, bloq){ if(el.tagName==='SELECT'){el.disabled=bloq;} else {el.readOnly=bloq;} }
+    // El Administrador (select de empresas) nunca se bloquea, aunque el área
+    // sí autocomplete un valor sugerido — el usuario siempre puede cambiarlo.
+    function bloquear(el, bloq){
+      if(el && el.id==='d-adm') bloq=false;
+      if(el.tagName==='SELECT'){el.disabled=bloq;} else {el.readOnly=bloq;}
+    }
     if(!selArea) return;
     selArea.value=d.areaGeneradora||'';
     if(selArea.value===(d.areaGeneradora||'') && d.areaGeneradora){
       // Coincidió con una opción existente del listado
       if(manualInput){manualInput.style.display='none';manualInput.value='';}
       if(manualHint) manualHint.style.display='none';
-      camposManual.forEach(function(id){var el=document.getElementById(id);if(el){bloquear(el,true);el.classList.add('au');}});
+      camposManual.forEach(function(id){var el=document.getElementById(id);if(el){bloquear(el,true);if(id!=='d-adm')el.classList.add('au');}});
     } else if(d.areaGeneradora){
       // El área guardada no está en el listado (caso raro) — modo manual
       selArea.value='__nueva__';
@@ -6927,7 +6942,7 @@ function editDoc(id) {
     } else {
       if(manualInput){manualInput.style.display='none';manualInput.value='';}
       if(manualHint) manualHint.style.display='none';
-      camposManual.forEach(function(id){var el=document.getElementById(id);if(el){bloquear(el,true);el.classList.add('au');}});
+      camposManual.forEach(function(id){var el=document.getElementById(id);if(el){bloquear(el,true);if(id!=='d-adm')el.classList.add('au');}});
     }
   })();
   // Re-generar traduccion si no existe o forzar desde descripcion actual
@@ -7666,7 +7681,7 @@ function enviarCorreoCopias(cod, tipo){
     cuerpo+='    '+(i+1)+'. Área: '+x.area+(x.subarea?' / '+x.subarea:'')+' — Responsable: '+x.responsable+'\n';
   });
   cuerpo+='\nEste es un mensaje automático generado por Sofgen Pharma DocControl Pro.\n\n';
-  cuerpo+='Saludos,\nJefferson Arevalo Sanchez\nCoordinador de Calidad II';
+  cuerpo+='Saludos cordiales,\nSistema de Documentación';
 
   var mailtoUrl='mailto:'+todosCorreos;
   if(cc.length) mailtoUrl+='?cc='+cc.join(';')+'&subject='+asunto+'&body='+encodeURIComponent(cuerpo);
@@ -7755,9 +7770,8 @@ function enviarCorreoDocumento(){
   if(fvig)  cuerpo+='    Fecha de vigencia:  '+fvig+'\n';
   if(fvenc) cuerpo+='    Fecha de vencim.:   '+fvenc+'\n';
   cuerpo+='\nEste es un mensaje automático generado por Sofgen Pharma DocControl Pro.\n\n';
-  cuerpo+='Saludos,\n';
-  cuerpo+='Jefferson Arevalo Sanchez\n';
-  cuerpo+='Coordinador de Calidad II';
+  cuerpo+='Saludos cordiales,\n';
+  cuerpo+='Sistema de Documentación';
 
   var mailtoUrl='mailto:'+para.join(';');
   var params=[];
@@ -8813,7 +8827,7 @@ function genBorrador(){
   var di=dH(d.fechaVencimiento),org=cfg.org||'Sofgen Pharma';
   var fecha=fDL();
   var hdr='Estimado(a) '+(d.administrador||'responsable')+',\n\n';
-  var firma='\n\nAtentamente,\nSistema de Control Documental\n'+org+'\n'+fecha;
+  var firma='\n\nSaludos cordiales,\nSistema de Documentación';
   var datos='\n\nDATOS DEL DOCUMENTO:\n- Codigo: '+d.codigoActual+(d.codigoAntiguo&&d.codigoAntiguo!=='No Aplica'?' (Ant: '+d.codigoAntiguo+')':'')+'\n- Descripcion: '+d.descripcion+'\n- Tipo: '+(d.tipoDocumento||'-')+'\n- Version: '+fVer(d.version)+'\n- Area: '+(d.areaGeneradora||'-')+'\n- Proceso: '+(d.proceso||'-')+'\n- Administrador: '+(d.administrador||'-')+'\n- Lider: '+(d.liderProceso||'-')+'\n- Estado: '+d.estado+'\n- Vigencia: '+fDD(d.fechaVigencia)+'\n- Vencimiento: '+fDD(d.fechaVencimiento)+'\n- GxP: '+(d.docGxP||'No especificado');
   var asunto='',cuerpo='';
   if(ntipo==='vencido'){asunto='[URGENTE] Documento vencido - '+d.codigoActual;cuerpo=hdr+'El siguiente documento esta VENCIDO con '+Math.abs(di)+' dia(s) de atraso:'+datos+'\n\nACCION REQUERIDA: Inicie el proceso de revision y actualizacion.'+firma;}
@@ -9049,10 +9063,8 @@ function buildEmailBody(area, info){
   lines.push('');
 
   //  FIRMA 
-  lines.push('Atentamente,');
-  lines.push('Sistema de Control Documental');
-  lines.push(org);
-  lines.push(fecha);
+  lines.push('Saludos cordiales,');
+  lines.push('Sistema de Documentación');
   lines.push('');
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   lines.push('Este mensaje fue generado automáticamente.');
@@ -10567,7 +10579,7 @@ function extNotificar() {
     'Vencimiento anterior: '+extDocSel.fechaVencimiento+NL+
     'Nueva fecha de vencimiento: '+nuevaF+NL+
     'Motivo: '+motivo+NL+NL+
-    'Atentamente,'+NL+'Sistema de Control Documental'+NL+org;
+    'Saludos cordiales,'+NL+'Sistema de Documentación';
   var correo = extDocSel.correoElectronico||'';
   window.location.href = 'mailto:'+encodeURIComponent(correo)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(body);
   toast('Abriendo cliente de correo...','if');
@@ -10879,7 +10891,7 @@ function obsNotificar() {
     'Version: '+obsDocSel.version+NL+
     'Motivo: '+motivo+NL+NL+
     'Por favor proceda a retirar cualquier copia fisica o electronica del sistema.'+NL+NL+
-    'Atentamente,'+NL+'Sistema de Control Documental'+NL+org;
+    'Saludos cordiales,'+NL+'Sistema de Documentación';
   var correo = obsDocSel.correoElectronico||'';
   window.location.href = 'mailto:'+encodeURIComponent(correo)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(body);
   toast('Abriendo cliente de correo...','if');
@@ -11074,8 +11086,8 @@ function evNotificar(){
     +'Nueva fecha vencim.: '+nf+NL
     +'Motivo:              '+mot+NL+NL
     +'Por favor tome nota de la nueva fecha de vencimiento.'+NL+NL
-    +'Atentamente,'+NL
-    +'Sistema de Control Documental'+NL+org+NL+fecha;
+    +'Saludos cordiales,'+NL
+    +'Sistema de Documentación';
 
   var correo=d.correoElectronico||LC.areaACorreo[d.areaGeneradora]||'';
   window.location.href='mailto:'+encodeURIComponent(correo)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
@@ -11384,9 +11396,9 @@ function moNotificar(){
     cuerpo += NL+'No se encontraron documentos ni copias controladas que hagan referencia a '+d.codigoActual+'.'+NL;
   }
 
-  cuerpo += NL+'Atentamente,'+NL+'Sistema de Control Documental'+NL+org+NL+fecha;
+  cuerpo += NL+'Saludos cordiales,'+NL+'Sistema de Documentación';
 
-  // Reemplazar el cuerpo anterior que tenía "Atentamente" al final
+  // Firma unificada: Saludos cordiales / Sistema de Documentación
   var correo=d.correoElectronico||LC.areaACorreo[d.areaGeneradora]||'';
   var _moCC=docGetCCCorreos(d.codigoActual,d.docGxP,d.mbr,d.tipoDocumento,d.codigoAntiguo||'');
   var _moU='mailto:'+encodeURIComponent(correo),_moP=[];if(_moCC.length)_moP.push('cc='+encodeURIComponent(_moCC.join(';')));_moP.push('subject='+encodeURIComponent(asunto),'body='+encodeURIComponent(cuerpo));if(_moP.length)_moU+='?'+_moP.join('&');
@@ -17295,38 +17307,220 @@ function nfSaludoSegunHora(){
   if(h>=12&&h<19) return 'Buenas tardes';
   return 'Buenas noches';
 }
+// Devuelve el nivel textual y color de un porcentaje de coincidencia.
+function nfNivelCoincidencia(score){
+  if(score>=80) return {txt:'Alta', bg:'#fde2e2', fg:'#a32d2d', dot:'#E57373'};
+  if(score>=60) return {txt:'Media', bg:'#faeeda', fg:'#854f0b', dot:'#d68910'};
+  return {txt:'Baja', bg:'#e8f5e9', fg:'#2e7d32', dot:'#66bb6a'};
+}
+// Genera la imagen (PNG) del correo de coincidencias con la paleta de marca
+// (header azul marino, acento turquesa, fondo menta) e incluye la empresa
+// donde se encontró cada coincidencia. Llama a cb(dataUrl) cuando el logo carga.
+function nfGenerarImagenCorreoCoincidencias(datos, cb){
+  var nombre=datos.nombre||'';
+  var resultados=datos.resultados||[];
+  var total=resultados.length;
+  var saludo=nfSaludoSegunHora();
+  var solicitante=(currentUser?currentUser.nombre:'')||'No identificado';
+  var fechaHoy=typeof fDL==='function'?fDL(new Date()):(new Date()).toLocaleDateString();
+
+  function wrapText(ctx,text,maxW){
+    var words=(text||'').split(' '),lines=[],cur='';
+    words.forEach(function(w){
+      var test=cur?cur+' '+w:w;
+      if(ctx.measureText(test).width>maxW && cur){ lines.push(cur); cur=w; } else { cur=test; }
+    });
+    if(cur) lines.push(cur);
+    return lines;
+  }
+
+  var W=700, PAD=24;
+  var tmpCanvas=document.createElement('canvas');
+  var tmpCtx=tmpCanvas.getContext('2d');
+  tmpCtx.font='10.5px Segoe UI,Arial,sans-serif';
+  var rowMetas=resultados.map(function(r){
+    var sub='Área: '+(r.area||'-')+'   ·   Proceso: '+(r.proceso||'-')+'   ·   Empresa: '+(r.empresa||'-');
+    var lines=wrapText(tmpCtx,sub,W-PAD*2-90);
+    return {r:r, sub:sub, lines:lines, h:Math.max(46, 20+lines.length*14+10)};
+  });
+
+  var headerH=112, saludoH=54;
+  var tablaH=rowMetas.reduce(function(s,m){return s+m.h;},0)+8;
+  var resumenH=34, accionH=58, footerH=32;
+  var totalH=headerH+saludoH+tablaH+resumenH+accionH+footerH+50;
+
+  var canvas=document.createElement('canvas');
+  canvas.width=W*2; canvas.height=totalH*2;
+  var ctx=canvas.getContext('2d'); ctx.scale(2,2);
+  var y=0;
+
+  // Fondo exterior menta
+  ctx.fillStyle='#EAF6F1'; ctx.fillRect(0,0,W,totalH);
+
+  //  HEADER AZUL MARINO 
+  ctx.fillStyle='#17324A'; ctx.fillRect(0,y,W,headerH);
+  y+=20;
+  function drawHeader(logoImg){
+    var lx=PAD, ly=y;
+    if(logoImg){
+      ctx.save(); ctx.beginPath(); ctx.arc(lx+17,ly+17,17,0,Math.PI*2); ctx.closePath(); ctx.clip();
+      ctx.fillStyle='#fff'; ctx.fillRect(lx,ly,34,34);
+      ctx.drawImage(logoImg,lx+2,ly+2,30,30);
+      ctx.restore();
+    }
+    ctx.fillStyle='#2CD9C5';
+    ctx.font='600 13px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Sistema de documentación · Alerta de revisión',lx+44,ly+22);
+    var ty=ly+50;
+    ctx.fillStyle='#ffffff';
+    ctx.font='700 17px Segoe UI,Arial,sans-serif';
+    var tituloLines=wrapText(ctx,'Se detectaron '+total+' coincidencia(s) para el documento que estás por crear o modificar',W-PAD*2);
+    tituloLines.slice(0,2).forEach(function(l,i){ ctx.fillText(l,lx,ty+i*22); });
+
+    var by=headerH;
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,by,W,totalH-by-footerH);
+
+    var cy=by+16;
+    ctx.fillStyle='#374151'; ctx.font='12px Segoe UI,Arial,sans-serif';
+    ctx.fillText(saludo+',',PAD,cy+12);
+    cy+=22;
+    var introLines=wrapText(ctx,'Al registrar una solicitud de Novedad para "'+nombre+'", el sistema encontró los siguientes documentos con nombre igual o similar en el Listado Maestro:',W-PAD*2);
+    introLines.forEach(function(l,i){ ctx.fillText(l,PAD,cy+12+i*15); });
+    cy+=introLines.length*15+10;
+
+    rowMetas.forEach(function(m){
+      var r=m.r, niv=nfNivelCoincidencia(r.score);
+      var rh=m.h;
+      ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(PAD,cy+rh); ctx.lineTo(W-PAD,cy+rh); ctx.stroke();
+      ctx.fillStyle='#17324A'; ctx.font='700 11.5px Segoe UI,Arial,sans-serif';
+      ctx.fillText(r.codigo+' — '+r.descripcion,PAD,cy+15);
+      ctx.fillStyle='#6b7280'; ctx.font='9.5px Segoe UI,Arial,sans-serif';
+      m.lines.forEach(function(l,i){ ctx.fillText(l,PAD,cy+31+i*13); });
+      var badgeTxt=r.score+'% '+niv.txt;
+      ctx.font='700 10.5px Segoe UI,Arial,sans-serif';
+      var bw=ctx.measureText(badgeTxt).width+18;
+      var bx=W-PAD-bw;
+      roundRect2(ctx,bx,cy+3,bw,20,10,niv.bg);
+      ctx.fillStyle=niv.fg; ctx.textAlign='center';
+      ctx.fillText(badgeTxt,bx+bw/2,cy+17);
+      ctx.textAlign='left';
+      cy+=rh;
+    });
+    cy+=10;
+
+    roundRect2(ctx,PAD,cy,W-PAD*2,resumenH,6,'#EAF6F1');
+    ctx.fillStyle='#374151'; ctx.font='10.5px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Solicitante: '+solicitante+'    ·    Fecha: '+fechaHoy,PAD+12,cy+21);
+    cy+=resumenH+10;
+
+    ctx.fillStyle='#E1F5EE'; ctx.fillRect(PAD,cy,4,accionH);
+    ctx.fillStyle='#E1F5EE'; ctx.fillRect(PAD+4,cy,W-PAD*2-4,accionH);
+    ctx.fillStyle='#17324A'; ctx.font='700 11.5px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Acción requerida',PAD+16,cy+17);
+    ctx.fillStyle='#0F4B44'; ctx.font='10px Segoe UI,Arial,sans-serif';
+    var accionLines=wrapText(ctx,'Valide si corresponde a un documento existente. En caso de detectar un conflicto, notifique por este mismo medio para detener el proceso de modificación o creación del documento.',W-PAD*2-32);
+    accionLines.forEach(function(l,i){ ctx.fillText(l,PAD+16,cy+33+i*13); });
+    cy+=accionH+14;
+
+    ctx.fillStyle='#374151'; ctx.font='11px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Saludos cordiales,',PAD,cy);
+    ctx.fillText('Sistema de Documentación',PAD,cy+15);
+
+    var fy=totalH-footerH;
+    ctx.fillStyle='#f3f4f6'; ctx.fillRect(0,fy,W,footerH);
+    ctx.strokeStyle='#d1d5db'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(0,fy); ctx.lineTo(W,fy); ctx.stroke();
+    ctx.fillStyle='#9ca3af'; ctx.font='9.5px Segoe UI,Arial,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Sistema de Documentación · '+fechaHoy,W/2,fy+20);
+    ctx.textAlign='left';
+
+    cb(canvas.toDataURL('image/png'));
+  }
+  var existing=document.querySelector('.sb-ic img, .sb-logo img');
+  if(existing && existing.complete && existing.naturalWidth>0){ drawHeader(existing); return; }
+  var logoSrc=window._MOD_LOGO_SRC||'';
+  if(!logoSrc){ drawHeader(null); return; }
+  var img=new Image();
+  img.onload=function(){ drawHeader(img); };
+  img.onerror=function(){ drawHeader(null); };
+  img.src=logoSrc;
+}
+// Rectángulo redondeado con color de relleno propio (no altera ctx.fillStyle global)
+function roundRect2(ctx,x,y,w,h,r,color){
+  var prev=ctx.fillStyle;
+  ctx.fillStyle=color;
+  roundRect(ctx,x,y,w,h,r);
+  ctx.fillStyle=prev;
+}
 function _nfCoincidenciasEnviarCorreo(){
   var datos=window._nfUltimasCoincidencias;
   if(!datos || !datos.resultados || !datos.resultados.length){ toast('No hay coincidencias para enviar','er'); return; }
   var nombre=datos.nombre||'';
-  var total=datos.resultados.length;
-  var altas=datos.resultados.filter(function(r){return r.score>=80;}).length;
-  var saludo=nfSaludoSegunHora();
-  var solicitante=(currentUser?currentUser.nombre:'')||'No identificado';
-  var fechaHoy=typeof fDL==='function'?fDL(new Date()):(new Date()).toLocaleDateString();
-  var lineas=datos.resultados.map(function(r,i){
-    var nivel = r.score>=80 ? 'Alta' : (r.score>=60 ? 'Media' : 'Baja');
-    return (i+1)+'. '+r.codigo+' — '+r.descripcion+'\n'
-      +'   Versión: '+r.version+'   |   Área: '+r.area+'   |   Proceso: '+r.proceso+'   |   Empresa: '+r.empresa+'\n'
-      +'   Nivel de coincidencia: '+r.score+'% ('+nivel+')';
+  nfGenerarImagenCorreoCoincidencias(datos, function(imgDataUrl){
+    var asunto='[REVISIÓN] Posible documento duplicado — '+nombre;
+    var correos=NF_COINCIDENCIAS_DESTINATARIOS.join(';');
+    var win=window.open('','_blank','width=760,height=920,scrollbars=yes');
+    if(!win){ toast('Permite ventanas emergentes','er'); return; }
+    win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'
+      +'<style>'
+      +'*{box-sizing:border-box;margin:0;padding:0}'
+      +'body{background:#e5e7eb;font-family:Segoe UI,Arial,sans-serif}'
+      +'.toolbar{position:fixed;top:0;left:0;right:0;z-index:999;background:#1e293b;padding:10px 20px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.4)}'
+      +'.tit{color:#fff;font-size:13px;font-weight:700;flex:1}'
+      +'.sub{color:#94a3b8;font-size:11px;margin-top:2px}'
+      +'.btn-cop{background:#006860;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}'
+      +'.btn-dl{background:#7c3aed;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}'
+      +'.btn-out{background:#1d4ed8;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}'
+      +'.status{margin:70px 20px 14px;padding:12px 16px;border-radius:8px;font-size:12px;line-height:1.7;background:#f0fdf4;border:1px solid #bbf7d0;color:#006860}'
+      +'.img-wrap{margin:0 20px 20px;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.15);background:#fff}'
+      +'.img-wrap img{width:100%;display:block}'
+      +'</style></head><body>'
+      +'<div class="toolbar">'
+        +'<div style="flex:1"><div class="tit">📧 Revisión de coincidencias — '+nombre+'</div><div class="sub">Para: '+correos+'</div></div>'
+        +'<button class="btn-cop" id="btn-cop" onclick="copiarImg()">📋 Copiar imagen</button>'
+        +'<button class="btn-dl" onclick="descargar()">⬇️ Descargar PNG</button>'
+        +'<button class="btn-out" onclick="abrirOut()">📨 Abrir Outlook</button>'
+      +'</div>'
+      +'<div class="status" id="status">'
+        +'✅ <strong>Imagen generada.</strong> Opciones:<br>'
+        +'• <strong>Copiar imagen</strong> → luego <strong>Ctrl+V</strong> en el cuerpo del correo de Outlook<br>'
+        +'• <strong>Descargar PNG</strong> → adjúntala al correo<br>'
+        +'• <strong>Abrir Outlook</strong> → crea el correo con asunto y destinatarios (pega la imagen con Ctrl+V)'
+      +'</div>'
+      +'<div class="img-wrap"><img id="img-correo" src="'+imgDataUrl+'"></div>'
+      +'<script>'
+      +'function copiarImg(){'
+        +'var img=document.getElementById("img-correo");'
+        +'var canvas=document.createElement("canvas");'
+        +'canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;'
+        +'var ctx=canvas.getContext("2d");'
+        +'ctx.drawImage(img,0,0);'
+        +'canvas.toBlob(function(blob){'
+          +'try{'
+            +'var item=new ClipboardItem({"image/png":blob});'
+            +'navigator.clipboard.write([item]).then(function(){'
+              +'var b=document.getElementById("btn-cop");'
+              +'b.textContent="✅ Copiada";b.style.background="#047857";'
+              +'setTimeout(function(){b.textContent="📋 Copiar imagen";b.style.background="#006860";},3000);'
+            +'}).catch(function(){alert("Haz clic derecho sobre la imagen → Copiar imagen → Pega en Outlook con Ctrl+V");});'
+          +'} catch(e){alert("Haz clic derecho sobre la imagen → Copiar imagen → Pega en Outlook con Ctrl+V");}'
+        +'});'
+      +'}'
+      +'function descargar(){'
+        +'var a=document.createElement("a");'
+        +'a.href="'+imgDataUrl+'";'
+        +'a.download="correo-coincidencias-'+nombre.replace(/[^a-zA-Z0-9]/g,'-')+'.png";'
+        +'a.click();'
+      +'}'
+      +'function abrirOut(){'
+        +'window.opener.location.href="mailto:'+correos+'?subject='+encodeURIComponent(asunto)+'";'
+      +'}'
+      +'<\/script>'
+      +'</body></html>');
+    win.document.close();
+    toast('📧 Imagen de correo generada','ok');
   });
-  var asunto=encodeURIComponent('⚠ Revisión requerida: posible documento duplicado — "'+nombre+'"');
-  var cuerpo=saludo+',\n\n'
-    +'Al registrar una solicitud de Novedad para el documento "'+nombre+'", el sistema de Gestión Documental '
-    +'encontró '+total+' documento(s) ya existente(s) en el Listado Maestro con nombre igual o similar'
-    +(altas?' ('+altas+' de ellos con coincidencia alta):':' :')+'\n\n'
-    +lineas.join('\n\n')
-    +'\n\n────────────────────────────\n'
-    +'Solicitante : '+solicitante+'\n'
-    +'Fecha       : '+fechaHoy+'\n'
-    +'Documento   : "'+nombre+'"\n'
-    +'────────────────────────────\n\n'
-    +'Por favor validar si se trata de un documento ya existente antes de aprobar la continuidad de este trámite, '
-    +'con el fin de evitar duplicidad documental.\n\n'
-    +'Saludos cordiales,\n'
-    +'Sistema de Gestión Documental';
-  window.location.href='mailto:'+NF_COINCIDENCIAS_DESTINATARIOS.join(';')+'?subject='+asunto+'&body='+encodeURIComponent(cuerpo);
-  toast('📧 Correo de revisión generado con saludo de '+saludo.toLowerCase(),'ok');
 }
 function _nfCoincidenciasCancelar(){
   closeMo('mo-nf-coincidencias');
@@ -27345,6 +27539,42 @@ function nfInit(){
 }
 
 // ── Código para documentos nuevos ───────────────────────────
+// Indicativo (sigla) que cada sociedad del grupo agrega al final del código
+// cuando el documento es LOCAL (no corporativo). Se asigna según la empresa
+// del usuario logueado (currentUser.empresa). Procaps S.A. no requiere
+// indicativo (código sin sufijo). Los corporativos siempre usan "-COR"
+// sin importar la empresa del usuario (ver nfEvaluarCodigoNuevo).
+var INDICATIVOS_EMPRESA = {
+  'Sofgen Pharma S.A. (Holding)': 'COR',
+  'Procaps S.A.': '',
+  'CI Procaps S.A.': 'CIP',
+  'Crynssen Pharma S.A.S.': 'CRY',
+  'Diabetrics Healthcare S.A.S.': 'DIA',
+  'Pharmayect S.A.': 'PHA',
+  'Funtrition S.A.S': 'FTN',
+  'Procaps S.A. de C.V. (antes Laboratorios López S.A de C.V)': 'PRS',
+  'Biokemical S.A. de C.V.': 'BIK',
+  'CDI S.A.': 'CDN',
+  'Pharmarketing S.A.': 'PHP',
+  'Pharmarketing Dominicana S.R.L': 'PHD',
+  'Pharmarketing Costa Rica S.A.': 'PHC',
+  'Unimed del Perú S.A.': 'UNP',
+  'Roddome Pharmaceutical S.A.': 'ROD',
+  'Colbras Industria e Comercio Ltda': 'CBR',
+  'Horslig GmbH': 'HOR',
+  'Pharminter GmbH': 'PHS',
+  'Sofgen Pharmaceuticals LLC': 'SPH',
+  'Funtrition LLC': 'FTU',
+  'Rymco Medical S.A.S': 'RYM',
+  'Colombiana de Suministros Médicos Hospitalarios - Colmed Ltda.': 'COM',
+  'Procaps Farmacéutica Bolivia S.A': 'PRB'
+};
+// Devuelve el indicativo (sin guion) para el nombre de empresa dado, o ''
+// si la empresa no requiere indicativo o no está configurada en la tabla.
+function nfIndicativoEmpresa(nombreEmpresa){
+  var ind=INDICATIVOS_EMPRESA[(nombreEmpresa||'').trim()];
+  return ind||'';
+}
 function nfPoblarTiposDocNuevo(){
   var sel=document.getElementById('nf-tipo-doc-nuevo');
   if(!sel) return;
@@ -27396,6 +27626,12 @@ function nfEvaluarCodigoNuevo(){
   if(!tipo||!corp){ clearAll(); return; }
 
   var esCorp=(corp==='si');
+  // Indicativo de empresa del usuario logueado (para documentos LOCALES).
+  // Los corporativos siempre usan "COR" sin importar la empresa del usuario.
+  var empresaActual=currentUser&&(currentUser.empresa||currentUser.area)||'';
+  var indEmp=nfIndicativoEmpresa(empresaActual);
+  var sufijo=esCorp?'COR':indEmp; // '' si la empresa no requiere indicativo (ej. Procaps S.A.)
+  var sufTxt=sufijo?('-'+sufijo):'';
 
   // Documento Asociado corporativo: no permitido, debe solicitar el doc base
   if(esCorp && (tipo==='Documento Asociado'||tipo==='Documentos Asociado')){
@@ -27433,44 +27669,29 @@ function nfEvaluarCodigoNuevo(){
   }
 
   // ── PASO 1: Obtener máximo consecutivo de Codigo_Doc_Nuevos ─
-  // Código corporativo termina en -COR, local no
-  // Patrón: PREFIJO-NNNN o PREFIJO-NNNN-COR
-  var reStr='^'+prefijoBase+'-(\d+)'+(esCorp?'-COR$':'(?:-(?!COR)\w+)?$|^'+prefijoBase+'-(\d+)$');
+  // Patrón esperado: PREFIJO-NNNN + sufijo (p.ej. -COR, -CRY, -PHA, o ninguno)
+  var codeRegex=new RegExp('^'+prefijoBase+'-(\\d+)'+sufTxt.replace(/[-]/g,'\\-')+'$');
   var maxCN=0;
   (codigosNuevos||[]).forEach(function(x){
     var cod=(x.codigo||'').toUpperCase().trim();
-    if(!cod.startsWith(prefijoBase+'-')) return;
-    // Quitar sufijo -COR si existe para extraer número
-    var sinCOR=cod.replace(/-COR$/,'');
-    var sinPref=sinCOR.replace(new RegExp('^'+prefijoBase+'-'),'');
-    var n=parseInt(sinPref,10)||0;
-    // Solo contar si coincide con corporativo
-    var esCodCOR=cod.endsWith('-COR');
-    if(esCorp===esCodCOR && n>maxCN) maxCN=n;
+    var m=cod.match(codeRegex);
+    if(m){ var n=parseInt(m[1],10)||0; if(n>maxCN) maxCN=n; }
   });
 
   // ── PASO 2: Máximo en Listado Maestro ────────────────────────
   var maxLM=0;
   (docs||[]).forEach(function(d){
     var cod=(d.codigoActual||'').toUpperCase().trim();
-    if(!cod.startsWith(prefijoBase+'-')) return;
-    var sinCOR=cod.replace(/-COR$/,'');
-    var sinPref=sinCOR.replace(new RegExp('^'+prefijoBase+'-'),'');
-    var n=parseInt(sinPref,10)||0;
-    var esCodCOR=cod.endsWith('-COR');
-    if(esCorp===esCodCOR && n>maxLM) maxLM=n;
+    var m=cod.match(codeRegex);
+    if(m){ var n=parseInt(m[1],10)||0; if(n>maxLM) maxLM=n; }
   });
 
   // ── PASO 3: Máximo en Solicitudes de Usuarios ────────────────
   var maxSol=0;
   (solicitudes||[]).forEach(function(s){
     var cod=(s.codigo||'').toUpperCase().trim();
-    if(!cod.startsWith(prefijoBase+'-')) return;
-    var sinCOR=cod.replace(/-COR$/,'');
-    var sinPref=sinCOR.replace(new RegExp('^'+prefijoBase+'-'),'');
-    var n=parseInt(sinPref,10)||0;
-    var esCodCOR=cod.endsWith('-COR');
-    if(esCorp===esCodCOR && n>maxSol) maxSol=n;
+    var m=cod.match(codeRegex);
+    if(m){ var n=parseInt(m[1],10)||0; if(n>maxSol) maxSol=n; }
   });
 
   var maxGlobal=Math.max(maxCN,maxLM,maxSol);
@@ -27484,7 +27705,7 @@ function nfEvaluarCodigoNuevo(){
   var nuevoCod='';
 
   for(var intentos=0;intentos<50&&!disponible;intentos++){
-    nuevoCod=prefijoBase+'-'+String(nuevoNum).padStart(4,'0')+(esCorp?'-COR':'');
+    nuevoCod=prefijoBase+'-'+String(nuevoNum).padStart(4,'0')+sufTxt;
     var enLM=(docs||[]).some(function(d){return (d.codigoActual||'').toUpperCase()===nuevoCod;});
     var enSol=(solicitudes||[]).some(function(s){return (s.codigo||'').toUpperCase()===nuevoCod;});
     var enCN=(codigosNuevos||[]).some(function(x){return (x.codigo||'').toUpperCase()===nuevoCod;});
@@ -27508,7 +27729,8 @@ function nfEvaluarCodigoNuevo(){
   if(verEl && !verEl._manual) verEl.value='00'; // Creación siempre versión 00
 
   var msgDesc=descartados.length?' — Descartados: '+descartados.join(', '):'';
-  showMsg('✅ Código asignado: '+nuevoCod+' (base: '+prefijoBase+'-'+String(maxGlobal).padStart(4,'0')+(esCorp?'-COR':'')+')'+msgDesc,'#e8f5e9','#1b5e20');
+  var etiquetaEmp=esCorp?'Corporativo (COR)':(indEmp?'Local — '+empresaActual+' ('+indEmp+')':'Local — '+(empresaActual||'sin empresa asignada')+' (sin indicativo)');
+  showMsg('✅ Código asignado: '+nuevoCod+' ('+etiquetaEmp+')'+msgDesc,'#e8f5e9','#1b5e20');
 
   var nomEl=document.getElementById('nf-nombredoc');
   if(nomEl&&!nomEl._manual) nomEl.value='';
