@@ -4233,12 +4233,16 @@ function _icListaDepurados(){
   });
 }
 // Activos actuales: documentos sin formatos ni obsoletos (universo vigente hoy),
-// excluyendo los recién creados (Creación sin modificaciones posteriores), ya
-// que estos nacen con la nueva identidad corporativa y no son candidatos a
-// depuración — igual criterio que usan los indicadores de Cambio de Identidad.
+// excluyendo únicamente los documentos "primera vez" (Creación, sin
+// modificaciones posteriores) que YA tienen confirmado el cambio de
+// identidad corporativa — esos sí nacieron con la nueva identidad y no son
+// candidatos a depuración. Los "primera vez" que NO tienen esa marca sí
+// cuentan como aplicables, porque no hay confirmación de que ya tengan la
+// identidad nueva.
 function _icListaActivosDepuracion(){
   return (docs||[]).filter(function(d){
-    return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d);
+    return !_icEsFormato(d) && !_icEsObsoleto(d)
+      && !(_icEsDocumentoNuevo(d) && _icTieneIdentidadNueva(d));
   });
 }
 // Lista combinada para el Excel/tabla: depurados + activos, cada uno
@@ -17276,7 +17280,9 @@ function nfVerificarCoincidenciasAntesDeGuardar(cb){
 var _nfCoincidenciasCb=null;
 function nfMostrarAlertaCoincidencias(resultados, fallidas, nombre, callback){
   _nfCoincidenciasCb=callback;
-  window._nfUltimasCoincidencias={resultados:resultados, nombre:nombre};
+  var solicitanteEl=document.getElementById('nf-nombre');
+  var nombreSolicitante=(solicitanteEl?solicitanteEl.value:'').trim();
+  window._nfUltimasCoincidencias={resultados:resultados, nombre:nombre, solicitante:nombreSolicitante};
   var nombreEl=document.getElementById('nf-coinc-nombre'); if(nombreEl) nombreEl.textContent='"'+nombre+'"';
   var tb=document.getElementById('nf-coinc-tbody');
   if(tb){
@@ -17329,7 +17335,7 @@ function nfGenerarImagenCorreoCoincidencias(datos, cb){
   var resultados=datos.resultados||[];
   var total=resultados.length;
   var saludo=nfSaludoSegunHora();
-  var solicitante=(currentUser?currentUser.nombre:'')||'No identificado';
+  var solicitante=datos.solicitante||(currentUser?currentUser.nombre:'')||'No identificado';
   var fechaHoy=typeof fDL==='function'?fDL(new Date()):(new Date()).toLocaleDateString();
 
   function wrapText(ctx,text,maxW){
