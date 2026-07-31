@@ -17344,10 +17344,14 @@ function nfGenerarImagenCorreoCoincidencias(datos, cb){
     return {r:r, sub:sub, lines:lines, h:Math.max(46, 20+lines.length*14+10)};
   });
 
+  var accionTxt='Valide si corresponde a un documento existente. En caso de detectar un conflicto, notifique por este mismo medio para detener el proceso de modificación o creación del documento.';
+  tmpCtx.font='10px Segoe UI,Arial,sans-serif';
+  var accionLines=wrapText(tmpCtx,accionTxt,W-PAD*2-32);
+
   var headerH=112, saludoH=54;
   var tablaH=rowMetas.reduce(function(s,m){return s+m.h;},0)+8;
-  var resumenH=34, accionH=58, footerH=32;
-  var totalH=headerH+saludoH+tablaH+resumenH+accionH+footerH+50;
+  var resumenH=34, accionH=34+accionLines.length*13, firmaH=48, footerH=32;
+  var totalH=headerH+saludoH+tablaH+resumenH+10+accionH+14+firmaH+footerH;
 
   var canvas=document.createElement('canvas');
   canvas.width=W*2; canvas.height=totalH*2;
@@ -17363,10 +17367,7 @@ function nfGenerarImagenCorreoCoincidencias(datos, cb){
   function drawHeader(logoImg){
     var lx=PAD, ly=y;
     if(logoImg){
-      ctx.save(); ctx.beginPath(); ctx.arc(lx+17,ly+17,17,0,Math.PI*2); ctx.closePath(); ctx.clip();
-      ctx.fillStyle='#fff'; ctx.fillRect(lx,ly,34,34);
-      ctx.drawImage(logoImg,lx+2,ly+2,30,30);
-      ctx.restore();
+      ctx.drawImage(logoImg,lx,ly,34,34);
     }
     ctx.fillStyle='#2CD9C5';
     ctx.font='600 13px Segoe UI,Arial,sans-serif';
@@ -17419,7 +17420,6 @@ function nfGenerarImagenCorreoCoincidencias(datos, cb){
     ctx.fillStyle='#17324A'; ctx.font='700 11.5px Segoe UI,Arial,sans-serif';
     ctx.fillText('Acción requerida',PAD+16,cy+17);
     ctx.fillStyle='#0F4B44'; ctx.font='10px Segoe UI,Arial,sans-serif';
-    var accionLines=wrapText(ctx,'Valide si corresponde a un documento existente. En caso de detectar un conflicto, notifique por este mismo medio para detener el proceso de modificación o creación del documento.',W-PAD*2-32);
     accionLines.forEach(function(l,i){ ctx.fillText(l,PAD+16,cy+33+i*13); });
     cy+=accionH+14;
 
