@@ -17309,9 +17309,9 @@ function nfSaludoSegunHora(){
 }
 // Devuelve el nivel textual y color de un porcentaje de coincidencia.
 function nfNivelCoincidencia(score){
-  if(score>=80) return {txt:'Alta', bg:'#fde2e2', fg:'#a32d2d', dot:'#E57373'};
-  if(score>=60) return {txt:'Media', bg:'#faeeda', fg:'#854f0b', dot:'#d68910'};
-  return {txt:'Baja', bg:'#e8f5e9', fg:'#2e7d32', dot:'#66bb6a'};
+  if(score>=80) return {txt:'alta', bg:'#FAECE7', fg:'#712B13', dot:'#F09595'};
+  if(score>=60) return {txt:'media', bg:'#FAEEDA', fg:'#633806', dot:'#EF9F27'};
+  return {txt:'baja', bg:'#E1F5EE', fg:'#085041', dot:'#5DCAA5'};
 }
 // Genera la imagen (PNG) del correo de coincidencias con la paleta de marca
 // (header azul marino, acento turquesa, fondo menta) e incluye la empresa
@@ -17334,24 +17334,68 @@ function nfGenerarImagenCorreoCoincidencias(datos, cb){
     return lines;
   }
 
-  var W=700, PAD=24;
+  function wrapTextDosAnchos(ctx,text,maxW1,maxWResto){
+    var words=(text||'').split(' '),lines=[],cur='';
+    words.forEach(function(w){
+      var test=cur?cur+' '+w:w;
+      var limite=lines.length===0?maxW1:maxWResto;
+      if(ctx.measureText(test).width>limite && cur){ lines.push(cur); cur=w; } else { cur=test; }
+    });
+    if(cur) lines.push(cur);
+    return lines;
+  }
+
+  var W=700, PAD=24, INPAD=PAD+14;
   var tmpCanvas=document.createElement('canvas');
   var tmpCtx=tmpCanvas.getContext('2d');
   tmpCtx.font='10.5px Segoe UI,Arial,sans-serif';
   var rowMetas=resultados.map(function(r){
-    var sub='Área: '+(r.area||'-')+'   ·   Proceso: '+(r.proceso||'-')+'   ·   Empresa: '+(r.empresa||'-');
-    var lines=wrapText(tmpCtx,sub,W-PAD*2-90);
-    return {r:r, sub:sub, lines:lines, h:Math.max(46, 20+lines.length*14+10)};
+    var niv=nfNivelCoincidencia(r.score);
+    var badgeTxt=r.score+'% '+niv.txt;
+    tmpCtx.font='500 10.5px Segoe UI,Arial,sans-serif';
+    var bw=tmpCtx.measureText(badgeTxt).width+18;
+    var bx=W-INPAD-bw;
+    // Título completo (código + descripción), en varias líneas si hace falta.
+    // La primera línea deja espacio libre para el badge; las siguientes usan todo el ancho.
+    tmpCtx.font='600 11.5px Segoe UI,Arial,sans-serif';
+    var tituloFull=r.codigo+' — '+r.descripcion;
+    var tituloLines=wrapTextDosAnchos(tmpCtx,tituloFull,bx-INPAD-10,(W-INPAD*2));
+    tmpCtx.font='10.5px Segoe UI,Arial,sans-serif';
+    var sub=(r.area||'-')+'   ·   '+(r.empresa||'-');
+    var lines=wrapText(tmpCtx,sub,W-INPAD*2-90);
+    var tituloH=tituloLines.length*15;
+    var subTop=tituloH+16;
+    var h=Math.max(46, subTop+lines.length*13+12);
+    return {r:r, niv:niv, badgeTxt:badgeTxt, bw:bw, bx:bx, tituloLines:tituloLines, sub:sub, lines:lines, subTop:subTop, h:h};
   });
+
+  // Resumen de severidad para los chips del header (solo se muestran los niveles presentes)
+  var nAltas=resultados.filter(function(r){return r.score>=80;}).length;
+  var nMedias=resultados.filter(function(r){return r.score>=60&&r.score<80;}).length;
+  var nBajas=resultados.filter(function(r){return r.score<60;}).length;
+  var chips=[];
+  if(nAltas) chips.push({n:nAltas,label:nAltas===1?'alta':'altas',col:'#F09595'});
+  if(nMedias) chips.push({n:nMedias,label:nMedias===1?'media':'medias',col:'#EF9F27'});
+  if(nBajas) chips.push({n:nBajas,label:nBajas===1?'baja':'bajas',col:'#5DCAA5'});
 
   var accionTxt='Valide si corresponde a un documento existente. En caso de detectar un conflicto, notifique por este mismo medio para detener el proceso de modificación o creación del documento.';
   tmpCtx.font='10px Segoe UI,Arial,sans-serif';
   var accionLines=wrapText(tmpCtx,accionTxt,W-PAD*2-32);
 
-  var headerH=112, saludoH=54;
-  var tablaH=rowMetas.reduce(function(s,m){return s+m.h;},0)+8;
+  // Medir de antemano cuántas líneas ocupará el título del header (18px) para
+  // calcular headerH sin adivinar y evitar que el texto o los chips se corten.
+  tmpCtx.font='500 18px Segoe UI,Arial,sans-serif';
+  var tituloLinesPre=wrapText(tmpCtx,'Se detectaron '+total+' coincidencia(s) para el documento que estás por crear o modificar',W-PAD*2).slice(0,2);
+  var tyPre=60;
+  var tituloBottomPre=tyPre+(tituloLinesPre.length-1)*22+8;
+  var headerH = chips.length
+    ? (tyPre+(tituloLinesPre.length>1?22:0)+20+22+16)
+    : (tituloBottomPre+20);
+  var saludoH=54;
+  var tarjetaPadTB=8;
+  var tablaH=rowMetas.reduce(function(s,m){return s+m.h;},0)+tarjetaPadTB*2;
   var resumenH=34, accionH=34+accionLines.length*13, firmaH=48, footerH=32;
-  var totalH=headerH+saludoH+tablaH+resumenH+10+accionH+14+firmaH+footerH;
+  var totalH=headerH+saludoH+tablaH+16+resumenH+10+accionH+14+firmaH+footerH;
 
   var canvas=document.createElement('canvas');
   canvas.width=W*2; canvas.height=totalH*2;
@@ -17367,16 +17411,33 @@ function nfGenerarImagenCorreoCoincidencias(datos, cb){
   function drawHeader(logoImg){
     var lx=PAD, ly=y;
     if(logoImg){
-      ctx.drawImage(logoImg,lx,ly,34,34);
+      ctx.drawImage(logoImg,lx,ly,22,22);
     }
     ctx.fillStyle='#2CD9C5';
-    ctx.font='600 13px Segoe UI,Arial,sans-serif';
-    ctx.fillText('Sistema de documentación · Alerta de revisión',lx+44,ly+22);
-    var ty=ly+50;
+    ctx.font='500 13px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Sistema de documentación · Alerta de revisión',lx+(logoImg?32:0),ly+16);
+    var ty=ly+40;
     ctx.fillStyle='#ffffff';
-    ctx.font='700 17px Segoe UI,Arial,sans-serif';
+    ctx.font='500 18px Segoe UI,Arial,sans-serif';
     var tituloLines=wrapText(ctx,'Se detectaron '+total+' coincidencia(s) para el documento que estás por crear o modificar',W-PAD*2);
     tituloLines.slice(0,2).forEach(function(l,i){ ctx.fillText(l,lx,ty+i*22); });
+
+    if(chips.length){
+      var chy=ty+(tituloLines.length>1?22:0)+20;
+      var chx=lx;
+      ctx.font='500 11px Segoe UI,Arial,sans-serif';
+      chips.forEach(function(c){
+        var txt=c.n+' '+c.label;
+        var cw=ctx.measureText(txt).width+24;
+        roundRect2(ctx,chx,chy,cw,22,8,'rgba(255,255,255,.08)');
+        ctx.fillStyle='#ffffff';
+        ctx.fillText(c.n,chx+10,chy+15);
+        var nw=ctx.measureText(String(c.n)).width;
+        ctx.fillStyle=c.col;
+        ctx.fillText(' '+c.label,chx+10+nw,chy+15);
+        chx+=cw+8;
+      });
+    }
 
     var by=headerH;
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,by,W,totalH-by-footerH);
@@ -17387,37 +17448,48 @@ function nfGenerarImagenCorreoCoincidencias(datos, cb){
     cy+=22;
     var introLines=wrapText(ctx,'Al registrar una solicitud de Novedad para "'+nombre+'", el sistema encontró los siguientes documentos con nombre igual o similar en el Listado Maestro:',W-PAD*2);
     introLines.forEach(function(l,i){ ctx.fillText(l,PAD,cy+12+i*15); });
-    cy+=introLines.length*15+10;
+    cy+=introLines.length*15+16;
 
-    rowMetas.forEach(function(m){
-      var r=m.r, niv=nfNivelCoincidencia(r.score);
+    // Tarjeta contenedora única con todas las coincidencias dentro
+    roundRect2(ctx,PAD,cy,W-PAD*2,tablaH,8,'#fafafa');
+    ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(PAD+0.25,cy+0.25,W-PAD*2-0.5,tablaH-0.5,8) : ctx.rect(PAD,cy,W-PAD*2,tablaH);
+    ctx.stroke();
+    var ry=cy+tarjetaPadTB;
+    rowMetas.forEach(function(m,idx){
+      var r=m.r, niv=m.niv;
       var rh=m.h;
-      ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.5;
-      ctx.beginPath(); ctx.moveTo(PAD,cy+rh); ctx.lineTo(W-PAD,cy+rh); ctx.stroke();
-      ctx.fillStyle='#17324A'; ctx.font='700 11.5px Segoe UI,Arial,sans-serif';
-      ctx.fillText(r.codigo+' — '+r.descripcion,PAD,cy+15);
-      ctx.fillStyle='#6b7280'; ctx.font='9.5px Segoe UI,Arial,sans-serif';
-      m.lines.forEach(function(l,i){ ctx.fillText(l,PAD,cy+31+i*13); });
-      var badgeTxt=r.score+'% '+niv.txt;
-      ctx.font='700 10.5px Segoe UI,Arial,sans-serif';
-      var bw=ctx.measureText(badgeTxt).width+18;
-      var bx=W-PAD-bw;
-      roundRect2(ctx,bx,cy+3,bw,20,10,niv.bg);
-      ctx.fillStyle=niv.fg; ctx.textAlign='center';
-      ctx.fillText(badgeTxt,bx+bw/2,cy+17);
+      if(idx>0){
+        ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.5;
+        ctx.beginPath(); ctx.moveTo(INPAD-14,ry); ctx.lineTo(W-INPAD+14,ry); ctx.stroke();
+      }
+      ctx.fillStyle='#17324A'; ctx.font='600 11.5px Segoe UI,Arial,sans-serif';
+      m.tituloLines.forEach(function(l,i){ ctx.fillText(l,INPAD,ry+15+i*15); });
+      ctx.fillStyle='#9ca3af'; ctx.font='9.5px Segoe UI,Arial,sans-serif';
+      m.lines.forEach(function(l,i){ ctx.fillText(l,INPAD,ry+m.subTop+i*13); });
+      roundRect2(ctx,m.bx,ry+3,m.bw,20,10,niv.bg);
+      ctx.fillStyle=niv.fg; ctx.textAlign='center'; ctx.font='500 10.5px Segoe UI,Arial,sans-serif';
+      ctx.fillText(m.badgeTxt,m.bx+m.bw/2,ry+17);
       ctx.textAlign='left';
-      cy+=rh;
+      ry+=rh;
     });
-    cy+=10;
+    cy+=tablaH+16;
 
-    roundRect2(ctx,PAD,cy,W-PAD*2,resumenH,6,'#EAF6F1');
-    ctx.fillStyle='#374151'; ctx.font='10.5px Segoe UI,Arial,sans-serif';
-    ctx.fillText('Solicitante: '+solicitante+'    ·    Fecha: '+fechaHoy,PAD+12,cy+21);
+    roundRect2(ctx,PAD,cy,W-PAD*2,resumenH,8,'#EAF6F1');
+    ctx.fillStyle='#374151'; ctx.font='500 10.5px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Solicitante: ',PAD+14,cy+21);
+    var lblW=ctx.measureText('Solicitante: ').width;
+    ctx.font='700 10.5px Segoe UI,Arial,sans-serif';
+    ctx.fillStyle='#17324A';
+    ctx.fillText(solicitante,PAD+14+lblW,cy+21);
+    ctx.font='10.5px Segoe UI,Arial,sans-serif'; ctx.fillStyle='#6b7280'; ctx.textAlign='right';
+    ctx.fillText(fechaHoy,W-PAD-14,cy+21);
+    ctx.textAlign='left';
     cy+=resumenH+10;
 
     ctx.fillStyle='#E1F5EE'; ctx.fillRect(PAD,cy,4,accionH);
     ctx.fillStyle='#E1F5EE'; ctx.fillRect(PAD+4,cy,W-PAD*2-4,accionH);
-    ctx.fillStyle='#17324A'; ctx.font='700 11.5px Segoe UI,Arial,sans-serif';
+    ctx.fillStyle='#17324A'; ctx.font='500 11.5px Segoe UI,Arial,sans-serif';
     ctx.fillText('Acción requerida',PAD+16,cy+17);
     ctx.fillStyle='#0F4B44'; ctx.font='10px Segoe UI,Arial,sans-serif';
     accionLines.forEach(function(l,i){ ctx.fillText(l,PAD+16,cy+33+i*13); });
