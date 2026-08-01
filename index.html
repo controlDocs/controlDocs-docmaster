@@ -53,6 +53,11 @@ body{background:#f0f9f6;color:var(--tx);font-family:var(--fn);font-size:14px;min
 .pg{display:none!important;padding:18px 22px;width:100%;content-visibility:auto}
 .pg.act{display:block!important}
 .pg.act{display:block;width:100%;min-height:calc(100vh - 60px);}
+/* Excepción: este módulo carga su contenido de forma asíncrona (lee un
+   Excel externo); content-visibility:auto puede reservar una altura
+   estimada incorrecta antes de que el contenido real termine de llegar,
+   dejando un hueco vacío arriba. Se desactiva solo para este módulo. */
+#pg-solpend{content-visibility:visible!important}
 
 .pg{display:none!important;padding:18px 22px;width:100%;content-visibility:auto}
 .pg.act{display:block!important}
@@ -352,6 +357,7 @@ tbody tr:last-child td{border-bottom:none}
 <div class="ni" data-p="revdoc" onclick="nav('revdoc',this)"><span class="nic">🔍</span>Revisión de Documentos</div>
     <div class="ni" data-p="rutabor" onclick="nav('rutabor',this)"><span class="nic">📋</span>Ruta de Borrador</div> 
     <div class="ni" data-p="novedad" onclick="nav('novedad',this)"><span class="nic">📋</span>Novedad Documento</div>
+    <div class="ni" data-p="solpend" onclick="nav('solpend',this)"><span class="nic">📥</span>Solicitudes Pendientes <span id="badge-solpend" class="nb" style="display:none">0</span></div>
 
 </div>
   <div class="ns"><div class="nl">Control</div>
@@ -450,6 +456,7 @@ tbody tr:last-child td{border-bottom:none}
           <div class="home-mod-card" onclick="nav('entregacc',document.querySelector('[data-p=entregacc]'))"><div class="home-mod-icon" style="background:#f3e8fb">📦</div><div class="home-mod-name">Entrega Copias</div></div>
           <div class="home-mod-card" onclick="nav('insp',document.querySelector('[data-p=insp]'))"><div class="home-mod-icon" style="background:#faeeda">🔍</div><div class="home-mod-name">Prog. Inspecciones</div></div>
           <div class="home-mod-card" onclick="nav('novedad',document.querySelector('[data-p=novedad]'))"><div class="home-mod-icon" style="background:#f3e8fb">📢</div><div class="home-mod-name">Novedad Doc.</div></div>
+          <div class="home-mod-card" onclick="nav('solpend',document.querySelector('[data-p=solpend]'))"><div class="home-mod-icon" style="background:#e1f5ee">📥</div><div class="home-mod-name">Solicitudes Pendientes</div></div>
           <div class="home-mod-card" onclick="nav('extvigor',document.querySelector('[data-p=extvigor]'))"><div class="home-mod-icon" style="background:#e1f5ee">📅</div><div class="home-mod-name">Ext. Vigencia</div></div>
           <div class="home-mod-card" onclick="nav('fextvig',document.querySelector('[data-p=fextvig]'))"><div class="home-mod-icon" style="background:#e6f1fb">📋</div><div class="home-mod-name">F-Ext. Vigencia</div></div>
           <div class="home-mod-card" onclick="nav('docsrel',document.querySelector('[data-p=docsrel]'))"><div class="home-mod-icon" style="background:#faeeda">🔗</div><div class="home-mod-name">Docs Relacionados</div></div>
@@ -3003,6 +3010,37 @@ tbody tr:last-child td{border-bottom:none}
 </div></div>
 
 
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SOLICITUDES PENDIENTES (formulario web público) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg" id="pg-solpend">
+  <div class="card">
+    <div class="sh" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div>
+        <div class="st">📥 Solicitudes Pendientes</div>
+        <div id="spw-subtitulo" style="font-size:11px;color:var(--tx3);margin-top:2px">Solicitudes enviadas por el formulario público, aún sin atender</div>
+      </div>
+      <button class="btn gh sm" onclick="renderSolPend(true)">🔄 Actualizar</button>
+    </div>
+    <div id="spw-lista" style="margin-top:10px">
+      <div class="emp" style="padding:40px 20px">Cargando solicitudes...</div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  // Este módulo pudo quedar fuera de <main class="mn"> según dónde se
+  // insertó en el HTML fuente. <main> tiene min-height:100vh fijo por CSS,
+  // así que si el módulo queda como hermano de <main> en vez de dentro de
+  // él, el navegador reserva una pantalla completa vacía antes de llegar a
+  // su contenido. Se reubica aquí en tiempo de ejecución para garantizar
+  // que quede dentro de <main>, sin depender del anidamiento del HTML fuente.
+  var m=document.querySelector('main.mn');
+  var el=document.getElementById('pg-solpend');
+  if(m && el && el.parentElement!==m) m.appendChild(el);
+})();
+</script>
+
 <!-- ══ MODAL: CAMBIAR CONTRASEÑA ══ -->
 <div class="mo" id="mo-cambiar-pass"><div class="md" style="max-width:420px">
   <button class="md-x" onclick="closeMo('mo-cambiar-pass')">X</button>
@@ -3106,6 +3144,10 @@ tbody tr:last-child td{border-bottom:none}
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="fextvig"> F-Extensión Vigencia</label>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="pdfbarcode"> 🏷️ Estampar PDF</label>   
 	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="revdoc"> 🔍 Revisión de Documentos</label>
+	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="rutabor"> 📋 Ruta de Borrador</label>
+	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="novedad"> 📋 Novedad Documento</label>
+	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="correos"> ✉️ Correos</label>
+	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="solpend"> 📥 Solicitudes Pendientes</label>
 
  </div>
   </div>
@@ -3665,8 +3707,8 @@ function getSaludo(){var h=new Date().getHours();if(h>=5&&h<12)return'Buenos dia
 // NAV
 // ============================================================
 
-var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Programa de Inspecciones Rutinarias',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento'};
-var PR={dash:renderDash,kpi:function(){renderKPI();renderKpiHallazgos();},docs:function(){renderDocs();lmInit();},venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:function(){window._usrShowPass=false;renderUsrs();},notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();}};
+var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Programa de Inspecciones Rutinarias',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento',solpend:'Solicitudes Pendientes'};
+var PR={dash:renderDash,kpi:function(){renderKPI();renderKpiHallazgos();},docs:function(){renderDocs();lmInit();},venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:function(){window._usrShowPass=false;renderUsrs();},notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();},solpend:function(){renderSolPend();}};
 
 var _navPgNodes=null,_navNiNodes=null;
 function _navGetNodes(){if(!_navPgNodes)_navPgNodes=Array.from(document.querySelectorAll('.pg'));if(!_navNiNodes)_navNiNodes=Array.from(document.querySelectorAll('.ni'));}
@@ -3923,6 +3965,15 @@ function updBadges(){
   }).length;
   var bi=document.getElementById('bi');
   if(bi){bi.textContent=nUrgente;bi.className='nb '+(nUrgente>0?'r':'t');}
+
+  // Badge de Solicitudes Pendientes (del formulario web)
+  var nPend=(solicitudesWeb||[]).filter(function(s){return s.estado==='Pendiente';}).length;
+  var bp=document.getElementById('badge-solpend');
+  if(bp){
+    bp.textContent=nPend;
+    bp.style.display=nPend>0?'inline-block':'none';
+    bp.className='nb '+(nPend>0?'r':'t');
+  }
 }
 
 // ============================================================
@@ -17992,7 +18043,7 @@ var currentUser=null;
 function _odAutosaveHabilitado(){
   return !!(currentUser && String(currentUser.rol||'').trim()==='Administrador');
 }
-var MODULOS_TODOS=['dash','docs','venc','flujos','copias','entregacc','docsrel','insp','procs','usrs','notif','audit','rep','cfg','extvigor','marobs','fextvig','pdfbarcode','revdoc','validacion'];
+var MODULOS_TODOS=['dash','docs','venc','flujos','copias','entregacc','docsrel','insp','procs','usrs','notif','audit','rep','cfg','extvigor','marobs','fextvig','pdfbarcode','revdoc','validacion','rutabor','novedad','correos','solpend'];
 
 
 function showLogin(){
@@ -18354,6 +18405,7 @@ async function doLogin(){
     aplicarPermisos(user);
     _construirTopbar(user);
     if(typeof aplicarIdiomaUI==='function'){ aplicarIdiomaUI(document.body); activarObservadorIdioma(); }
+    if(typeof spwAlertaAlLoguear==='function') spwAlertaAlLoguear();
     renderDash();
     updBadges();
     if(OD.fileHandle&&!OD.permisoEscritura){
@@ -18372,6 +18424,7 @@ async function doLogin(){
   aplicarPermisos(user);
   _construirTopbar(user);
   if(typeof aplicarIdiomaUI==='function'){ aplicarIdiomaUI(document.body); activarObservadorIdioma(); }
+  if(typeof spwAlertaAlLoguear==='function') spwAlertaAlLoguear();
   toast((APP_LANG==='pt'?'Bem-vindo, ':'Bienvenido, ')+user.nombre,'ok');
   iniciarTimerInactividad();
   ['mousemove','keydown','click','scroll','touchstart'].forEach(function(ev){
@@ -18558,7 +18611,8 @@ var OD_ARCHIVOS = {
   inspecciones: 'Inspecciones.xlsx',
   colaboradores:'Colaboradores.xlsx',
   actividades:  'Actividadesdeldia.xlsx',
-  bloqueos:     'BloqueosModulos.json'
+  bloqueos:     'BloqueosModulos.json',
+  solicitudesWeb:'SolicitudesWeb.xlsx'
 };
 
 // ── MODO SHAREPOINT ───────────────────────────────────────────────────────────
@@ -18633,6 +18687,33 @@ async function spLeerArchivo(nombre){
   }
 }
 
+// Sube un buffer YA SERIALIZADO tal cual a SharePoint (sin pasar por
+// XLSX.write), para preservar el formato de Tabla de Excel al hacer
+// ediciones quirúrgicas a nivel de ZIP/XML.
+async function spEscribirBuffer(nombre, bufArray){
+  try{
+    var blob=new Blob([bufArray],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var digest=await spObtenerDigest();
+    var serverRelUrl=SP.carpetaUrl+'/'+nombre;
+    var apiUrl=SP.siteUrl+"/_api/web/getfilebyserverrelativeurl('"+encodeURIComponent(serverRelUrl)+"')/$value";
+    var headers={'Content-Type':'application/octet-stream','Content-Length':String(bufArray.byteLength)};
+    if(digest) headers['X-RequestDigest']=digest;
+    var r=await fetch(apiUrl,{method:'PUT',credentials:'include',headers:headers,body:blob});
+    if(!r.ok){
+      var apiUrl2=SP.siteUrl+"/_api/web/getfolderbyserverrelativeurl('"+encodeURIComponent(SP.carpetaUrl)+"')"+
+                  "/files/add(url='"+encodeURIComponent(nombre)+"',overwrite=true)";
+      if(digest) headers['X-RequestDigest']=digest;
+      var r2=await fetch(apiUrl2,{method:'POST',credentials:'include',headers:headers,body:blob});
+      if(!r2.ok) throw new Error('HTTP '+r2.status+' al escribir '+nombre);
+    }
+    console.log('[SP] ✅ Guardado (buffer crudo): '+nombre);
+    return true;
+  }catch(e){
+    console.error('[SP] Error escribiendo (buffer) '+nombre+':',e.message);
+    toast('⚠️ Error guardando '+nombre+': '+e.message,'er');
+    return false;
+  }
+}
 async function spEscribirArchivo(nombre, wbToWrite){
   // Escribir un Excel en la carpeta SharePoint usando la REST API
   try{
@@ -18867,6 +18948,95 @@ async function odGetArchivoHandle(nombre, modo){
 }
 
 // ── Leer un archivo Excel de la carpeta ──────────────────────
+// Escribe un workbook completo en un archivo de la carpeta compartida
+// (modo SharePoint o modo local con File System Access), con la misma
+// espera de estabilidad de OneDrive que ya usa odGuardarListado — pero
+// reutilizable para cualquier archivo, no solo el Listado Maestro.
+// Variante de odEscribirArchivoGenerico que escribe un ArrayBuffer/Uint8Array
+// YA SERIALIZADO tal cual, sin pasar por XLSX.write. Se usa cuando el buffer
+// se construyó editando el .xlsx original a nivel de ZIP/XML (para no perder
+// el formato de Tabla de Excel, que la librería XLSX no preserva al
+// reconstruir el libro desde cero).
+async function odEscribirBufferGenerico(nombreArchivo, bufArray){
+  if(SP.activo){
+    var ok=await spEscribirBuffer(nombreArchivo, bufArray);
+    if(!ok) throw new Error('Error al guardar '+nombreArchivo+' en SharePoint');
+    return true;
+  }
+  if(!OD.carpetaHandle) return false;
+  var OD_SYNC_WAIT=3500, OD_SYNC_POLLS=6, OD_POLL_GAP=600;
+  try{
+    var fh=await OD.carpetaHandle.getFileHandle(nombreArchivo,{create:false});
+    var perm;
+    if(window.location.protocol==='file:'){ perm='granted'; }
+    else {
+      perm=await fh.queryPermission({mode:'readwrite'});
+      if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
+    }
+    if(perm!=='granted'){ console.warn('Sin permiso escritura en '+nombreArchivo); return false; }
+    var fBefore=await fh.getFile();
+    var tamBefore=fBefore.size, tsBefore=fBefore.lastModified, ahora=Date.now();
+    if((ahora-tsBefore)<OD_SYNC_WAIT){
+      await new Promise(function(r){ setTimeout(r, OD_SYNC_WAIT-(ahora-tsBefore)); });
+    }
+    for(var i=0;i<OD_SYNC_POLLS;i++){
+      var fCheck=await fh.getFile();
+      if(fCheck.size!==tamBefore || fCheck.lastModified!==tsBefore){
+        tamBefore=fCheck.size; tsBefore=fCheck.lastModified;
+        await new Promise(function(r){ setTimeout(r, OD_POLL_GAP); });
+      } else break;
+    }
+    var wr=await fh.createWritable({keepExistingData:false});
+    await wr.write(new Uint8Array(bufArray));
+    await wr.close();
+    await new Promise(function(r){ setTimeout(r, 1200); });
+    return true;
+  }catch(e){
+    console.error('[OD] Error guardando '+nombreArchivo+':',e.message);
+    return false;
+  }
+}
+async function odEscribirArchivoGenerico(nombreArchivo, wbToWrite){
+  if(SP.activo){
+    var ok=await spEscribirArchivo(nombreArchivo, wbToWrite);
+    if(!ok) throw new Error('Error al guardar '+nombreArchivo+' en SharePoint');
+    return true;
+  }
+  if(!OD.carpetaHandle) return false;
+  var OD_SYNC_WAIT=3500, OD_SYNC_POLLS=6, OD_POLL_GAP=600;
+  try{
+    var fh=await OD.carpetaHandle.getFileHandle(nombreArchivo,{create:false});
+    var perm;
+    if(window.location.protocol==='file:'){ perm='granted'; }
+    else {
+      perm=await fh.queryPermission({mode:'readwrite'});
+      if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
+    }
+    if(perm!=='granted'){ console.warn('Sin permiso escritura en '+nombreArchivo); return false; }
+    var fBefore=await fh.getFile();
+    var tamBefore=fBefore.size, tsBefore=fBefore.lastModified, ahora=Date.now();
+    if((ahora-tsBefore)<OD_SYNC_WAIT){
+      await new Promise(function(r){ setTimeout(r, OD_SYNC_WAIT-(ahora-tsBefore)); });
+    }
+    for(var i=0;i<OD_SYNC_POLLS;i++){
+      var fCheck=await fh.getFile();
+      if(fCheck.size!==tamBefore || fCheck.lastModified!==tsBefore){
+        tamBefore=fCheck.size; tsBefore=fCheck.lastModified;
+        await new Promise(function(r){ setTimeout(r, OD_POLL_GAP); });
+      } else break;
+    }
+    if(typeof _saneaCeldasLargasWB==='function') _saneaCeldasLargasWB(wbToWrite);
+    var bufW=XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
+    var wr=await fh.createWritable({keepExistingData:false});
+    await wr.write(new Uint8Array(bufW));
+    await wr.close();
+    await new Promise(function(r){ setTimeout(r, 1200); });
+    return true;
+  }catch(e){
+    console.error('[OD] Error guardando '+nombreArchivo+':',e.message);
+    return false;
+  }
+}
 async function odLeerArchivo(nombre){
   // MODO SHAREPOINT: leer por fetch desde la misma carpeta
   if(SP.activo){
@@ -20768,6 +20938,14 @@ async function odCargarListado(){
     odSetInfo('✅ '+nuevoDocs.length+' docs · '+copias.length+' copias · '+usuarios.length+' usuarios · '+fTH(),'var(--G)');
     setTimeout(function(){odSetProgreso(-1);},2500);
     toast('✅ '+nuevoDocs.length+' docs y '+copias.length+' copias cargadas','ok');
+    // Si el usuario ya estaba en "Solicitudes Pendientes" cuando terminó esta
+    // carga (por ejemplo, entró ahí muy rápido desde la alerta de login),
+    // volver a validar/renderizar con los datos ya completos — antes las
+    // validaciones de "Obsoleto"/"Ruta de Borrador activa" podían evaluarse
+    // contra un "docs"/"solicitudes" todavía vacíos.
+    if(document.getElementById('pg-solpend') && document.getElementById('pg-solpend').classList.contains('act') && typeof renderSolPend==='function'){
+      renderSolPend();
+    }
     // Desactivar protección DH después de 60s
     // (tiempo suficiente para que expiren todos los timers automáticos de 3-5s)
     setTimeout(function(){
@@ -24407,6 +24585,675 @@ var solicitudes = []; // array global
 
 // Columnas de la hoja (B=índice0 en el array tras omitir col A)
 var colaboradores = []; // {nombre, cargo, correo} de hoja Listado de Colaboradores
+
+// ══════════════════════════════════════════════════════════════════
+// SOLICITUDES WEB — solicitudes enviadas por el formulario público
+// (Microsoft Forms → Power Automate → SolicitudesWeb.xlsx)
+// ══════════════════════════════════════════════════════════════════
+// Muestra un aviso al iniciar sesión si hay solicitudes pendientes por
+// responder en el formulario web. Se llama justo después del login exitoso.
+async function spwAlertaAlLoguear(){
+  try{
+    await spwCargar();
+    if(typeof updBadges==='function') updBadges();
+    var n=(solicitudesWeb||[]).filter(function(s){return s.estado==='Pendiente';}).length;
+    if(n>0){
+      setTimeout(function(){ spwMostrarAlertaGrande(n); },900); // después del toast de bienvenida
+    }
+  }catch(e){ console.warn('[SolicitudesWeb] Error verificando pendientes al loguear:',e.message); }
+}
+
+// Alerta grande y visible (modal centrado) de solicitudes pendientes, en vez
+// de un toast pequeño que puede pasar desapercibido.
+function spwMostrarAlertaGrande(n){
+  var id='mo-spw-alerta';
+  var existente=document.getElementById(id);
+  if(existente) existente.remove();
+  var div=document.createElement('div');
+  div.className='mo';
+  div.id=id;
+  div.style.display='flex';
+  div.innerHTML='<div class="md" style="max-width:420px;text-align:center;padding:36px 26px">'
+    +'<div style="font-size:52px;margin-bottom:12px">📥</div>'
+    +'<div style="font-size:21px;font-weight:700;color:var(--tx);margin-bottom:8px">'+n+' solicitud'+(n===1?'':'es')+' pendiente'+(n===1?'':'es')+'</div>'
+    +'<div style="font-size:13px;color:var(--tx3);margin-bottom:24px;line-height:1.6">Hay '+n+' solicitud'+(n===1?'':'es')+' enviada'+(n===1?'':'s')+' desde el formulario web esperando respuesta.</div>'
+    +'<div style="display:flex;gap:10px;justify-content:center">'
+      +'<button class="btn gh sm" onclick="document.getElementById(\''+id+'\').remove()">Ahora no</button>'
+      +'<button class="btn sm" style="background:var(--T);color:#fff;font-weight:700" onclick="document.getElementById(\''+id+'\').remove();nav(\'solpend\',document.querySelector(\'[data-p=solpend]\'))">📥 Ver solicitudes</button>'
+    +'</div>'
+  +'</div>';
+  document.body.appendChild(div);
+}
+
+// Devuelve la fecha siempre en formato AAAA-MM-DD, sin importar si Excel la
+// entregó ya formateada, como objeto Date, o como texto en otro formato.
+function _spwFormatearFecha(val){
+  if(val==null) return '';
+  if(val instanceof Date && !isNaN(val)){
+    return val.getFullYear()+'-'+String(val.getMonth()+1).padStart(2,'0')+'-'+String(val.getDate()).padStart(2,'0');
+  }
+  var s=String(val).trim();
+  if(!s) return '';
+  var m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  var d=new Date(s);
+  if(!isNaN(d)) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return s;
+}
+
+var solicitudesWeb = []; // filas leídas de SolicitudesWeb.xlsx
+var _spwCargando = false;
+var _spwFilaTomada = null; // ID de la fila que se está completando desde Novedad
+
+// Normaliza texto para comparar nombres: minúsculas, sin tildes, sin espacios extra
+function _spwNorm(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');
+}
+
+// Lee SolicitudesWeb.xlsx de la carpeta compartida (misma carpeta que el
+// Listado Maestro) y llena el array solicitudesWeb. No falla si el archivo
+// no existe todavía (por ejemplo, si aún no ha llegado ninguna solicitud).
+async function spwCargar(){
+  if(_spwCargando) return solicitudesWeb;
+  _spwCargando=true;
+  try{
+    var data=await odLeerArchivo(OD_ARCHIVOS.solicitudesWeb);
+    if(!data){ solicitudesWeb=[]; return solicitudesWeb; }
+    var wb=XLSX.read(data.buf,{type:'array',cellDates:true});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,dateNF:'yyyy-mm-dd'});
+    var hdr=(rows[0]||[]).map(function(h){return String(h||'').trim().toLowerCase();});
+    function col(nombre){ return hdr.indexOf(nombre); }
+    var cId=col('id'), cFecha=col('fecha'), cTipo=col('tipo de solicitud'),
+        cCod=col('código')>=0?col('código'):col('codigo'),
+        cTipoDoc=col('tipo de documento nuevo'), cCorp=col('corporativo'),
+        cNombreDoc=col('nombre del documento'),
+        cSol=col('solicitante'), cDesc=col('descripción')>=0?col('descripción'):col('descripcion'),
+        cEstado=col('estado');
+    var out=[];
+    for(var i=1;i<rows.length;i++){
+      var r=rows[i];
+      if(!r || !r.length || !String(r[cId]||'').trim()) continue;
+      out.push({
+        _fila:i, // índice de fila real dentro de la hoja (para reescribir el Estado)
+        id:         String(r[cId]||'').trim(),
+        fecha:      _spwFormatearFecha(r[cFecha]),
+        tipoSolicitud: String(r[cTipo]||'').trim(),
+        codigo:     String(r[cCod]||'').trim(),
+        tipoDocNuevo:String(r[cTipoDoc]||'').trim(),
+        corporativo:String(r[cCorp]||'').trim(),
+        nombreDoc:  cNombreDoc>=0?String(r[cNombreDoc]||'').trim():'',
+        solicitante:String(r[cSol]||'').trim(),
+        descripcion:String(r[cDesc]||'').trim(),
+        estado:     String(r[cEstado]||'').trim()||'Pendiente'
+      });
+    }
+    solicitudesWeb=out;
+  }catch(e){
+    console.warn('[SolicitudesWeb] Error leyendo el archivo:',e.message);
+  } finally{
+    _spwCargando=false;
+  }
+  return solicitudesWeb;
+}
+
+// Intenta resolver el nombre escrito libremente en el formulario contra el
+// Listado de Colaboradores, teniendo en cuenta que la persona pudo escribir
+// solo un nombre y un apellido (no los 4 componentes completos).
+// Devuelve {estado:'ok'|'ambiguo'|'no_encontrado', nombreResuelto, opciones}
+// Normaliza el "Tipo de Solicitud" que llega del formulario web (que usa
+// textos más largos, ej. "Creación de documento nuevo") al valor EXACTO que
+// espera el select de Novedad de Documento ("Creación"/"Modificación"/"Eliminación").
+// Empareja el "Tipo de documento a crear" que llegó del formulario web (que
+// incluye la sigla entre paréntesis, ej. "Procedimiento (SOP)") contra las
+// opciones reales del select de Novedad (que no llevan la sigla, y algunas
+// usan guion bajo o mayúsculas distintas, ej. "Norma_Interna").
+function _spwTipoDocNorm(sel, textoFormulario){
+  if(!sel || !textoFormulario) return;
+  var base=String(textoFormulario).replace(/\s*\([^)]*\)\s*$/,'').trim();
+  var baseNorm=_spwNorm(base).replace(/_/g,' ');
+  var opciones=Array.prototype.slice.call(sel.options);
+  var match=opciones.find(function(o){
+    var optNorm=_spwNorm(o.value||o.textContent).replace(/_/g,' ');
+    return optNorm===baseNorm;
+  });
+  if(!match){
+    match=opciones.find(function(o){
+      var optNorm=_spwNorm(o.value||o.textContent).replace(/_/g,' ');
+      return optNorm && baseNorm && (optNorm.indexOf(baseNorm)>=0 || baseNorm.indexOf(optNorm)>=0);
+    });
+  }
+  if(match) sel.value=match.value;
+}
+
+function _spwTipoNorm(tipo){
+  var t=_spwNorm(tipo);
+  if(t.indexOf('creacion')>=0) return 'Creación';
+  if(t.indexOf('modificacion')>=0) return 'Modificación';
+  if(t.indexOf('eliminacion')>=0) return 'Eliminación';
+  return tipo;
+}
+
+function spwResolverSolicitante(nombreEscrito){
+  var escritoNorm=_spwNorm(nombreEscrito);
+  if(!escritoNorm) return {estado:'no_encontrado', nombreResuelto:'', opciones:[]};
+  var palabrasEscritas=escritoNorm.split(' ').filter(Boolean);
+  var coincidencias=(colaboradores||[]).filter(function(c){
+    var palabrasColab=_spwNorm(c.nombre).split(' ').filter(Boolean);
+    return palabrasEscritas.every(function(pe){
+      return palabrasColab.some(function(pc){ return pc===pe; });
+    });
+  });
+  if(coincidencias.length===1){
+    return {estado:'ok', nombreResuelto:coincidencias[0].nombre, opciones:coincidencias};
+  }
+  if(coincidencias.length>1){
+    return {estado:'ambiguo', nombreResuelto:nombreEscrito, opciones:coincidencias};
+  }
+  return {estado:'no_encontrado', nombreResuelto:nombreEscrito, opciones:[]};
+}
+
+// Marca una solicitud web como Completada en el Excel compartido. Vuelve a
+// leer el archivo justo antes de escribir (en vez de reusar la copia ya
+// cargada en memoria) para minimizar el riesgo de pisar una solicitud nueva
+// que haya llegado mientras tanto de otro usuario del formulario público.
+// Actualiza la columna "Estado" de una fila de SolicitudesWeb.xlsx SIN
+// reconstruir el libro con la librería XLSX (que NO preserva el formato de
+// Tabla de Excel al reescribir — esto rompía la acción "Agregar una fila a
+// una tabla" de Power Automate). En su lugar, se edita directamente el XML
+// de la hoja dentro del .zip del .xlsx, tocando solo la celda necesaria;
+// el resto del archivo (incluida la definición de la Tabla) queda intacto.
+async function spwActualizarEstado(id, nuevoEstado){
+  if(!id) return false;
+  try{
+    var data=await odLeerArchivo(OD_ARCHIVOS.solicitudesWeb);
+    if(!data){ toast('No se pudo abrir SolicitudesWeb.xlsx para actualizarla','er'); return false; }
+    if(typeof JSZip==='undefined'){ toast('Falta la librería JSZip','er'); return false; }
+    var zip=await JSZip.loadAsync(data.buf);
+    var sheetPath='xl/worksheets/sheet1.xml';
+    if(!zip.file(sheetPath)){
+      // Resolver dinámicamente la primera hoja vía workbook.xml + sus relaciones,
+      // por si el archivo no usa exactamente "sheet1.xml" internamente.
+      try{
+        var parserWb=new DOMParser();
+        var wbXml=await zip.file('xl/workbook.xml').async('string');
+        var wbDoc=parserWb.parseFromString(wbXml,'application/xml');
+        var primerSheet=wbDoc.getElementsByTagName('sheet')[0];
+        var rId=primerSheet&&(primerSheet.getAttribute('r:id')||primerSheet.getAttribute('id'));
+        var relsXml=await zip.file('xl/_rels/workbook.xml.rels').async('string');
+        var relsDoc=parserWb.parseFromString(relsXml,'application/xml');
+        var rels=relsDoc.getElementsByTagName('Relationship');
+        for(var k=0;k<rels.length;k++){
+          if(rels[k].getAttribute('Id')===rId){
+            sheetPath='xl/'+rels[k].getAttribute('Target').replace(/^\/?xl\//,'').replace(/^\.\//,'');
+            break;
+          }
+        }
+      }catch(eResolve){ console.warn('[SolicitudesWeb] No se pudo resolver la ruta de la hoja, usando sheet1.xml:',eResolve.message); }
+    }
+    var sheetFile=zip.file(sheetPath);
+    if(!sheetFile){ toast('No se pudo leer la hoja del Excel','er'); return false; }
+    var xmlTexto=await sheetFile.async('string');
+    var parser=new DOMParser();
+    var xmlDoc=parser.parseFromString(xmlTexto,'application/xml');
+
+    // Resolver textos vía sharedStrings.xml (así se guardan normalmente los
+    // encabezados y los valores de texto en un .xlsx).
+    var sst=[];
+    var sstFile=zip.file('xl/sharedStrings.xml');
+    if(sstFile){
+      var sstDoc=parser.parseFromString(await sstFile.async('string'),'application/xml');
+      var siNodes=sstDoc.getElementsByTagName('si');
+      for(var i=0;i<siNodes.length;i++){
+        var tNodes=siNodes[i].getElementsByTagName('t');
+        var txt=''; for(var j=0;j<tNodes.length;j++) txt+=tNodes[j].textContent;
+        sst.push(txt);
+      }
+    }
+    function celdaTexto(c){
+      if(c.getAttribute('t')==='inlineStr'){
+        var isNode=c.getElementsByTagName('is')[0];
+        if(!isNode) return '';
+        var tNodes=isNode.getElementsByTagName('t');
+        var txt=''; for(var k=0;k<tNodes.length;k++) txt+=tNodes[k].textContent;
+        return txt;
+      }
+      var vNode=c.getElementsByTagName('v')[0];
+      if(!vNode) return '';
+      if(c.getAttribute('t')==='s'){ var idx=parseInt(vNode.textContent,10); return sst[idx]||''; }
+      return vNode.textContent;
+    }
+    function colLetra(ref){ return (ref||'').replace(/\d+$/,''); }
+
+    // 1) Ubicar en la fila de encabezado (r="1") las columnas ID y Estado
+    var rowsXml=xmlDoc.getElementsByTagName('row');
+    var filaEncabezado=null;
+    for(var r=0;r<rowsXml.length;r++){ if(rowsXml[r].getAttribute('r')==='1'){ filaEncabezado=rowsXml[r]; break; } }
+    if(!filaEncabezado && rowsXml.length) filaEncabezado=rowsXml[0]; // respaldo: primera fila tal cual
+    if(!filaEncabezado){ toast('No se encontró el encabezado de la hoja','er'); return false; }
+    var colId=null, colEstado=null;
+    var celdasHdr=filaEncabezado.getElementsByTagName('c');
+    for(var i=0;i<celdasHdr.length;i++){
+      var txt=celdaTexto(celdasHdr[i]).trim().toLowerCase();
+      if(txt==='id') colId=colLetra(celdasHdr[i].getAttribute('r'));
+      if(txt==='estado') colEstado=colLetra(celdasHdr[i].getAttribute('r'));
+    }
+    if(!colId||!colEstado){ toast('No se encontraron las columnas ID/Estado en la hoja','er'); return false; }
+
+    // 2) Buscar la fila cuyo valor en la columna ID coincide con el id buscado
+    var filaObjetivo=null;
+    for(var r=0;r<rowsXml.length;r++){
+      var fila=rowsXml[r];
+      if(fila===filaEncabezado) continue;
+      var celdas=fila.getElementsByTagName('c');
+      for(var i=0;i<celdas.length;i++){
+        if(colLetra(celdas[i].getAttribute('r'))===colId && celdaTexto(celdas[i]).trim()===String(id).trim()){
+          filaObjetivo=fila; break;
+        }
+      }
+      if(filaObjetivo) break;
+    }
+    if(!filaObjetivo){ toast('No se encontró la solicitud en el Excel (id: '+id+')','er'); return false; }
+
+    // 3) Escribir el nuevo Estado en la celda correspondiente de esa fila.
+    // IMPORTANTE: t="str" es SOLO para resultados de fórmulas (requiere un
+    // elemento <f> hermano) — usarlo en una celda de texto normal hace que
+    // Excel la muestre en blanco. El tipo correcto para texto literal sin
+    // depender de sharedStrings es "inlineStr", con <is><t>...</t></is>.
+    // IMPORTANTE: los elementos nuevos deben crearse con el mismo espacio de
+    // nombres XML (SpreadsheetML) que el resto del documento — createElement
+    // simple los deja sin namespace y Excel los ignora silenciosamente.
+    var NS_SS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+    var refEstado=colEstado+filaObjetivo.getAttribute('r');
+    var celdaEstado=null;
+    var celdasObjetivo=filaObjetivo.getElementsByTagName('c');
+    for(var i=0;i<celdasObjetivo.length;i++){
+      if(celdasObjetivo[i].getAttribute('r')===refEstado){ celdaEstado=celdasObjetivo[i]; break; }
+    }
+    if(!celdaEstado){
+      celdaEstado=xmlDoc.createElementNS(NS_SS,'c');
+      celdaEstado.setAttribute('r', refEstado);
+      filaObjetivo.appendChild(celdaEstado);
+    }
+    celdaEstado.setAttribute('t','inlineStr');
+    // Quitar cualquier <v>, <is> o <f> previos (de cualquier tipo de celda anterior)
+    ['v','is','f'].forEach(function(tag){
+      var viejos=celdaEstado.getElementsByTagName(tag);
+      while(viejos.length){ celdaEstado.removeChild(viejos[0]); }
+    });
+    var isNode=xmlDoc.createElementNS(NS_SS,'is');
+    var tNode=xmlDoc.createElementNS(NS_SS,'t');
+    tNode.textContent=nuevoEstado;
+    isNode.appendChild(tNode);
+    celdaEstado.appendChild(isNode);
+
+    // 4) Volver a comprimir SOLO con esta hoja modificada; todo lo demás
+    //    (tabla, estilos, otras partes del .xlsx) queda exactamente igual.
+    var xmlFinal=new XMLSerializer().serializeToString(xmlDoc);
+    zip.file(sheetPath, xmlFinal);
+    var nuevoBuf=await zip.generateAsync({type:'arraybuffer'});
+
+    var ok=await odEscribirBufferGenerico(OD_ARCHIVOS.solicitudesWeb, nuevoBuf);
+    if(ok) await spwCargar(); // refrescar memoria con el archivo ya actualizado
+    return ok;
+  }catch(e){
+    console.error('[SolicitudesWeb] Error actualizando estado:',e.message);
+    toast('Error actualizando la solicitud: '+e.message,'er');
+    return false;
+  }
+}
+// Se mantiene por compatibilidad (usado desde nfGuardarEjecutar)
+async function spwMarcarCompletada(id){ return spwActualizarEstado(id, 'Completada'); }
+
+// Renderiza el panel de Solicitudes Pendientes. Vuelve a leer el archivo
+// cada vez que se abre el módulo (o al pulsar Actualizar), ya que llegan
+// solicitudes nuevas del formulario público en cualquier momento.
+// Valida el código de una solicitud de Modificación/Eliminación contra el
+// Listado Maestro: si el documento ya está Obsoleto, o si (solo para
+// Modificación) el código tiene una Ruta de Borrador activa (En revisión o
+// En proceso de firma), devuelve el motivo para poder ofrecer "Rechazar".
+function spwValidarSolicitud(s, tipoNorm){
+  if((tipoNorm!=='Modificación'&&tipoNorm!=='Eliminación') || !s.codigo) return {estado:'ok'};
+  var codU=s.codigo.toUpperCase().trim();
+  var doc=(docs||[]).find(function(d){ return (d.codigoActual||'').toUpperCase().trim()===codU; });
+  if(doc && typeof _icEsObsoleto==='function' && _icEsObsoleto(doc)){
+    return {estado:'obsoleto', doc:doc};
+  }
+  if(tipoNorm==='Modificación' && typeof nfVerificarRutaBorrador==='function'){
+    var rb=nfVerificarRutaBorrador(s.codigo);
+    if(rb) return {estado:'en_proceso', rb:rb};
+  }
+  return {estado:'ok'};
+}
+
+// Genera la imagen (PNG) del correo de rechazo de una solicitud web, con la
+// misma paleta de marca que el correo de coincidencias (header azul marino,
+// acento turquesa, fondo menta). Llama a cb(dataUrl) cuando el logo carga.
+function spwGenerarImagenCorreoRechazo(s, tipoNorm, motivo, cb, accion){
+  accion=accion||'rechazada';
+  var esAnulacion=accion==='anulada';
+  var W=700, PAD=24;
+  var saludo=typeof nfSaludoSegunHora==='function'?nfSaludoSegunHora():'Cordial saludo';
+  var fechaHoy=typeof fDL==='function'?fDL(new Date()):(new Date()).toLocaleDateString();
+  var tmpCanvas=document.createElement('canvas');
+  var tmpCtx=tmpCanvas.getContext('2d');
+  function wrapText(ctx,text,maxW){
+    var words=(text||'').split(' '),lines=[],cur='';
+    words.forEach(function(w){
+      var test=cur?cur+' '+w:w;
+      if(ctx.measureText(test).width>maxW && cur){ lines.push(cur); cur=w; } else { cur=test; }
+    });
+    if(cur) lines.push(cur);
+    return lines;
+  }
+  tmpCtx.font='10px Segoe UI,Arial,sans-serif';
+  var motivoLines=wrapText(tmpCtx, motivo, W-PAD*2-32);
+  tmpCtx.font='500 18px Segoe UI,Arial,sans-serif';
+  var tituloTxt=esAnulacion
+    ? 'Tu solicitud de '+tipoNorm.toLowerCase()+' para "'+s.codigo+'" fue anulada'
+    : 'Tu solicitud de '+tipoNorm.toLowerCase()+' para "'+s.codigo+'" no pudo ser procesada';
+  var tituloLines=wrapText(tmpCtx,tituloTxt,W-PAD*2).slice(0,2);
+
+  var headerH=60+(tituloLines.length>1?22:0)+20;
+  var saludoH=54;
+  var motivoH=34+motivoLines.length*13;
+  var resumenH=56;
+  var firmaH=48, footerH=32;
+  var totalH=headerH+saludoH+motivoH+16+resumenH+14+firmaH+footerH;
+
+  var canvas=document.createElement('canvas');
+  canvas.width=W*2; canvas.height=totalH*2;
+  var ctx=canvas.getContext('2d'); ctx.scale(2,2);
+
+  ctx.fillStyle='#EAF6F1'; ctx.fillRect(0,0,W,totalH);
+  ctx.fillStyle='#17324A'; ctx.fillRect(0,0,W,headerH);
+  var ly=20;
+  function dibujar(logoImg){
+    if(logoImg) ctx.drawImage(logoImg,PAD,ly,22,22);
+    ctx.fillStyle='#2CD9C5';
+    ctx.font='500 13px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Sistema de documentación · Solicitud '+(esAnulacion?'Anulada':'Rechazada'),PAD+(logoImg?32:0),ly+16);
+    var ty=ly+40;
+    ctx.fillStyle='#ffffff';
+    ctx.font='500 18px Segoe UI,Arial,sans-serif';
+    tituloLines.forEach(function(l,i){ ctx.fillText(l,PAD,ty+i*22); });
+
+    var by=headerH;
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,by,W,totalH-by-footerH);
+    var cy=by+16;
+    ctx.fillStyle='#374151'; ctx.font='12px Segoe UI,Arial,sans-serif';
+    ctx.fillText(saludo+',',PAD,cy+12);
+    cy+=22;
+    var introTxt=esAnulacion
+      ? 'Te informamos que tu solicitud enviada a través del formulario web fue anulada, por el siguiente motivo:'
+      : 'Hemos revisado tu solicitud enviada a través del formulario web y no fue posible continuar con el trámite por el siguiente motivo:';
+    var introLines=wrapText(ctx,introTxt,W-PAD*2);
+    introLines.forEach(function(l,i){ ctx.fillText(l,PAD,cy+12+i*15); });
+    cy+=introLines.length*15+10;
+
+    ctx.fillStyle='#fde2e2'; ctx.fillRect(PAD,cy,4,motivoH);
+    ctx.fillStyle='#fde2e2'; ctx.fillRect(PAD+4,cy,W-PAD*2-4,motivoH);
+    ctx.fillStyle='#712B13'; ctx.font='500 11.5px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Motivo de la '+(esAnulacion?'anulación':'rechazo'),PAD+16,cy+17);
+    ctx.fillStyle='#712B13'; ctx.font='10px Segoe UI,Arial,sans-serif';
+    motivoLines.forEach(function(l,i){ ctx.fillText(l,PAD+16,cy+33+i*13); });
+    cy+=motivoH+16;
+
+    ctx.fillStyle='#EAF6F1'; ctx.fillRect(PAD,cy,W-PAD*2,resumenH);
+    ctx.fillStyle='#374151'; ctx.font='10.5px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Tipo de solicitud: '+tipoNorm,PAD+14,cy+18);
+    ctx.fillText('Código: '+(s.codigo||'—'),PAD+14,cy+34);
+    ctx.fillText('Fecha de la solicitud original: '+(s.fecha||'—'),PAD+14,cy+50);
+    cy+=resumenH+14;
+
+    ctx.fillStyle='#374151'; ctx.font='11px Segoe UI,Arial,sans-serif';
+    ctx.fillText('Saludos cordiales,',PAD,cy);
+    ctx.fillText('Sistema de Documentación',PAD,cy+15);
+
+    var fy=totalH-footerH;
+    ctx.fillStyle='#f3f4f6'; ctx.fillRect(0,fy,W,footerH);
+    ctx.strokeStyle='#d1d5db'; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(0,fy); ctx.lineTo(W,fy); ctx.stroke();
+    ctx.fillStyle='#9ca3af'; ctx.font='9.5px Segoe UI,Arial,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Sistema de Documentación · '+fechaHoy,W/2,fy+20);
+    ctx.textAlign='left';
+
+    cb(canvas.toDataURL('image/png'));
+  }
+  var logoSrc=window._MOD_LOGO_SRC||'';
+  if(!logoSrc){ dibujar(null); return; }
+  var img=new Image();
+  img.onload=function(){ dibujar(img); };
+  img.onerror=function(){ dibujar(null); };
+  img.src=logoSrc;
+}
+
+// Abre la ventana de "Copiar imagen / Descargar PNG / Abrir Outlook" para el
+// correo de rechazo, igual patrón que el correo de coincidencias.
+function spwAbrirCorreoRechazo(s, tipoNorm, motivo, correoDestino, accion){
+  accion=accion||'rechazada';
+  var esAnulacion=accion==='anulada';
+  spwGenerarImagenCorreoRechazo(s, tipoNorm, motivo, function(imgDataUrl){
+    var asunto='Solicitud '+(esAnulacion?'anulada':'rechazada')+' — '+s.codigo;
+    var win=window.open('','_blank','width=760,height=760,scrollbars=yes');
+    if(!win){ toast('Permite ventanas emergentes','er'); return; }
+    win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">'
+      +'<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#e5e7eb;font-family:Segoe UI,Arial,sans-serif}'
+      +'.toolbar{position:fixed;top:0;left:0;right:0;z-index:999;background:#1e293b;padding:10px 20px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.4)}'
+      +'.tit{color:#fff;font-size:13px;font-weight:700;flex:1}.sub{color:#94a3b8;font-size:11px;margin-top:2px}'
+      +'.btn-cop{background:#006860;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}'
+      +'.btn-dl{background:#7c3aed;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}'
+      +'.btn-out{background:#1d4ed8;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}'
+      +'.status{margin:70px 20px 14px;padding:12px 16px;border-radius:8px;font-size:12px;line-height:1.7;background:#f0fdf4;border:1px solid #bbf7d0;color:#006860}'
+      +'.img-wrap{margin:0 20px 20px;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.15);background:#fff}.img-wrap img{width:100%;display:block}'
+      +'</style></head><body>'
+      +'<div class="toolbar"><div style="flex:1"><div class="tit">📧 '+(esAnulacion?'Anulación':'Rechazo')+' de solicitud — '+s.codigo+'</div><div class="sub">Para: '+(correoDestino||'(sin correo — pega manualmente)')+'</div></div>'
+        +'<button class="btn-cop" id="btn-cop" onclick="copiarImg()">📋 Copiar imagen</button>'
+        +'<button class="btn-dl" onclick="descargar()">⬇️ Descargar PNG</button>'
+        +'<button class="btn-out" onclick="abrirOut()">📨 Abrir Outlook</button></div>'
+      +'<div class="status">✅ <strong>Imagen generada.</strong> Copia la imagen y pégala (Ctrl+V) en el cuerpo del correo, o ábrelo directamente en Outlook.</div>'
+      +'<div class="img-wrap"><img id="img-correo" src="'+imgDataUrl+'"></div>'
+      +'<script>'
+      +'function copiarImg(){var img=document.getElementById("img-correo");var canvas=document.createElement("canvas");canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;var ctx=canvas.getContext("2d");ctx.drawImage(img,0,0);canvas.toBlob(function(blob){try{var item=new ClipboardItem({"image/png":blob});navigator.clipboard.write([item]).then(function(){var b=document.getElementById("btn-cop");b.textContent="✅ Copiada";b.style.background="#047857";setTimeout(function(){b.textContent="📋 Copiar imagen";b.style.background="#006860";},3000);}).catch(function(){alert("Haz clic derecho sobre la imagen → Copiar imagen → Pega donde la necesites con Ctrl+V");});}catch(e){alert("Haz clic derecho sobre la imagen → Copiar imagen → Pega donde la necesites con Ctrl+V");}});}'
+      +'function descargar(){var a=document.createElement("a");a.href="'+imgDataUrl+'";a.download="'+(esAnulacion?'anulacion':'rechazo')+'-'+s.codigo.replace(/[^a-zA-Z0-9]/g,'-')+'.png";a.click();}'
+      +'function abrirOut(){window.opener.location.href="mailto:'+(correoDestino||'')+'?subject='+encodeURIComponent(asunto)+'";}'
+      +'<\/script></body></html>');
+    win.document.close();
+  }, accion);
+}
+
+// Anula una solicitud pendiente (el solicitante se arrepintió, o ya no
+// aplica). A diferencia de "Rechazar", no genera correo — simplemente
+// registra el estado "Anulada" en SolicitudesWeb.xlsx y la quita de
+// pendientes.
+// Anula una solicitud pendiente (el solicitante se arrepintió, o ya no
+// aplica). Igual que Rechazar, pide un motivo y genera un correo
+// notificando la anulación, y registra el estado "Anulado" en el Excel.
+function spwAnularSolicitud(id){
+  var s=(solicitudesWeb||[]).find(function(x){return x.id===id;});
+  if(!s){ toast('No se encontró la solicitud','er'); return; }
+  var tipoNorm=_spwTipoNorm(s.tipoSolicitud);
+  var motivoBase='La solicitud fue anulada a petición del solicitante.';
+  var motivoExtra=prompt('Motivo de la anulación (puedes ajustarlo antes de enviar):', motivoBase);
+  if(motivoExtra===null) return; // canceló
+  var motivoFinal=(motivoExtra||motivoBase).trim()||motivoBase;
+  var res=spwResolverSolicitante(s.solicitante);
+  var correoDestino='';
+  if(res.estado==='ok' && res.opciones && res.opciones[0]) correoDestino=res.opciones[0].correo||'';
+  spwAbrirCorreoRechazo(s, tipoNorm, motivoFinal, correoDestino, 'anulada');
+  spwActualizarEstado(id, 'Anulado').then(function(ok){
+    if(ok){ toast('🗑️ Solicitud anulada','ok'); renderSolPend(); }
+    else { toast('No se pudo anular la solicitud','er'); console.warn('[SolicitudesWeb] No se pudo marcar la solicitud '+id+' como anulada'); }
+  });
+}
+
+// Rechaza una solicitud pendiente: genera el correo de rechazo (con el
+// motivo automático según la validación) y marca la solicitud como
+// Rechazada en SolicitudesWeb.xlsx.
+function spwRechazarSolicitud(id){
+  var s=(solicitudesWeb||[]).find(function(x){return x.id===id;});
+  if(!s){ toast('No se encontró la solicitud','er'); return; }
+  var tipoNorm=_spwTipoNorm(s.tipoSolicitud);
+  var val=spwValidarSolicitud(s, tipoNorm);
+  var motivoBase;
+  if(val.estado==='obsoleto'){
+    motivoBase='El documento con código '+s.codigo+' ya se encuentra en estado Obsoleto en el Listado Maestro, por lo tanto no aplica para una solicitud de '+tipoNorm.toLowerCase()+'.';
+  } else if(val.estado==='en_proceso'){
+    motivoBase='El código '+s.codigo+' ya tiene una Ruta de Borrador activa (estado: '+(val.rb.estatus||'en trámite')+', solicitada por '+(val.rb.solicitante||'otro usuario')+' el '+(val.rb.fecha||'')+'). No es posible abrir una segunda solicitud sobre el mismo documento mientras esa siga en trámite.';
+  } else {
+    motivoBase='La solicitud no cumple con los requisitos para continuar el trámite.';
+  }
+  var motivoExtra=prompt('Motivo del rechazo (puedes ajustarlo antes de enviar):', motivoBase);
+  if(motivoExtra===null) return; // canceló
+  var motivoFinal=(motivoExtra||motivoBase).trim()||motivoBase;
+  var res=spwResolverSolicitante(s.solicitante);
+  var correoDestino='';
+  if(res.estado==='ok' && res.opciones && res.opciones[0]) correoDestino=res.opciones[0].correo||'';
+  spwAbrirCorreoRechazo(s, tipoNorm, motivoFinal, correoDestino, 'rechazada');
+  spwActualizarEstado(id, 'Rechazado').then(function(ok){
+    if(ok){ toast('✕ Solicitud marcada como Rechazada','ok'); renderSolPend(); }
+    else console.warn('[SolicitudesWeb] No se pudo marcar la solicitud '+id+' como rechazada');
+  });
+}
+
+async function renderSolPend(forzarToast){
+  var cont=document.getElementById('spw-lista');
+  if(!cont) return;
+  cont.innerHTML='<div class="emp" style="padding:40px 20px">Cargando solicitudes...</div>';
+  await spwCargar();
+  updBadges();
+  var pendientes=(solicitudesWeb||[]).filter(function(s){return s.estado==='Pendiente';});
+  if(forzarToast) toast('🔄 '+pendientes.length+' solicitud(es) pendiente(s)','ok');
+  if(!pendientes.length){
+    cont.innerHTML='<div class="emp" style="padding:48px 20px;flex-direction:column;gap:6px">'
+      +'<div style="font-size:32px">✅</div>'
+      +'<div style="font-size:13px;font-weight:700;color:var(--tx)">No hay solicitudes pendientes</div>'
+      +'<div style="font-size:11px;color:var(--tx3)">Todas las solicitudes del formulario web ya fueron atendidas</div>'
+    +'</div>';
+    window.scrollTo(0,0);
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
+    return;
+  }
+  // Más recientes primero
+  pendientes.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
+  cont.innerHTML=pendientes.map(function(s){
+    var res=spwResolverSolicitante(s.solicitante);
+    var solHtml;
+    if(res.estado==='ok'){
+      solHtml='<span style="color:#1b5e20;font-weight:600">✓ '+res.nombreResuelto+'</span>';
+    } else if(res.estado==='ambiguo'){
+      solHtml='<span style="color:#a06000;font-weight:600">⚠ Ambiguo: "'+s.solicitante+'"</span>'
+        +'<div style="font-size:10px;color:var(--tx3);margin-top:2px">Posibles: '+res.opciones.map(function(o){return o.nombre;}).join(' · ')+'</div>';
+    } else {
+      solHtml='<span style="color:#a32d2d;font-weight:600">✕ No encontrado: "'+s.solicitante+'"</span>';
+    }
+    var tipoNorm=_spwTipoNorm(s.tipoSolicitud);
+    var detalleTipo;
+    if(tipoNorm==='Creación'){
+      detalleTipo='<div><strong>Tipo doc. nuevo:</strong> '+(s.tipoDocNuevo||'—')+'</div><div><strong>Corporativo:</strong> '+(s.corporativo||'—')+'</div>';
+    } else {
+      detalleTipo='<div><strong>Código:</strong> '+(s.codigo||'—')+'</div>';
+    }
+    var badgeTipo={'Creación':'#1e7145','Modificación':'#1d4ed8','Eliminación':'#a32d2d'}[tipoNorm]||'#6b7280';
+    var val=spwValidarSolicitud(s, tipoNorm);
+    var avisoHtml='', botonesHtml;
+    var btnAnular='<button class="btn gh sm" onclick="spwAnularSolicitud(\''+s.id+'\')" title="Elimina la solicitud si el solicitante se arrepintió">🗑️ Anular</button>';
+    if(val.estado==='obsoleto'){
+      avisoHtml='<div style="background:#fde2e2;border-left:3px solid #a32d2d;border-radius:0 6px 6px 0;padding:8px 10px;margin:6px 0;font-size:11px;color:#712B13">'
+        +'⛔ Este documento (<strong>'+s.codigo+'</strong>) ya está <strong>Obsoleto</strong> en el Listado Maestro — no aplica para '+tipoNorm.toLowerCase()+'.'
+      +'</div>';
+      botonesHtml='<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'
+        +'<button class="btn sm" onclick="spwRechazarSolicitud(\''+s.id+'\')" style="background:#a32d2d;color:#fff">✕ Rechazar solicitud</button>'
+        +btnAnular
+      +'</div>';
+    } else if(val.estado==='en_proceso'){
+      avisoHtml='<div style="background:#faeeda;border-left:3px solid #a06000;border-radius:0 6px 6px 0;padding:8px 10px;margin:6px 0;font-size:11px;color:#633806">'
+        +'⚠ El código <strong>'+s.codigo+'</strong> ya tiene una Ruta de Borrador activa (estado: <strong>'+(val.rb.estatus||'—')+'</strong>, solicitada por '+(val.rb.solicitante||'—')+' el '+(val.rb.fecha||'—')+').'
+      +'</div>';
+      botonesHtml='<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'
+        +'<button class="btn sm" onclick="spwRechazarSolicitud(\''+s.id+'\')" style="background:#a06000;color:#fff">✕ Rechazar</button>'
+        +'<button class="btn gh sm" onclick="spwTomarSolicitud(\''+s.id+'\')">→ Continuar de todos modos</button>'
+        +btnAnular
+      +'</div>';
+    } else {
+      botonesHtml='<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'
+        +'<button class="btn sm" onclick="spwTomarSolicitud(\''+s.id+'\')" style="background:var(--T);color:#fff">📋 Tomar solicitud</button>'
+        +btnAnular
+      +'</div>';
+    }
+    return '<div class="card" style="margin-bottom:10px;padding:12px 14px;border-left:4px solid '+badgeTipo+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'
+        +'<div style="flex:1;min-width:260px;font-size:12px;line-height:1.7">'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+            +'<span style="background:'+badgeTipo+';color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600">'+s.tipoSolicitud+'</span>'
+            +'<span style="color:var(--tx3);font-size:11px">'+s.fecha+'</span>'
+          +'</div>'
+          +detalleTipo
+          +'<div><strong>Solicitante:</strong> '+solHtml+'</div>'
+          +'<div style="margin-top:4px"><strong>Descripción:</strong> '+(s.descripcion||'—')+'</div>'
+          +avisoHtml
+        +'</div>'
+        +botonesHtml
+      +'</div>'
+    +'</div>';
+  }).join('');
+  window.scrollTo(0,0);
+  document.documentElement.scrollTop=0;
+  document.body.scrollTop=0;
+}
+
+// Toma una solicitud pendiente: navega a Novedad de Documento y precarga
+// los campos que el solicitante diligenció en el formulario web. Al guardar
+// la Novedad, nfGuardarEjecutar() marca esta solicitud como Completada.
+function spwTomarSolicitud(id){
+  var s=(solicitudesWeb||[]).find(function(x){return x.id===id;});
+  if(!s){ toast('No se encontró la solicitud','er'); return; }
+  _spwFilaTomada=id;
+  nav('novedad', document.querySelector('[data-p=novedad]'));
+  setTimeout(function(){
+    var tipoNorm=_spwTipoNorm(s.tipoSolicitud);
+    var elTipo=document.getElementById('nf-tipo');
+    if(elTipo){ elTipo.value=tipoNorm; elTipo.dispatchEvent(new Event('change')); }
+    var elCod=document.getElementById('nf-cod');
+    if(elCod){ elCod.value=s.codigo||''; if(typeof nfBuscarDoc==='function') nfBuscarDoc(elCod.value); }
+    if(tipoNorm==='Creación'){
+      if(typeof nfPoblarTiposDocNuevo==='function') nfPoblarTiposDocNuevo();
+      var elTD=document.getElementById('nf-tipo-doc-nuevo');
+      if(elTD) _spwTipoDocNorm(elTD, s.tipoDocNuevo);
+      var elCorp=document.getElementById('nf-corporativo');
+      if(elCorp){
+        var corpTxt=(s.corporativo||'').toLowerCase().trim();
+        elCorp.value = corpTxt.indexOf('no')===0 ? 'no' : ((corpTxt.indexOf('sí')===0||corpTxt.indexOf('si')===0) ? 'si' : '');
+      }
+      if(typeof nfEvaluarCodigoNuevo==='function') nfEvaluarCodigoNuevo();
+      var elNombreDoc=document.getElementById('nf-nombredoc');
+      if(elNombreDoc && s.nombreDoc) elNombreDoc.value=s.nombreDoc;
+    }
+    var res=spwResolverSolicitante(s.solicitante);
+    var elNombre=document.getElementById('nf-nombre');
+    if(elNombre){
+      elNombre.value = res.estado==='ok' ? res.nombreResuelto : s.solicitante;
+      if(typeof nfBuscarColab==='function') nfBuscarColab(elNombre.value);
+    }
+    var elDesc=document.getElementById('nf-descripcion');
+    if(elDesc) elDesc.value=s.descripcion||'';
+    var aviso=document.getElementById('nf-aviso-web');
+    if(!aviso){
+      var sec=document.querySelector('#pg-novedad');
+      if(sec){
+        aviso=document.createElement('div');
+        aviso.id='nf-aviso-web';
+        aviso.style.cssText='background:#e1f5ee;border-left:4px solid #17324A;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#0F4B44';
+        var hdr=sec.querySelector('.mod-header');
+        if(hdr && hdr.nextSibling) sec.insertBefore(aviso, hdr.nextSibling);
+        else sec.insertBefore(aviso, sec.firstChild);
+      }
+    }
+    if(aviso) aviso.textContent='📥 Completando la solicitud web enviada el '+s.fecha+' por "'+s.solicitante+'" — al guardar, esta solicitud se marcará como Completada automáticamente.';
+    toast('📋 Datos precargados desde la solicitud web','ok');
+  }, 200);
+}
 var codigosNuevos = []; // {tipo, corporativo, prefijo, consecutivo} de hoja Codigo_Doc_Nuevos
 
 var RB_COLS = [
@@ -28976,10 +29823,20 @@ function nfVerificarRutaBorrador(cod){
   // En revisión o En proceso de firma. Cualquier otro estado (Oficializado,
   // Solicitud Anulada, Retirada por vencimiento, Solicitud Renovada,
   // Rechazada, Pendiente, etc.) NO debe generar alerta.
-  var ABIERTOS=['en revisión','en revision','en proceso de firma'];
+  // Se reutiliza rbEstadoInfo() — la misma función que interpreta el estado
+  // en la vista de detalle de Ruta de Borrador — para no divergir en casos
+  // donde el valor guardado es equivalente pero no es literalmente el texto
+  // "En revisión" (por ejemplo, un estado histórico "Aceptada").
   var ultima=coincidencias[0];
-  var estatus=(ultima.estatus||ultima.estadoOficializacion||'').toLowerCase().trim();
-  var esAbierta = ABIERTOS.indexOf(estatus)>=0;
+  var esAbierta;
+  if(typeof rbEstadoInfo==='function'){
+    var info=rbEstadoInfo(ultima);
+    esAbierta=(info.esRevision||info.esFirma)&&!info.esOfic&&!info.esAnulado&&!info.esRechazo&&!info.esRetirada;
+  } else {
+    var ABIERTOS=['en revisión','en revision','en proceso de firma','aceptada'];
+    var estatus=(ultima.estatus||ultima.estadoOficializacion||'').toLowerCase().trim();
+    esAbierta = ABIERTOS.indexOf(estatus)>=0;
+  }
   if(!esAbierta) return null;
   return {
     solicitud: ultima, // referencia directa al objeto real, para poder marcarlo como renovado
@@ -29136,6 +29993,21 @@ function nfRecuperarUltimo(){
   toast('Último formato recuperado (consecutivo #'+( f.consecutivo||'?')+')','ok');
 }
 
+// Si la Novedad que se acaba de guardar vino de "Tomar solicitud" en el
+// panel de Solicitudes Pendientes, marca esa fila como Completada en
+// SolicitudesWeb.xlsx y la quita del aviso en pantalla. Se llama justo
+// después de cada guardado exitoso (modo edición y modo normal).
+function _spwCompletarSiAplica(){
+  if(!_spwFilaTomada) return;
+  var idCompletar=_spwFilaTomada;
+  _spwFilaTomada=null;
+  var aviso=document.getElementById('nf-aviso-web');
+  if(aviso) aviso.remove();
+  spwMarcarCompletada(idCompletar).then(function(ok){
+    if(ok){ toast('✅ Solicitud web marcada como Completada','ok'); if(typeof updBadges==='function') updBadges(); }
+    else console.warn('[SolicitudesWeb] No se pudo marcar la solicitud '+idCompletar+' como completada');
+  });
+}
 function nfGuardarEjecutar(){
   var hoy = nfFechaHoy();
   // ── Modo edición: actualizar solicitud existente (cargada desde PDF) ──
@@ -29187,6 +30059,7 @@ function nfGuardarEjecutar(){
     }
     if(OD.fileHandle){ OD.syncActivo=true; if(OD.saveTimer)clearTimeout(OD.saveTimer); OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500); }
     toast('✅ Solicitud N° '+solData.consecutivo+' actualizada en SharePoint','ok');
+    _spwCompletarSiAplica();
     nfSalirModoEdicion();
     return;
   }
@@ -29240,6 +30113,7 @@ function nfGuardarEjecutar(){
     OD.saveTimer = setTimeout(function(){ odGuardarListado(true); }, 1500);
   }
   toast('✅ Solicitud N° '+sol.consecutivo+' guardada en SharePoint','ok');
+  _spwCompletarSiAplica();
   _nfConsecActual = (_nfConsecActual||0) + 1;
   var badge = document.getElementById('nf-consec-badge');
   if(badge) badge.textContent = _nfConsecActual;
