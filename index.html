@@ -1281,15 +1281,11 @@ tbody tr:last-child td{border-bottom:none}
     </div>
     <div class="card"><div class="sh"><div class="st">Exportar</div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button class="btn" onclick="expExcel()" style="gap:6px">📥 Descargar Listado Maestro <span id="rep-btn-lm-cod">LM-0019</span></button>
-        <button class="btn gh" onclick="expCSV()">Exportar CSV</button>
-        <button class="btn gh" onclick="expBak()">Backup JSON</button>
         <button class="btn" onclick="solicitarIdiomaListadoPDF()" style="background:#006860;gap:6px">📄 Descargar Listado Maestro PDF</button>
         <button class="btn" onclick="abrirModalExcelLM()" style="background:#1e7145;gap:6px">📊 Descargar Listado Maestro Excel</button>
         <button class="btn" onclick="expExcelConsolidadoEmpresas()" style="background:#17324A;gap:6px">🏢 Descargar Consolidado por Empresa</button>
       </div>
       <div style="font-size:10px;color:var(--tx3);margin-top:7px">🏢 El consolidado incluye una hoja por cada empresa del grupo y una hoja "Consolidado" con todos los documentos juntos.</div>
-      <div style="font-size:10px;color:var(--tx3);margin-top:7px">📁 Guardar en: <span style="font-family:monospace;background:var(--tl);padding:2px 6px;border-radius:4px">\\elara\SistDoc-Intranet\Listado\PROCAPS\<span id="rep-lm-path-cod">LM-0019</span>.xlsx</span> — reemplaza el archivo anterior.</div>
     </div>
   </div>
 
@@ -1331,83 +1327,6 @@ tbody tr:last-child td{border-bottom:none}
         <input type="file" id="bak-f" accept=".json" style="display:none" onchange="impBak(this)">
       </div>
     </div>
-
-<!-- ── ONEDRIVE SYNC CARD ── -->
-<div class="card" style="margin-top:14px;border-top:3px solid var(--T)">
-  <div class="sh" style="margin-bottom:10px">
-    <div class="st">&#9729;&#65039; Sincronización con OneDrive</div>
-    <span id="od-estado-badge" class="b ng" style="font-size:10px">Sin archivo</span>
-  </div>
-  <div id="od-cfg-desc" style="font-size:11px;color:var(--tx3);margin-bottom:12px;line-height:1.6">
-    La app detecta automáticamente si corre desde <strong>SharePoint</strong> (modo nube) o desde un PC local (modo OneDrive). En modo SharePoint los Excel se leen y guardan directamente sin ninguna configuración adicional.
-  </div>
-  <div id="od-cfg-modo" style="background:var(--tl);border:1px solid var(--tb);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--T3)">
-    &#9729;&#65039; <strong>Modo SharePoint:</strong> Los Excel están en la misma carpeta que esta página. Se leen y guardan automáticamente via API REST de SharePoint.
-  </div>
-  <script>
-  (function(){
-    var desc=document.getElementById('od-cfg-desc');
-    var modo=document.getElementById('od-cfg-modo');
-    if(modo){
-      if(window.SP&&SP.activo){
-        modo.innerHTML='&#9729;&#65039; <strong>Modo SharePoint activo.</strong> Carpeta: <code style="font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px">'+SP.carpetaUrl+'</code>';
-      } else {
-        modo.innerHTML='&#128193; <strong>Modo local (OneDrive).</strong> Selecciona la carpeta <strong>Listado_Maestro</strong> en el Explorador de Windows.';
-      }
-    }
-  })();
-  </script>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-    <button class="btn" onclick="odConectar()">&#128194; Seleccionar archivo Excel</button>
-    <button class="btn gh sm" onclick="odCambiarCarpeta()" title="Cambiar la carpeta de Excel (limpia la conexión guardada)">📁 Cambiar carpeta Excel</button>
-    <button class="btn gh" id="od-btn-cargar" onclick="odCargarListado()" disabled style="opacity:.5">&#128260; Recargar desde archivo</button>
-    <button class="btn gh" id="od-btn-guardar" onclick="odGuardarAhora()" disabled style="opacity:.5">&#128190; Guardar ahora</button>
-    <button class="btn gh sm" id="od-btn-sync" onclick="odDesconectar()" disabled style="opacity:.5">&#9209; Detener sync</button>
-    <button class="btn gh sm" onclick="odDiagnostico()">&#128269; Diagnóstico</button>
-    <button class="btn gh sm" onclick="odDiagnosticoUsuarios()">&#128100; Diagnóstico Usuarios</button>
-    <button class="btn sm" id="od-btn-reperm" onclick="odRepararPermisoEscritura()" style="background:#e08a00;color:#fff;display:none">&#9999;&#65039; Reparar permiso escritura</button>
-  </div>
-  <div style="background:#fff9e8;border:1px solid #ffd97a;border-radius:var(--r);padding:9px 12px;margin-bottom:8px;font-size:11px;color:#7a4e00">
-    <strong>&#128274; Copias controladas:</strong> Las copias se cargan exclusivamente desde la hoja <strong>Copias_Controladas</strong> del Excel. Cualquier cambio registrado en la app se guarda automáticamente en el Excel y queda disponible para todos los equipos al recargar.
-  </div>
-  <div id="od-info" style="font-size:11px;color:var(--tx3);min-height:16px"></div>
-  <div id="od-progreso" style="display:none;margin-top:8px">
-    <div style="background:var(--bg4);border-radius:99px;height:6px;overflow:hidden">
-      <div id="od-barra" style="height:6px;background:var(--T);border-radius:99px;width:0%;transition:width .3s"></div>
-    </div>
-    <div id="od-progreso-txt" style="font-size:10px;color:var(--tx3);margin-top:4px"></div>
-  </div>
-  <div style="margin-top:10px;font-size:10px;color:var(--tx3);border-top:1px solid var(--brd);padding-top:8px">
-    &#128161; <strong>Cómo funciona:</strong> La app escribe el Excel localmente → OneDrive lo sube a la nube → todos los usuarios ven los cambios al recargar.
-  </div>
-</div>
-
-<!-- ── NUEVA CARD BACKUP CON HASH ── -->
-  <div class="card" style="margin-top:14px">
-    <div class="sh">
-      <div class="st">💾 Backup con marca de tiempo e integridad</div>
-    </div>
-    <div style="padding:4px 0 12px">
-      <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">
-        Genera un backup completo con hash SHA-256 para verificar integridad. Las contraseñas de usuarios <strong>no se incluyen</strong>.
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn" id="btn-backup" onclick="generarBackup()">💾 Generar Backup</button>
-      </div>
-      <div id="backup-info" style="display:none"></div>
-    </div>
-    <div style="border-top:1px solid var(--brd);padding-top:14px;margin-top:4px">
-      <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px">🔍 Verificar integridad de backup</div>
-      <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Carga un archivo de backup para verificar que no ha sido modificado.</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-        <input type="file" id="backup-verificar-file" accept=".json" class="fi" style="flex:1">
-        <button class="btn gh sm" onclick="verificarBackup()">🔍 Verificar</button>
-      </div>
-      <div id="backup-verif-result" style="display:none"></div>
-    </div>
-  </div>
-
-
 
 <!-- ── FORMATOS OFICIALES POR EMPRESA ── -->
   <div class="card" style="margin-top:14px;border-top:3px solid var(--T)" id="cfg-formatos-card">
@@ -1978,8 +1897,8 @@ tbody tr:last-child td{border-bottom:none}
           <!-- Aprobación -->
           <div style="display:grid;grid-template-columns:120px 1fr 1fr 100px 120px;align-items:center">
             <div style="padding:7px 8px;font-size:11px;font-weight:700;color:var(--tx);border-right:1px solid var(--brd)">APROBACIÓN</div>
-            <div style="padding:7px 8px;border-right:1px solid var(--brd);font-size:11px;font-weight:600;color:var(--tx)">Jefferson Arévalo Sanchez</div>
-            <div style="padding:7px 8px;border-right:1px solid var(--brd);font-size:11px;color:var(--tx2)">Coordinador De Calidad II</div>
+            <div id="fev-apr-nombre" style="padding:7px 8px;border-right:1px solid var(--brd);font-size:11px;font-weight:600;color:var(--tx)">—</div>
+            <div id="fev-apr-cargo" style="padding:7px 8px;border-right:1px solid var(--brd);font-size:11px;color:var(--tx2)">—</div>
             <div style="padding:7px 8px;border-right:1px solid var(--brd);text-align:center;font-size:9px;color:var(--tx3);font-style:italic">___________</div>
             <div style="padding:4px 6px">
               <input class="fi" id="fev-apr-fecha" type="date" style="font-size:11px">
@@ -2133,10 +2052,6 @@ tbody tr:last-child td{border-bottom:none}
         style="padding:8px 18px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:3px solid var(--T);color:var(--T);margin-bottom:-2px">
         📄 Revisión Individual
       </button>
-      <button id="revdoc-tab2" onclick="revdocTab(2)"
-        style="padding:8px 18px;font-size:12px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;color:var(--tx3);margin-bottom:-2px">
-        🔎 Búsqueda en Lote
-      </button>
     </div>
 
     <!-- Tab 1: Revisión individual (existente) -->
@@ -2183,75 +2098,6 @@ tbody tr:last-child td{border-bottom:none}
 
     </div>
     </div><!-- /revdoc-panel1 -->
-
-    <!-- Tab 2: Búsqueda en lote de nombres -->
-    <div id="revdoc-panel2" style="display:none">
-      <div style="display:grid;grid-template-columns:230px 1fr;gap:10px">
-
-        <!-- Izquierda: controles + acciones -->
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div class="card" style="padding:10px">
-            <div style="font-size:11px;font-weight:700;margin-bottom:5px">1. Documento (.docx)</div>
-            <input type="file" id="rl-file" accept=".docx" class="fi" style="font-size:10px" onchange="rlOnFile(this)">
-            <div id="rl-file-info" style="margin-top:5px;font-size:10px"></div>
-          </div>
-          <div class="card" style="padding:10px">
-            <div style="font-size:11px;font-weight:700;margin-bottom:4px">2. Código <span style="font-weight:400;color:var(--tx3);font-size:10px">(auto)</span></div>
-            <input id="rl-codigo" type="text" class="fi" placeholder="Ej: SOP-1595" style="font-size:11px">
-          </div>
-          <div class="card" style="padding:10px">
-            <div style="font-size:11px;font-weight:700;margin-bottom:4px">3. Nombres <span style="font-weight:400;color:var(--tx3);font-size:10px">(uno por línea)</span></div>
-            <textarea id="rl-nombres" rows="5" class="fi"
-              placeholder="Director SST&#10;Coordinador de Gestión&#10;Administrador del sistema"
-              style="width:100%;resize:vertical;font-size:11px;font-family:inherit"
-              oninput="rlVerificarListo()"></textarea>
-            <div style="font-size:9px;color:var(--tx3);margin-top:3px">Exacta + variaciones. Excluye Histórico de Cambios.</div>
-          </div>
-
-          <!-- Botones de acción -->
-          <button class="btn" id="rl-btn" onclick="rlAnalizar()" disabled
-            style="opacity:.5;padding:8px;justify-content:center;font-size:12px;width:100%">
-            🔎 Buscar en documento
-          </button>
-          <button class="btn gh sm" onclick="rlNuevoDocumento()"
-            style="padding:7px;justify-content:center;font-size:11px;width:100%">
-            📄 Nuevo documento
-          </button>
-          <div style="display:flex;flex-direction:column;gap:5px" id="rl-acciones-wrap" style="display:none">
-            <button id="rl-btn-guardar" class="btn gh sm" onclick="rlGuardarMemoria()"
-              style="display:none;padding:7px;justify-content:center;font-size:11px;width:100%">
-              💾 Guardar en memoria
-            </button>
-            <button id="rl-btn-excel" class="btn sm" onclick="rlDescargarExcel()"
-              style="display:none;padding:7px;justify-content:center;font-size:11px;width:100%;background:var(--T);color:#fff">
-              ⬇️ Descargar Excel
-            </button>
-            <button id="rl-btn-total" class="btn sm" onclick="rlDescargarExcelTotal()"
-              style="display:none;padding:7px;justify-content:center;font-size:11px;width:100%;background:#3b82f6;color:#fff">
-              ⬇️ Exportar todo a Excel
-            </button>
-          </div>
-        </div>
-
-        <!-- Derecha: resultados + memoria -->
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div class="card" style="padding:10px">
-            <div style="font-size:12px;font-weight:700;margin-bottom:10px">Resultados de la búsqueda</div>
-            <div id="rl-resultado" style="max-height:420px;overflow-y:auto">
-              <div class="emp" style="font-size:11px">Carga un documento e ingresa los nombres a buscar</div>
-            </div>
-          </div>
-          <div class="card" id="rl-memoria-wrap" style="padding:10px;display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <span style="font-size:11px;font-weight:700">📚 Búsquedas en memoria</span>
-              <button class="btn gh sm" style="font-size:11px" onclick="rlLimpiarMemoria()">🗑️ Limpiar</button>
-            </div>
-            <div id="rl-memoria-lista" style="max-height:120px;overflow-y:auto"></div>
-          </div>
-        </div>
-
-      </div>
-    </div><!-- /revdoc-panel2 -->
 
 
   </div>
@@ -2464,7 +2310,6 @@ tbody tr:last-child td{border-bottom:none}
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <button class="btn gh sm" onclick="nfLimpiar()">🔄 Nuevo formulario</button>
-        <button class="btn gh sm" onclick="nfRecuperarUltimo()" title="Recupera el último formato de novedad generado en esta sesión">📋 Recuperar último</button>
         <button class="btn gh sm" onclick="nfCargarPlantilla()" title="Llenar formulario desde Excel plantilla">📂 Cargar plantilla</button>
         <button class="btn gh sm" onclick="nfCargarExcelOficial()" title="Cargar el Excel oficial del formato (F-SOP-0001-5) tal como se diligencia, con celdas combinadas">📊 Cargar Excel oficial</button>
         <button class="btn gh sm" onclick="nfCargarPDF()" title="Cargar un PDF de novedad generado previamente para editarlo">📄 Cargar PDF</button>
@@ -22242,6 +22087,29 @@ function renderFExtVig(){
   fev_renderTipoCajas('');
   fev_renderItems(null);
   fev_renderSubproc(null);
+  fev_poblarAprobacion();
+}
+// Llena la fila "APROBACIÓN" del F-Extensión de Vigencia con el nombre del
+// usuario logueado y su cargo, tomado del Listado de Colaboradores (por
+// coincidencia de nombre). Si no se encuentra en colaboradores, usa el rol
+// del propio usuario como respaldo.
+function fev_poblarAprobacion(){
+  var elN=document.getElementById('fev-apr-nombre');
+  var elC=document.getElementById('fev-apr-cargo');
+  if(!elN||!elC) return;
+  var nombre=(currentUser&&currentUser.nombre)||'';
+  elN.textContent=nombre||'—';
+  // El cargo SIEMPRE sale del Listado de Colaboradores (nunca del rol del
+  // usuario en la app, como "Administrador") — si no se encuentra ahí, se
+  // deja vacío en vez de mostrar un cargo incorrecto.
+  var cargo='';
+  if(nombre){
+    var nl=nombre.toLowerCase().trim();
+    var colab=(colaboradores||[]).find(function(c){ return (c.nombre||'').toLowerCase().trim()===nl; });
+    if(!colab) colab=(colaboradores||[]).find(function(c){ return (c.nombre||'').toLowerCase().indexOf(nl)>=0||nl.indexOf((c.nombre||'').toLowerCase())>=0; });
+    if(colab) cargo=colab.cargo||'';
+  }
+  elC.textContent=cargo||'—';
 }
 
 function fev_renderTipoCajas(sel){
@@ -23506,12 +23374,12 @@ var rl_parrafos=[];    // [{texto, pagina, idx}] con página real del docx
 var rl_memoria=[];    // array de {codigo, nombre, ocurrencias, variaciones}
 
 function revdocTab(n){
-  document.getElementById('revdoc-panel1').style.display=n===1?'block':'none';
-  document.getElementById('revdoc-panel2').style.display=n===2?'block':'none';
+  var p1=document.getElementById('revdoc-panel1');
+  if(p1) p1.style.display='block';
+  var p2=document.getElementById('revdoc-panel2');
+  if(p2) p2.style.display='none';
   var t1=document.getElementById('revdoc-tab1');
-  var t2=document.getElementById('revdoc-tab2');
-  if(t1){t1.style.borderBottomColor=n===1?'var(--T)':'transparent';t1.style.color=n===1?'var(--T)':'var(--tx3)';}
-  if(t2){t2.style.borderBottomColor=n===2?'var(--T)':'transparent';t2.style.color=n===2?'var(--T)':'var(--tx3)';}
+  if(t1){t1.style.borderBottomColor='var(--T)';t1.style.color='var(--T)';}
 }
 
 
