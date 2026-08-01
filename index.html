@@ -501,6 +501,9 @@ tbody tr:last-child td{border-bottom:none}
         <div style="font-size:11px;color:rgba(255,255,255,.7)" id="dd-subtitle">Cargando...</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <select class="fs sm" id="dash-empresa-sel" onchange="dashCambiarEmpresa()" title="Ver los KPI de una empresa distinta a la propia" style="min-width:150px">
+          <option value="">Mi empresa</option>
+        </select>
         <button class="btn gh sm" onclick="dashActualizar()" id="dash-btn-actualizar">🔄 Actualizar</button>
         <button class="btn gh sm" onclick="dashMostrarFiltroAreas()" id="dash-btn-areas" style="position:relative">
           🏢 Filtrar Áreas <span id="dash-areas-badge" style="display:none;background:var(--T);color:#fff;border-radius:99px;padding:0 6px;font-size:10px;font-weight:700;margin-left:4px">0</span>
@@ -1283,7 +1286,9 @@ tbody tr:last-child td{border-bottom:none}
         <button class="btn gh" onclick="expBak()">Backup JSON</button>
         <button class="btn" onclick="solicitarIdiomaListadoPDF()" style="background:#006860;gap:6px">📄 Descargar Listado Maestro PDF</button>
         <button class="btn" onclick="abrirModalExcelLM()" style="background:#1e7145;gap:6px">📊 Descargar Listado Maestro Excel</button>
+        <button class="btn" onclick="expExcelConsolidadoEmpresas()" style="background:#17324A;gap:6px">🏢 Descargar Consolidado por Empresa</button>
       </div>
+      <div style="font-size:10px;color:var(--tx3);margin-top:7px">🏢 El consolidado incluye una hoja por cada empresa del grupo y una hoja "Consolidado" con todos los documentos juntos.</div>
       <div style="font-size:10px;color:var(--tx3);margin-top:7px">📁 Guardar en: <span style="font-family:monospace;background:var(--tl);padding:2px 6px;border-radius:4px">\\elara\SistDoc-Intranet\Listado\PROCAPS\<span id="rep-lm-path-cod">LM-0019</span>.xlsx</span> — reemplaza el archivo anterior.</div>
     </div>
   </div>
@@ -1467,6 +1472,7 @@ tbody tr:last-child td{border-bottom:none}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <button class="btn sm" onclick="cfgEmpresasConectarCarpetaMadre()">📁 Conectar carpeta madre de empresas</button>
         <button class="btn gh sm" onclick="cfgEmpresasDesconectarCarpetaMadre()">✕ Desconectar</button>
+        <button class="btn gh sm" onclick="cfgRegenerarConsolidadoCompleto()" title="Vuelve a leer el Listado Maestro de cada empresa y republica el consolidado completo (usado por KPI por empresa y el Excel Consolidado), sin necesidad de reconectar la carpeta madre">🔄 Regenerar consolidado completo</button>
         <button class="btn gh sm" onclick="cfgSincronizarConfigAhora()" title="Vuelve a traer la configuración guardada en la carpeta compartida (por si otro Administrador la actualizó)">🔄 Sincronizar configuración ahora</button>
         <span id="cfg-empresas-estado-local" style="font-size:11px">—</span>
       </div>
@@ -4105,10 +4111,11 @@ function _icEsOficializada(s){
 var _icIndiceSolCache=null;
 var _icIndiceSolCacheLen=-1;
 function _icIndiceSolicitudes(){
-  var n=(solicitudes||[]).length;
+  var fuente=(typeof _dashSolicitudesOverride!=='undefined' && _dashSolicitudesOverride) ? _dashSolicitudesOverride : (solicitudes||[]);
+  var n=fuente.length;
   if(_icIndiceSolCache && _icIndiceSolCacheLen===n) return _icIndiceSolCache;
   var idx={};
-  (solicitudes||[]).forEach(function(s){
+  fuente.forEach(function(s){
     var cod=String(s.codigo||'').toUpperCase().trim();
     if(!cod) return;
     (idx[cod]||(idx[cod]=[])).push(s);
@@ -4157,7 +4164,7 @@ var IC_FECHA_LIMITE_ANTICIPADA='2028-07-01';
 // aplicar el filtro de visibilidad por administrador/empresa del usuario
 // que tenga la sesión abierta.
 function _icListaAnticipada(){
-  return (docs||[]).filter(function(d){
+  return dashDocsBase().filter(function(d){
     return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
       && d.fechaVencimiento && d.fechaVencimiento>IC_FECHA_LIMITE_ANTICIPADA
       && !_icTieneIdentidadNueva(d);
@@ -4175,7 +4182,7 @@ function _icListaAnticipada(){
 // documentos que ya hacían parte de los códigos identificados con esta
 // condición de vencimiento.
 function _icListaConIdentidad(){
-  return (docs||[]).filter(function(d){
+  return dashDocsBase().filter(function(d){
     return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
       && d.fechaVencimiento && d.fechaVencimiento>IC_FECHA_LIMITE_ANTICIPADA
       && _icTieneIdentidadNueva(d);
@@ -4202,7 +4209,7 @@ var IC_FECHA_LIMITE_CICLO='2028-06-30';
 // con vencimiento HASTA el 30/06/2028 que aún NO tienen el Cambio de
 // Identidad Corporativa.
 function _icListaCicloPendiente(){
-  return (docs||[]).filter(function(d){
+  return dashDocsBase().filter(function(d){
     return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
       && d.fechaVencimiento && d.fechaVencimiento<=IC_FECHA_LIMITE_CICLO
       && !_icTieneIdentidadNueva(d);
@@ -4211,7 +4218,7 @@ function _icListaCicloPendiente(){
 // Completados: mismos filtros, pero que YA tienen el Cambio de Identidad
 // Corporativa — es decir, se aprovechó su ciclo natural de revisión.
 function _icListaCicloCompletado(){
-  return (docs||[]).filter(function(d){
+  return dashDocsBase().filter(function(d){
     return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
       && d.fechaVencimiento && d.fechaVencimiento<=IC_FECHA_LIMITE_CICLO
       && _icTieneIdentidadNueva(d);
@@ -4228,7 +4235,7 @@ function _icListaCompletaCiclo(){
 // Depurados: documentos obsoletos cuya categoría de motivo es "Depuración"
 // (sin incluir formatos).
 function _icListaDepurados(){
-  return (docs||[]).filter(function(d){
+  return dashDocsBase().filter(function(d){
     return !_icEsFormato(d) && d.motivoObsolescencia==='Depuración';
   });
 }
@@ -4240,7 +4247,7 @@ function _icListaDepurados(){
 // cuentan como aplicables, porque no hay confirmación de que ya tengan la
 // identidad nueva.
 function _icListaActivosDepuracion(){
-  return (docs||[]).filter(function(d){
+  return dashDocsBase().filter(function(d){
     return !_icEsFormato(d) && !_icEsObsoleto(d)
       && !(_icEsDocumentoNuevo(d) && _icTieneIdentidadNueva(d));
   });
@@ -4564,10 +4571,11 @@ function icDescargarCiclo(){
 
 function renderIndicadoresCiclo(){
   function esObsoleto(d){ return _icEsObsoleto(d); }
-  // NOTA: se usa "docs" (universo completo) en vez de dashDocsBase()/docsEmpresa()
-  // para que los KPIs reflejen el total real de la organización, sin aplicar
-  // el filtro de visibilidad por administrador/empresa del usuario en sesión.
-  var base=docs||[];
+  // Usa dashDocsBase() para que este bloque respete el mismo filtro de
+  // área/empresa que el resto de KPIs del dashboard, incluido el selector
+  // de empresa (dashCambiarEmpresa) — antes usaba "docs" (todo el universo)
+  // sin importar la empresa elegida.
+  var base=dashDocsBase();
 
   // ── 1. % Documentos nueva identidad ───────────────────────────────────
   // Fuente: checkbox "Cambio Identidad Corporativa" (cambioIdentidad) de
@@ -4636,6 +4644,7 @@ function renderIndicadoresCiclo(){
 
 function renderDash(){
   if(typeof homeInit==='function') homeInit();
+  if(typeof dashPoblarEmpresas==='function') dashPoblarEmpresas();
   // Asegurar estados actualizados antes de calcular KPIs
   try{ recalcEstados(); }catch(e){}
   if(typeof renderIndicadoresCiclo==='function') renderIndicadoresCiclo();
@@ -16853,8 +16862,32 @@ async function cfgEmpresasConectarCarpetaMadre(){
     // Administrador (antes había que hacer clic aparte en "Probar conexión").
     var datosGen=await nfObtenerDatosGlobales(true);
     var nEmpresas=Object.keys(datosGen.porEmpresa||{}).length;
-    toast((traida?'✅ Configuración compartida cargada. ':'')+'✅ Consolidado generado y publicado en '+nEmpresas+' empresa(s)'+((datosGen.fallidas&&datosGen.fallidas.length)?' ('+datosGen.fallidas.length+' con error, ver consola)':''),'ok');
+    // También generar y publicar el consolidado COMPLETO (todos los campos),
+    // usado por KPI por empresa y el Excel Consolidado en Reportes.
+    var datosCompletos={porEmpresa:{},fallidas:[]};
+    try{ datosCompletos=await obtenerDocsTodasEmpresasCompleto(true); }catch(eComp){ console.warn('No se pudo generar el consolidado completo:',eComp.message); }
+    var nEmpresasCompleto=Object.keys(datosCompletos.porEmpresa||{}).length;
+    toast((traida?'✅ Configuración compartida cargada. ':'')+'✅ Consolidado generado y publicado en '+nEmpresas+' empresa(s) (ligero) y '+nEmpresasCompleto+' empresa(s) (completo)'+((datosGen.fallidas&&datosGen.fallidas.length)?' ('+datosGen.fallidas.length+' con error, ver consola)':''),'ok');
   }catch(e){ if(e && e.name!=='AbortError') toast('No se pudo conectar la carpeta: '+e.message,'er'); }
+}
+// Regenera y republica el consolidado (ligero + completo) en cada carpeta de
+// empresa bajo demanda, sin tener que desconectar/reconectar la carpeta
+// madre. Requiere que la carpeta madre ya esté conectada en esta sesión.
+async function cfgRegenerarConsolidadoCompleto(){
+  if(!(currentUser && currentUser.rol==='Administrador')){ toast('Solo un Administrador puede hacer esto','er'); return; }
+  if(!OD_EMPRESAS.carpetaHandle){ toast('Primero conecta la carpeta madre de empresas','er'); return; }
+  toast('🔄 Regenerando y publicando el consolidado en cada empresa...','if');
+  try{
+    var datosGen=await nfObtenerDatosGlobales(true);
+    var nEmpresas=Object.keys(datosGen.porEmpresa||{}).length;
+    var datosCompletos=await obtenerDocsTodasEmpresasCompleto(true);
+    var nEmpresasCompleto=Object.keys(datosCompletos.porEmpresa||{}).length;
+    if(typeof _dashPoblarEmpresasIntentado!=='undefined') _dashPoblarEmpresasIntentado=false;
+    toast('✅ Consolidado regenerado y publicado en '+nEmpresas+' empresa(s) (ligero) y '+nEmpresasCompleto+' empresa(s) (completo)'+((datosGen.fallidas&&datosGen.fallidas.length)?' ('+datosGen.fallidas.length+' con error, ver consola)':''),'ok');
+    if(typeof dashPoblarEmpresas==='function') dashPoblarEmpresas();
+  }catch(e){
+    toast('Error regenerando el consolidado: '+e.message,'er');
+  }
 }
 function cfgEmpresasDesconectarCarpetaMadre(){
   if(!(currentUser && currentUser.rol==='Administrador')){ toast('Solo un Administrador puede hacer esto','er'); return; }
@@ -17049,6 +17082,183 @@ async function cfgCarpetasProbar(){
   okEmpresas.forEach(function(e){ lineas.push('<div style="color:#0a7a3d">✅ '+homeEscape(e)+' — '+datos.porEmpresa[e].length+' documentos leídos</div>'); });
   (datos.fallidas||[]).forEach(function(e){ lineas.push('<div style="color:#a02020">✗ '+homeEscape(e)+' — no se pudo leer (revisa la ruta o los permisos)</div>'); });
   if(out) out.innerHTML=lineas.join('')||'<div>No se encontró ninguna empresa — conecta la carpeta madre o configura las rutas de SharePoint arriba.</div>';
+}
+
+// ── Parseo COMPLETO de un Listado Maestro (todos los campos) reutilizable ──
+// Extrae la misma lógica de mapeo de columnas que usa odCargarListado() para
+// la carpeta propia, pero como función independiente que recibe un workbook
+// de SheetJS y devuelve un array de documentos completos — para poder leer
+// el Listado Maestro de OTRAS empresas (KPI por empresa, Excel consolidado)
+// sin depender de que esa empresa sea la conectada en la sesión actual.
+var _MAPA_LM_COMPLETO = {
+  'Código Actual':'codigoActual','Codigo Actual':'codigoActual',
+  'Código Antiguo':'codigoAntiguo','Codigo Antiguo':'codigoAntiguo',
+  'Código Anterior':'codigoAntiguo','Codigo Anterior':'codigoAntiguo',
+  'Descripción':'descripcion','Descripcion':'descripcion',
+  'Description':'descriptionEn','Descrição (PT)':'descriptionPt','Versón':'version','Version':'version','Versión':'version',
+  'Tipo De Documento':'tipoDocumento','Tipo de Documento':'tipoDocumento',
+  'Área Generadora':'areaGeneradora','Area Generadora':'areaGeneradora',
+  'Fecha De Vigencia':'fechaVigencia','Fecha de Vigencia':'fechaVigencia',
+  'Fecha De Vencimiento2':'fechaVencimiento','Fecha De Vencimiento':'fechaVencimiento','Fecha de Vencimiento':'fechaVencimiento',
+  'Estado':'estado','Idioma':'idioma',
+  'Extension De Vigencia':'extensionVigencia','Extensión De Vigencia':'extensionVigencia','Extensión de Vigencia':'extensionVigencia',
+  'Obsoleto':'obsoleto','Administrador':'administrador',
+  'Lider De Proceso':'liderProceso','Líder De Proceso':'liderProceso','Líder de Proceso':'liderProceso',
+  'Alcance A Empresas':'alcanceEmpresas','Alcance Empresas':'alcanceEmpresas','Mbr':'mbr','MBR':'mbr',
+  'Tipo De Plantilla':'tipoPlantilla','Tipo de Plantilla':'tipoPlantilla','Tipo Plantilla':'tipoPlantilla',
+  'Documentos Relacionados':'docsRelacionados',
+  'Doc.Gxp':'docGxP','Doc.GxP':'docGxP','Doc. GxP':'docGxP',
+  'Doc.Intercompañia':'docIntercompania','Doc. Intercompañia':'docIntercompania','Doc. Intercompañía':'docIntercompania',
+  'Áreas Aplicables':'areasAplicables','Areas Aplicables':'areasAplicables',
+  'Proceso':'proceso',
+  'Correo':'correoElectronico','Correo Electrónico':'correoElectronico',
+  'Correo Electronico':'correoElectronico','Email':'correoElectronico','E-mail':'correoElectronico',
+  'Motivo Obsolescencia':'motivoObsolescencia','Motivo De Obsolescencia':'motivoObsolescencia',
+  'Categoría Obsolescencia':'motivoObsolescencia','Categoria Obsolescencia':'motivoObsolescencia',
+  'Cambio Identidad Corporativa':'cambioIdentidad','Cambio de Identidad Corporativa':'cambioIdentidad',
+  'Cambio Cargos':'cambioCargos','Cambio de Cargos':'cambioCargos',
+  'Aplica Multi-Sociedad':'cambioMultiSociedad','Aplica Multi Sociedad':'cambioMultiSociedad'
+};
+function _parsearListadoCompletoWB(wb){
+  var ws=wb.Sheets[wb.SheetNames[0]];
+  var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  rows=rows.filter(function(r){return r.some(function(c){return c!=='';});});
+  var hdrIdx=0;
+  for(var ri=0;ri<Math.min(5,rows.length);ri++){
+    if(rows[ri].some(function(c){var s=String(c||'').toLowerCase();return s.indexOf('digo')>=0||s==='codigoactual';})){hdrIdx=ri;break;}
+  }
+  var hdrs=rows[hdrIdx].map(function(h){return String(h||'').trim();});
+  var dataRows=rows.slice(hdrIdx+1);
+  var out=[];
+  dataRows.forEach(function(row,idx){
+    var obj={historial:[],flujo:null};
+    var tieneVal=false;
+    hdrs.forEach(function(h,i){
+      var clave=_MAPA_LM_COMPLETO[h]; if(!clave)return;
+      var val=row[i];
+      if(val===null||val===undefined||val==='')return;
+      if(val instanceof Date) val=val.toISOString().split('T')[0];
+      else if(typeof val==='number'&&val>40000&&val<100000&&(clave==='fechaVigencia'||clave==='fechaVencimiento')){
+        var d=new Date(new Date(Date.UTC(1899,11,30)).getTime()+val*86400000);
+        val=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+      } else if(typeof val==='string'&&val.indexOf('/')>=0&&(clave==='fechaVigencia'||clave==='fechaVencimiento')){
+        var pts=val.split('/');
+        if(pts.length===3) val=(pts[2].length===4?pts[2]:'20'+pts[2])+'-'+pts[1].padStart(2,'0')+'-'+pts[0].padStart(2,'0');
+      }
+      if(typeof val==='string') val=limpiarTextoExcel(val);
+      if(clave==='version') val=String(val);
+      obj[clave]=val; tieneVal=true;
+    });
+    if(!obj.id) obj.id='ext-'+Date.now()+'-'+idx;
+    if(tieneVal&&obj.codigoActual&&String(obj.codigoActual).trim()) out.push(obj);
+  });
+  out.forEach(function(d){
+    var esObs=String(d.obsoleto||'').toUpperCase().trim()==='X'||String(d.obsoleto||'').toUpperCase().trim()==='SI'||String(d.obsoleto||'').toUpperCase().trim()==='SÍ'||d.estado==='Obsoleto';
+    d.estado=esObs?'Obsoleto':calcEst(d.fechaVencimiento,esObs?'X':'No');
+    if(esObs&&d.obsoleto!=='Si') d.obsoleto='Si'; else if(!esObs&&(!d.obsoleto||d.obsoleto==='No'||d.obsoleto==='')) d.obsoleto='No';
+  });
+  function _esSI(v){var u=String(v||'').toUpperCase().trim();return(u==='X'||u==='SI'||u==='SÍ'||u==='YES'||u==='1'||u==='S'||u==='TRUE')?'SI':'';}
+  out.forEach(function(d){
+    d.cambioIdentidad=_esSI(d.cambioIdentidad);
+    d.cambioCargos=_esSI(d.cambioCargos);
+    d.cambioMultiSociedad=_esSI(d.cambioMultiSociedad);
+  });
+  return out;
+}
+
+// Caché de documentos COMPLETOS de todas las empresas (para KPI por empresa
+// y Excel consolidado). Separada de _nfCacheGlobal porque esa es "ligera"
+// (solo 7 campos) y aquí necesitamos todos los campos.
+var _TODAS_EMPRESAS_CACHE = {timestamp:0, porEmpresa:{}, fallidas:[]};
+var _TODAS_EMPRESAS_TTL_MS = 15*60*1000;
+var _TODAS_EMPRESAS_CACHE_ARCHIVO = '_CacheConsolidadoCompleto.json';
+async function obtenerDocsTodasEmpresasCompleto(forzar){
+  if(!currentUser) return {timestamp:0, porEmpresa:{}, fallidas:[]}; // no ejecutar antes del login
+  var ahora=Date.now();
+  if(!forzar && (ahora-_TODAS_EMPRESAS_CACHE.timestamp)<_TODAS_EMPRESAS_TTL_MS && Object.keys(_TODAS_EMPRESAS_CACHE.porEmpresa).length>1){
+    return _TODAS_EMPRESAS_CACHE;
+  }
+  var porEmpresa={}, fallidas=[];
+  // Siempre incluir la empresa propia con los datos YA cargados en memoria
+  // (docs), que son completos y no requieren leer ningún archivo adicional.
+  var nombreEmpresaPropia=(currentUser&&currentUser.empresa)||'';
+  if(nombreEmpresaPropia && (docs||[]).length){
+    porEmpresa[nombreEmpresaPropia]=docs;
+  }
+  // Modo carpeta madre (Administrador con OD_EMPRESAS conectada): recorrer
+  // cada subcarpeta de empresa, parsear su Listado Maestro completo, Y
+  // PUBLICAR el resultado dentro de cada subcarpeta — así cualquier usuario
+  // normal (que solo conecta la carpeta de SU propia empresa día a día)
+  // recibe el consolidado completo de todas las empresas automáticamente,
+  // sin tener que conectar la carpeta madre él mismo (igual patrón que ya
+  // usa nfObtenerDatosGlobales para la versión "ligera").
+  if(OD_EMPRESAS.carpetaHandle && window.XLSX){
+    var subcarpetasHandles=[];
+    try{
+      for await (var entry of OD_EMPRESAS.carpetaHandle.entries()){
+        var nombreSub=entry[0], handleSub=entry[1];
+        if(!handleSub || handleSub.kind!=='directory') continue;
+        if(nombreSub.toLowerCase()==='colaboradores') continue;
+        subcarpetasHandles.push(handleSub);
+        var nombreMostrar=NOMBRES_CARPETAS_EMPRESA[nombreSub]||nombreSub;
+        if(porEmpresa[nombreMostrar]) continue; // ya la tenemos (es la propia)
+        try{
+          var fh=await handleSub.getFileHandle(OD_ARCHIVOS.lm,{create:false});
+          var file=await fh.getFile();
+          var buf=await file.arrayBuffer();
+          var wbE=XLSX.read(buf,{type:'array',cellDates:false,raw:false});
+          porEmpresa[nombreMostrar]=_parsearListadoCompletoWB(wbE);
+        }catch(eSub){
+          fallidas.push(nombreMostrar);
+        }
+      }
+    }catch(eEnum){ console.warn('[TodasEmpresas] Error recorriendo carpeta madre:',eEnum.message); }
+    if(Object.keys(porEmpresa).length){
+      var payloadPublicar={porEmpresa:porEmpresa, fallidas:fallidas, _actualizado:new Date().toISOString()};
+      subcarpetasHandles.forEach(function(h){
+        _escribirArchivoJSONEnCarpeta(h, _TODAS_EMPRESAS_CACHE_ARCHIVO, payloadPublicar);
+      });
+      _escribirArchivoJSONEnCarpeta(OD_EMPRESAS.carpetaHandle, _TODAS_EMPRESAS_CACHE_ARCHIVO, payloadPublicar);
+      _TODAS_EMPRESAS_CACHE={timestamp:ahora, porEmpresa:porEmpresa, fallidas:fallidas};
+      return _TODAS_EMPRESAS_CACHE;
+    }
+  } else if(Object.keys(EMPRESAS_CARPETAS||{}).length && window.XLSX){
+    // Modo SharePoint por rutas configuradas
+    await Promise.all(Object.keys(EMPRESAS_CARPETAS).map(async function(empresa){
+      if(porEmpresa[empresa]) return; // ya la tenemos (es la propia)
+      var ruta=(EMPRESAS_CARPETAS[empresa]||'').trim();
+      if(!ruta) return;
+      try{
+        var url=ruta.replace(/\/$/,'')+'/'+OD_ARCHIVOS.lm;
+        var r=await fetch(url,{credentials:'include',cache:'no-cache'});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        var buf=await r.arrayBuffer();
+        var wb=XLSX.read(buf,{type:'array',cellDates:false,raw:false});
+        porEmpresa[empresa]=_parsearListadoCompletoWB(wb);
+      }catch(e){ fallidas.push(empresa); }
+    }));
+    if(Object.keys(porEmpresa).length>1){
+      _TODAS_EMPRESAS_CACHE={timestamp:ahora, porEmpresa:porEmpresa, fallidas:fallidas};
+      return _TODAS_EMPRESAS_CACHE;
+    }
+  }
+  // Camino normal para la gran mayoría de usuarios (sin carpeta madre
+  // conectada ni rutas SharePoint configuradas): leer el consolidado
+  // COMPLETO publicado dentro de la carpeta de SU PROPIA empresa — ya está
+  // ahí gracias al paso de arriba, sin necesidad de ninguna configuración
+  // adicional de su parte.
+  if(OD.carpetaHandle){
+    try{
+      var datosCachePropia=await _leerArchivoJSONDeCarpeta(OD.carpetaHandle, _TODAS_EMPRESAS_CACHE_ARCHIVO);
+      if(datosCachePropia && datosCachePropia.porEmpresa && Object.keys(datosCachePropia.porEmpresa).length){
+        var porEmpresaFinal=Object.assign({}, datosCachePropia.porEmpresa, porEmpresa);
+        _TODAS_EMPRESAS_CACHE={timestamp:ahora, porEmpresa:porEmpresaFinal, fallidas:datosCachePropia.fallidas||[], _deCache:true, _actualizado:datosCachePropia._actualizado};
+        return _TODAS_EMPRESAS_CACHE;
+      }
+    }catch(eLeer){ console.warn('[TodasEmpresas] No se pudo leer el consolidado publicado:',eLeer.message); }
+  }
+  _TODAS_EMPRESAS_CACHE={timestamp:ahora, porEmpresa:porEmpresa, fallidas:fallidas};
+  return _TODAS_EMPRESAS_CACHE;
 }
 
 // ── Motor de búsqueda cruzada de nombres (Novedad de Documento) ─────────
@@ -17799,6 +18009,128 @@ function getLeyendaPropiedadIdioma(idioma){ // idioma: 'es' | 'pt' | 'en'
 }
 
 // ============================================================
+// IDIOMA DE INTERFAZ SEGÚN EMPRESA (fase 1: menús, botones, encabezados)
+// ============================================================
+// APP_LANG se determina automáticamente al loguearse, según la empresa del
+// usuario (user.empresa). Por ahora solo Colbras Industria e Comercio Ltda
+// ve la interfaz en portugués; el resto de empresas la ve en español.
+// IMPORTANTE: esta traducción es solo de la INTERFAZ (menús, botones,
+// encabezados, etiquetas comunes) — los datos cargados desde el Excel
+// (descripciones de documentos, nombres de área, etc.) NO se traducen,
+// se muestran tal como están capturados.
+var APP_LANG='es';
+function appDetectarIdioma(user){
+  var emp=((user&&(user.empresa||user.administrador))||'').toLowerCase();
+  APP_LANG = (emp.indexOf('colbras')>=0) ? 'pt' : 'es';
+}
+
+// Diccionario de textos de interfaz ES→PT (coincidencia exacta del texto
+// completo de cada nodo/atributo, para no arriesgar traducir texto de datos
+// reales que coincida parcialmente con una palabra del diccionario).
+var UI_ES_PT = {
+  // Menú lateral / títulos de módulo
+  'Inicio':'Início', 'KPIs':'KPIs', 'Documentos':'Documentos',
+  'Extender Vigencia':'Estender Vigência', 'F-Extensión Vigencia':'F-Extensão Vigência',
+  'F-Extensión de Vigencia':'F-Extensão de Vigência',
+  'Marcar Obsoleto':'Marcar Obsoleto', 'Documentos Relacionados':'Documentos Relacionados',
+  'Estampar PDF':'Carimbar PDF', 'Estampar Código de Barras en PDF':'Carimbar Código de Barras em PDF',
+  'Revisión de Documentos':'Revisão de Documentos', 'Ruta de Borrador':'Rota de Rascunho',
+  'Novedad Documento':'Novidade de Documento', 'Novedad de Documento':'Novidade de Documento',
+  'Copias controladas':'Cópias Controladas', 'Copias Controladas':'Cópias Controladas',
+  'Entrega de Copias':'Entrega de Cópias',
+  'Prog. Inspecciones':'Prog. Inspeções', 'Programa de Inspecciones Rutinarias':'Programa de Inspeções de Rotina',
+  'Notificaciones':'Notificações', 'Auditoría':'Auditoria', 'Auditoria':'Auditoria',
+  'Reportes':'Relatórios', 'Usuarios':'Usuários', 'Correos':'E-mails',
+  'Configuración':'Configuração', 'Configuracion':'Configuração',
+  // Botones comunes
+  'Guardar':'Salvar', 'Cancelar':'Cancelar', 'Cerrar':'Fechar', 'Buscar':'Pesquisar',
+  'Actualizar':'Atualizar', 'Descargar':'Baixar', 'Exportar':'Exportar', 'Editar':'Editar',
+  'Eliminar':'Excluir', 'Ver':'Ver', 'Aprobar':'Aprovar', 'Rechazar':'Rejeitar',
+  'Continuar':'Continuar', 'Confirmar':'Confirmar', 'Aceptar':'Aceitar',
+  'Nuevo':'Novo', 'Nueva':'Nova', 'Agregar':'Adicionar', 'Añadir':'Adicionar',
+  'Enviar':'Enviar', 'Subir':'Enviar', 'Filtrar':'Filtrar', 'Limpiar':'Limpar',
+  'Seleccionar':'Selecionar', 'Todos':'Todos', 'Todas':'Todas', 'Ninguno':'Nenhum',
+  'Sí':'Sim', 'No':'Não', 'Cerrar sesión':'Sair', 'Iniciar sesión':'Entrar', 'Salir':'Sair',
+  'Imprimir':'Imprimir', 'Copiar':'Copiar', 'Volver':'Voltar', 'Siguiente':'Próximo',
+  'Anterior':'Anterior', 'Finalizar':'Finalizar', 'Reintentar':'Tentar novamente',
+  // Estados
+  'Activo':'Ativo', 'Inactivo':'Inativo', 'Pendiente':'Pendente', 'Pendientes':'Pendentes',
+  'Aprobado':'Aprovado', 'Rechazado':'Rejeitado', 'Vigente':'Vigente', 'Vencido':'Vencido',
+  'Obsoleto':'Obsoleto', 'Completado':'Concluído', 'En proceso':'Em andamento',
+  // Etiquetas / encabezados de columna comunes
+  'Código':'Código', 'Código Actual':'Código Atual', 'Código Anterior':'Código Anterior',
+  'Descripción':'Descrição', 'Versión':'Versão', 'Área':'Área', 'Áreas':'Áreas',
+  'Área Generadora':'Área Geradora', 'Proceso':'Processo', 'Estado':'Status',
+  'Fecha':'Data', 'Fecha de Vigencia':'Data de Vigência', 'Fecha de Vencimiento':'Data de Vencimento',
+  'Administrador':'Administrador', 'Líder de Proceso':'Líder de Processo',
+  'Correo Electrónico':'E-mail', 'Correo':'E-mail', 'Usuario':'Usuário', 'Contraseña':'Senha',
+  'Nombre':'Nome', 'Apellido':'Sobrenome', 'Rol':'Função', 'Empresa':'Empresa',
+  'Tipo de Documento':'Tipo de Documento', 'Tipo':'Tipo', 'Acciones':'Ações',
+  'Solicitante':'Solicitante', 'Solicitud':'Solicitação', 'Comentarios':'Comentários',
+  'Observaciones':'Observações', 'Historial':'Histórico', 'Motivo':'Motivo',
+  // Mensajes comunes
+  'Bienvenido':'Bem-vindo', 'Cargando...':'Carregando...', 'Sin resultados':'Sem resultados',
+  'Contraseña incorrecta.':'Senha incorreta.', 'Usuario o contraseña incorrectos.':'Usuário ou senha incorretos.',
+  'Datos actualizados desde memoria local':'Dados atualizados a partir da memória local'
+};
+// Traduce un texto si coincide EXACTAMENTE (una vez recortados espacios) con
+// una clave del diccionario; conserva los espacios originales alrededor.
+function _i18nTraducirTexto(txt){
+  if(!txt) return txt;
+  var trimmed=txt.trim();
+  if(!trimmed || !UI_ES_PT.hasOwnProperty(trimmed)) return txt;
+  var idx=txt.indexOf(trimmed);
+  return txt.slice(0,idx)+UI_ES_PT[trimmed]+txt.slice(idx+trimmed.length);
+}
+var _i18nAplicando=false;
+// Recorre el árbol del DOM (nodos de texto + placeholder/title/value) y
+// traduce las coincidencias exactas del diccionario. Solo actúa si
+// APP_LANG==='pt'. Es intencionalmente conservador (solo traduce texto que
+// coincide COMPLETO con una clave) para no tocar datos reales del Excel.
+function aplicarIdiomaUI(root){
+  if(APP_LANG!=='pt') return;
+  root = root || document.body;
+  if(!root || !root.querySelectorAll) return;
+  _i18nAplicando=true;
+  try{
+    if(document.createTreeWalker){
+      var walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      var nodo;
+      while(nodo=walker.nextNode()){
+        var nuevo=_i18nTraducirTexto(nodo.nodeValue);
+        if(nuevo!==nodo.nodeValue) nodo.nodeValue=nuevo;
+      }
+    }
+    root.querySelectorAll('[placeholder]').forEach(function(el){
+      var t=_i18nTraducirTexto(el.getAttribute('placeholder'));
+      if(t!==el.getAttribute('placeholder')) el.setAttribute('placeholder',t);
+    });
+    root.querySelectorAll('[title]').forEach(function(el){
+      var t=_i18nTraducirTexto(el.getAttribute('title'));
+      if(t!==el.getAttribute('title')) el.setAttribute('title',t);
+    });
+    root.querySelectorAll('input[type=button],input[type=submit]').forEach(function(el){
+      var t=_i18nTraducirTexto(el.value);
+      if(t!==el.value) el.value=t;
+    });
+  } catch(e){ console.error('i18n aplicarIdiomaUI error:',e); }
+  setTimeout(function(){ _i18nAplicando=false; },0);
+}
+var _i18nObserverActivo=false;
+// Mantiene la traducción activa sobre contenido generado dinámicamente
+// (tablas, modales, resultados de búsqueda, etc.) tras el login inicial.
+function activarObservadorIdioma(){
+  if(_i18nObserverActivo || APP_LANG!=='pt' || typeof MutationObserver==='undefined') return;
+  _i18nObserverActivo=true;
+  var obs=new MutationObserver(function(){
+    if(_i18nAplicando) return;
+    clearTimeout(window._i18nDebounceT);
+    window._i18nDebounceT=setTimeout(function(){ aplicarIdiomaUI(document.body); },100);
+  });
+  obs.observe(document.body,{childList:true,subtree:true,characterData:true});
+}
+
+// ============================================================
 // LOGIN SYSTEM
 // ============================================================
 
@@ -18159,6 +18491,7 @@ async function doLogin(){
   // Login exitoso — resetear intentos
   _loginIntentos[loginVal]={count:0};
   currentUser=user;
+  if(typeof appDetectarIdioma==='function') appDetectarIdioma(user);
 
   if(errEl)errEl.textContent='';
 
@@ -18175,6 +18508,7 @@ async function doLogin(){
     hideLogin();
     aplicarPermisos(user);
     _construirTopbar(user);
+    if(typeof aplicarIdiomaUI==='function'){ aplicarIdiomaUI(document.body); activarObservadorIdioma(); }
     renderDash();
     updBadges();
     if(OD.fileHandle&&!OD.permisoEscritura){
@@ -18192,7 +18526,8 @@ async function doLogin(){
   hideLogin();
   aplicarPermisos(user);
   _construirTopbar(user);
-  toast('Bienvenido, '+user.nombre,'ok');
+  if(typeof aplicarIdiomaUI==='function'){ aplicarIdiomaUI(document.body); activarObservadorIdioma(); }
+  toast((APP_LANG==='pt'?'Bem-vindo, ':'Bienvenido, ')+user.nombre,'ok');
   iniciarTimerInactividad();
   ['mousemove','keydown','click','scroll','touchstart'].forEach(function(ev){
     document.addEventListener(ev,resetTimerInactividad,{passive:true});
@@ -20054,54 +20389,11 @@ function limpiarTextoExcel(v){
           .replace(/\s{2,}/g,' ')
           .trim();
 }
-async function odCargarListado(){
-  console.log('[OD] odCargarListado iniciado. carpetaHandle:',!!OD.carpetaHandle,'fileHandle:',!!OD.fileHandle);
-  if(window._odCargando){ console.warn('OD: Carga ya en progreso, ignorando llamada duplicada'); return; }
-  window._odCargando=true;
-  var _odCargandoRelease=function(){ window._odCargando=false; };
-  if(!SP.activo&&!OD.carpetaHandle&&!OD.fileHandle){
-    toast('Selecciona primero la carpeta donde están tus archivos Excel','er');
-    if(!document.getElementById('od-seleccion-screen')) odMostrarSeleccion();
-    _odCargandoRelease();
-    return;
-  }
-  if(!window.XLSX){toast('Librería XLSX no disponible','er');return;}
-  // Proteger hoja Detalle de Hallazgos durante toda la carga
-  window._dhProtegido=true;
-  try{
-    odSetProgreso(10,'Leyendo archivos Excel...');
-    odSetInfo('Cargando desde OneDrive...','var(--tx3)');
-    // ── Leer ListadoMaestro.xlsx ──────────────────────────────
-    var lmData=null;
-    if(SP.activo){
-      // MODO SHAREPOINT: fetch directo
-      lmData=await spLeerArchivo(OD_ARCHIVOS.lm);
-    } else if(OD.carpetaHandle){
-      lmData=await odLeerArchivo(OD_ARCHIVOS.lm);
-    } else {
-      // Compatibilidad: archivo único (modo anterior)
-      var fLM=await OD.fileHandle.getFile();
-      lmData={buf:await fLM.arrayBuffer(),lastModified:fLM.lastModified,handle:OD.fileHandle};
-    }
-    if(!lmData){
-      var msgErr='No se encontró '+OD_ARCHIVOS.lm+' en la carpeta.';
-      toast(msgErr,'er');
-      alert('⚠️ '+msgErr+'\n\nVerifica que seleccionaste la carpeta correcta.\n\nDebe ser: Listado_Maestro\n(donde están los archivos Excel, NO la carpeta del index.html)');
-      // Limpiar y mostrar pantalla de selección para elegir otra carpeta
-      OD.carpetaHandle=null;
-      if(!document.getElementById('od-seleccion-screen')) odMostrarSeleccion();
-      _odCargandoRelease();
-      return;
-    }
-    // Guardar timestamp para detección de colisión
-    _odTsUltimaCarga=lmData.lastModified;
-    _odLastModified=lmData.lastModified;
-    _odUltimoTam=0; // resetear tamaño al recargar (no hay referencia de guardado previo)
-    OD.fileHandle=lmData.handle; // retro-compatibilidad
-    var buf=lmData.buf;
-    odSetProgreso(35,'Procesando hoja de cálculo...');
-    var wb=XLSX.read(buf,{type:'array',cellDates:false,raw:false});
-
+// Parsea un workbook de ListadoMaestro.xlsx COMPLETO (todas las columnas) y
+// devuelve el array de documentos, exactamente con la misma lógica que usa
+// la carga normal (odCargarListado) para la empresa propia. Reutilizada para
+// cargar el Listado Maestro de OTRAS empresas (KPIs por empresa, Consolidado).
+function _parsearListadoMaestroCompleto(wb){
     // Calcular rango real (el !ref puede estar incorrecto)
     var ws=wb.Sheets[wb.SheetNames[0]];
     var maxRow=0,maxCol=0;
@@ -20120,7 +20412,6 @@ async function odCargarListado(){
       ws['!ref']='A1:'+cl+maxRow;
     }
 
-    odSetProgreso(55,'Importando documentos...');
     var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     rows=rows.filter(function(r){return r.some(function(c){return c!=='';});});
 
@@ -20226,6 +20517,60 @@ async function odCargarListado(){
         d.cambioMultiSociedad=_esSI(d.cambioMultiSociedad);
       });
     })();
+  return nuevoDocs;
+}
+
+async function odCargarListado(){
+  console.log('[OD] odCargarListado iniciado. carpetaHandle:',!!OD.carpetaHandle,'fileHandle:',!!OD.fileHandle);
+  if(window._odCargando){ console.warn('OD: Carga ya en progreso, ignorando llamada duplicada'); return; }
+  window._odCargando=true;
+  var _odCargandoRelease=function(){ window._odCargando=false; };
+  if(!SP.activo&&!OD.carpetaHandle&&!OD.fileHandle){
+    toast('Selecciona primero la carpeta donde están tus archivos Excel','er');
+    if(!document.getElementById('od-seleccion-screen')) odMostrarSeleccion();
+    _odCargandoRelease();
+    return;
+  }
+  if(!window.XLSX){toast('Librería XLSX no disponible','er');return;}
+  // Proteger hoja Detalle de Hallazgos durante toda la carga
+  window._dhProtegido=true;
+  try{
+    odSetProgreso(10,'Leyendo archivos Excel...');
+    odSetInfo('Cargando desde OneDrive...','var(--tx3)');
+    // ── Leer ListadoMaestro.xlsx ──────────────────────────────
+    var lmData=null;
+    if(SP.activo){
+      // MODO SHAREPOINT: fetch directo
+      lmData=await spLeerArchivo(OD_ARCHIVOS.lm);
+    } else if(OD.carpetaHandle){
+      lmData=await odLeerArchivo(OD_ARCHIVOS.lm);
+    } else {
+      // Compatibilidad: archivo único (modo anterior)
+      var fLM=await OD.fileHandle.getFile();
+      lmData={buf:await fLM.arrayBuffer(),lastModified:fLM.lastModified,handle:OD.fileHandle};
+    }
+    if(!lmData){
+      var msgErr='No se encontró '+OD_ARCHIVOS.lm+' en la carpeta.';
+      toast(msgErr,'er');
+      alert('⚠️ '+msgErr+'\n\nVerifica que seleccionaste la carpeta correcta.\n\nDebe ser: Listado_Maestro\n(donde están los archivos Excel, NO la carpeta del index.html)');
+      // Limpiar y mostrar pantalla de selección para elegir otra carpeta
+      OD.carpetaHandle=null;
+      if(!document.getElementById('od-seleccion-screen')) odMostrarSeleccion();
+      _odCargandoRelease();
+      return;
+    }
+    // Guardar timestamp para detección de colisión
+    _odTsUltimaCarga=lmData.lastModified;
+    _odLastModified=lmData.lastModified;
+    _odUltimoTam=0; // resetear tamaño al recargar (no hay referencia de guardado previo)
+    OD.fileHandle=lmData.handle; // retro-compatibilidad
+    var buf=lmData.buf;
+    odSetProgreso(35,'Procesando hoja de cálculo...');
+    var wb=XLSX.read(buf,{type:'array',cellDates:false,raw:false});
+
+    odSetProgreso(55,'Importando documentos...');
+    var nuevoDocs=_parsearListadoMaestroCompleto(wb);
+
 
     odSetProgreso(80,'Cargando usuarios...');
 
@@ -21251,6 +21596,7 @@ function odIniciarSyncAuto(){
   if(window._nfConsolidadoTimer) clearInterval(window._nfConsolidadoTimer);
   window._nfConsolidadoTimer=setInterval(function(){
     if(typeof nfObtenerDatosGlobales==='function') nfObtenerDatosGlobales(true);
+    if(typeof obtenerDocsTodasEmpresasCompleto==='function' && OD_EMPRESAS.carpetaHandle) obtenerDocsTodasEmpresasCompleto(true);
   },1800000); // cada 30 minutos
 }
 
@@ -22630,7 +22976,7 @@ function dashPoblarAreas(){
   var lista=document.getElementById('dash-areas-lista');
   if(!lista) return;
   var areasSet={};
-  docsEmpresa().filter(function(d){
+  dashDocsPorEmpresaSeleccionada().filter(function(d){
     return d.tipoDocumento!=='Formato'&&d.estado!=='Obsoleto'&&d.obsoleto!=='X'&&d.obsoleto!=='Si';
   }).forEach(function(d){ areasSet[d.areaGeneradora||'Sin area']=1; });
   var areas=Object.keys(areasSet).sort();
@@ -22662,7 +23008,7 @@ function dashAreasTodas(){
 
 function dashAreasNinguna(){
   var areasSet={};
-  docsEmpresa().filter(function(d){
+  dashDocsPorEmpresaSeleccionada().filter(function(d){
     return d.tipoDocumento!=='Formato'&&d.estado!=='Obsoleto'&&d.obsoleto!=='X';
   }).forEach(function(d){ areasSet[d.areaGeneradora||'Sin area']=1; });
   Object.keys(areasSet).forEach(function(a){ _dashAreasExcluidas.add(a); });
@@ -24057,24 +24403,100 @@ function dashToggleExcluirFinanciera(){
   dashActualizar();
 }
 
+var _dashEmpresaFiltro = ''; // empresa elegida manualmente en KPIs ('' = la empresa del usuario logueado)
+function _dashNormEmp(s){return(s||'').toLowerCase().trim().replace(/\./g,'').replace(/\s+/g,' ').replace(/ph[ao]r[nm]a/,'pharma');}
+// Documentos de la empresa actualmente seleccionada en KPIs (propia o elegida
+// en el selector), SIN aplicar aún el filtro de áreas excluidas ni "Sin
+// Financiera" — se usa tanto en dashDocsBase() como para poblar el panel
+// "Filtrar Áreas" con las áreas de la empresa correcta.
+function dashDocsPorEmpresaSeleccionada(){
+  var miEmpresa=(currentUser&&currentUser.empresa)||'';
+  if(_dashEmpresaFiltro && _dashNormEmp(_dashEmpresaFiltro)!==_dashNormEmp(miEmpresa)){
+    // Empresa distinta a la propia: usar el Listado Maestro completo de esa
+    // empresa (leído de su carpeta/subcarpeta), no el "docs" de la sesión
+    // actual, que solo trae la empresa con la que se inició sesión.
+    var porEmp=_TODAS_EMPRESAS_CACHE.porEmpresa||{};
+    return porEmp[_dashEmpresaFiltro]
+      || porEmp[Object.keys(porEmp).find(function(k){return _dashNormEmp(k)===_dashNormEmp(_dashEmpresaFiltro);})||'']
+      || [];
+  }
+  return docsEmpresa();
+}
 function dashDocsBase(){
-  var base = docsEmpresa();
+  var base=dashDocsPorEmpresaSeleccionada();
   // 1) Filtro por áreas excluidas desde el panel "Filtrar Áreas"
-  if(_dashAreasExcluidas.size>0){
+  if(typeof _dashAreasExcluidas!=='undefined' && _dashAreasExcluidas && _dashAreasExcluidas.size>0){
     base = base.filter(function(doc){
       return !_dashAreasExcluidas.has(doc.areaGeneradora||'Sin area');
     });
   }
   // 2) Filtro "Sin Financiera"
-  if(_dashExcluirFinanciera){
+  if(typeof _dashExcluirFinanciera!=='undefined' && _dashExcluirFinanciera){
     base = base.filter(function(d){
       var area = (d.areaGeneradora||'').trim();
-      return !_AREAS_FINANCIERA.some(function(a){
+      return !(_AREAS_FINANCIERA||[]).some(function(a){
         return area.toLowerCase() === a.toLowerCase();
       });
     });
   }
   return base;
+}
+// Puebla el select de empresas de KPIs con TODAS las empresas del grupo
+// (no solo las presentes en los documentos de la sesión actual). Se apoya
+// en obtenerDocsTodasEmpresasCompleto(), que lee cada Listado Maestro desde
+// la carpeta madre conectada en Configuración (o las rutas configuradas).
+var _dashPoblarEmpresasCargando=false;
+var _dashPoblarEmpresasIntentado=false;
+function dashPoblarEmpresas(){
+  if(!currentUser) return; // no hacer nada antes de iniciar sesión
+  var sel=document.getElementById('dash-empresa-sel');
+  if(!sel) return;
+  var actual=sel.value||_dashEmpresaFiltro||'';
+  var set={};
+  Object.keys(_TODAS_EMPRESAS_CACHE.porEmpresa||{}).forEach(function(a){ if(a) set[a]=1; });
+  // Respaldo: mientras carga, al menos mostrar las empresas ya vistas en docs
+  (docs||[]).forEach(function(d){
+    var a=(d.administrador||d.empresa||'').trim();
+    if(a) set[a]=1;
+  });
+  var lista=Object.keys(set).sort();
+  sel.innerHTML='<option value="">Mi empresa</option>'+lista.map(function(a){
+    return '<option value="'+a.replace(/"/g,'&quot;')+'"'+(a===actual?' selected':'')+'>'+a+'</option>';
+  }).join('');
+  sel.value=actual;
+  // Disparar en segundo plano la carga del consolidado de todas las empresas
+  // UNA SOLA VEZ por sesión (nunca reintenta automáticamente en cada render,
+  // para evitar un bucle de reintentos). Si falla o queda vacío, el usuario
+  // puede forzar un nuevo intento con "🔄 Regenerar consolidado completo" en
+  // Configuración, que resetea este flag.
+  if(!_dashPoblarEmpresasCargando && !_dashPoblarEmpresasIntentado && !Object.keys(_TODAS_EMPRESAS_CACHE.porEmpresa||{}).length && typeof obtenerDocsTodasEmpresasCompleto==='function'){
+    _dashPoblarEmpresasCargando=true;
+    obtenerDocsTodasEmpresasCompleto(false).then(function(){
+      _dashPoblarEmpresasCargando=false;
+      _dashPoblarEmpresasIntentado=true;
+      dashPoblarEmpresas();
+    }).catch(function(e){
+      _dashPoblarEmpresasCargando=false;
+      _dashPoblarEmpresasIntentado=true;
+      console.warn('[KPI] No se pudieron precargar todas las empresas:',e&&e.message);
+    });
+  }
+}
+async function dashCambiarEmpresa(){
+  var sel=document.getElementById('dash-empresa-sel');
+  _dashEmpresaFiltro=sel?sel.value:'';
+  var miEmpresa=(currentUser&&currentUser.empresa)||'';
+  if(_dashEmpresaFiltro && _dashNormEmp(_dashEmpresaFiltro)!==_dashNormEmp(miEmpresa)){
+    var yaCargada=(_TODAS_EMPRESAS_CACHE.porEmpresa||{})[_dashEmpresaFiltro];
+    if(!yaCargada){
+      toast('⏳ Cargando Listado Maestro de '+_dashEmpresaFiltro+'...','if');
+      await obtenerDocsTodasEmpresasCompleto(false);
+    }
+  }
+  if(typeof dashActualizarUI==='function') dashActualizarUI();
+  else dashActualizar();
+  if(_dashPanelAbierto && typeof dashPoblarAreas==='function') dashPoblarAreas();
+  toast(_dashEmpresaFiltro?('📊 Mostrando KPIs de: '+_dashEmpresaFiltro):'📊 Mostrando KPIs de mi empresa','ok');
 }
 
 var _dashActualizarUIen=false; // guard para evitar loop
@@ -26458,6 +26880,113 @@ var XLS_COLS_DEF = [
 XLS_COLS_DEF = XLS_COLS_DEF.filter(function(c,i,arr){
   return arr.findIndex(function(x){return x.key===c.key;})===i;
 });
+
+// ══ Reportes: Consolidado de todos los Listados Maestro por empresa ══
+// Genera un único Excel con: una hoja por cada empresa (según el campo
+// "Administrador" de cada documento) + una hoja "Consolidado" con todos
+// los documentos de todas las empresas juntos. Usa todos los documentos
+// del sistema (docs), no solo los de la empresa del usuario logueado.
+function _repNombreHojaSeguro(nombre, usados){
+  var limpio=(nombre||'Empresa').replace(/[\\\/\?\*\[\]:]/g,'').trim();
+  if(limpio.length>28) limpio=limpio.slice(0,28);
+  if(!limpio) limpio='Empresa';
+  var base=limpio, i=2;
+  while(usados[limpio.toLowerCase()]){
+    limpio=(base+' '+i).slice(0,31);
+    i++;
+  }
+  usados[limpio.toLowerCase()]=true;
+  return limpio;
+}
+async function expExcelConsolidadoEmpresas(){
+  if(typeof XLSX==='undefined'){ toast('Librería Excel no disponible','er'); return; }
+  if(!(docs||[]).length){ toast('No hay documentos cargados','er'); return; }
+
+  toast('⏳ Leyendo el Listado Maestro de todas las empresas conectadas...','if');
+  var datosGlobales;
+  try{
+    datosGlobales = await obtenerDocsTodasEmpresasCompleto(true); // forzar lectura fresca
+  }catch(e){
+    console.error('[Consolidado] Error leyendo todas las empresas:',e);
+    datosGlobales = {porEmpresa:{}, fallidas:[]};
+  }
+  var porEmpresaFuente = Object.keys(datosGlobales.porEmpresa||{}).length
+    ? datosGlobales.porEmpresa
+    : {}; // si no hay ninguna, caemos al respaldo de abajo
+
+  var cols=XLS_COLS_DEF; // mismos campos para todas las empresas
+  var header=cols.map(function(c){return c.es;});
+  function filaDoc(d){
+    return cols.map(function(c){
+      if(c.key==='fechaVigencia'||c.key==='fechaVencimiento') return d[c.key]?fDD(d[c.key]):'';
+      return d[c.key]||'';
+    });
+  }
+
+  // Agrupar documentos por empresa. Fuente principal: el consolidado leído de
+  // la carpeta madre / rutas de Configuración (todas las empresas). Si por
+  // alguna razón no se pudo leer ninguna, se usa como respaldo el campo
+  // Administrador de los documentos ya cargados en esta sesión (solo la
+  // propia empresa), para que el botón nunca quede sin generar nada.
+  var porEmpresa={}, sinEmpresa=[];
+  if(Object.keys(porEmpresaFuente).length){
+    Object.keys(porEmpresaFuente).forEach(function(emp){
+      porEmpresa[emp]=porEmpresaFuente[emp]||[];
+    });
+  } else {
+    (docs||[]).forEach(function(d){
+      var emp=(d.administrador||d.empresa||'').trim();
+      if(!emp){ sinEmpresa.push(d); return; }
+      if(!porEmpresa[emp]) porEmpresa[emp]=[];
+      porEmpresa[emp].push(d);
+    });
+  }
+  var empresasOrdenadas=Object.keys(porEmpresa).sort();
+  var totalDocs=empresasOrdenadas.reduce(function(s,e){return s+porEmpresa[e].length;},0)+sinEmpresa.length;
+  if(!empresasOrdenadas.length && !sinEmpresa.length){
+    toast('No hay documentos para consolidar','er'); return;
+  }
+
+  var wb=XLSX.utils.book_new();
+  var usados={};
+
+  // ── Hoja Consolidado (primera, con columna Empresa al inicio) ──
+  var headerCons=['Empresa'].concat(header);
+  var aoaCons=[headerCons];
+  empresasOrdenadas.forEach(function(emp){
+    porEmpresa[emp].forEach(function(d){ aoaCons.push([emp].concat(filaDoc(d))); });
+  });
+  sinEmpresa.forEach(function(d){ aoaCons.push(['Sin empresa asignada'].concat(filaDoc(d))); });
+  var wsCons=XLSX.utils.aoa_to_sheet(aoaCons);
+  wsCons['!cols']=[{wch:28}].concat(cols.map(function(c){return {wch:c.w||16};}));
+  wsCons['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:headerCons.length-1}})};
+  XLSX.utils.book_append_sheet(wb, wsCons, _repNombreHojaSeguro('Consolidado', usados));
+
+  // ── Una hoja por empresa ──
+  empresasOrdenadas.forEach(function(emp){
+    var aoa=[header];
+    porEmpresa[emp].forEach(function(d){ aoa.push(filaDoc(d)); });
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=cols.map(function(c){return {wch:c.w||16};});
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:header.length-1}})};
+    XLSX.utils.book_append_sheet(wb, ws, _repNombreHojaSeguro(emp, usados));
+  });
+
+  // ── Hoja para documentos sin empresa asignada (si existen) ──
+  if(sinEmpresa.length){
+    var aoaSE=[header];
+    sinEmpresa.forEach(function(d){ aoaSE.push(filaDoc(d)); });
+    var wsSE=XLSX.utils.aoa_to_sheet(aoaSE);
+    wsSE['!cols']=cols.map(function(c){return {wch:c.w||16};});
+    wsSE['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:header.length-1}})};
+    XLSX.utils.book_append_sheet(wb, wsSE, _repNombreHojaSeguro('Sin Empresa', usados));
+  }
+
+  var fecha=(new Date()).toISOString().slice(0,10);
+  XLSX.writeFile(wb, 'Consolidado-Listados-Maestro-'+fecha+'.xlsx', {cellStyles:true});
+  var msgFallidas=(datosGlobales.fallidas&&datosGlobales.fallidas.length)?(' — '+datosGlobales.fallidas.length+' empresa(s) no se pudieron leer: '+datosGlobales.fallidas.join(', ')):'';
+  toast('📊 Consolidado generado: '+empresasOrdenadas.length+' empresa(s), '+totalDocs+' documentos'+msgFallidas, msgFallidas?'if':'ok');
+}
 
 // Estados disponibles con color, etiqueta y activado por defecto
 var XLS_ESTADOS_DEF = [
