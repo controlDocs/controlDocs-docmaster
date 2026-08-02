@@ -17362,20 +17362,26 @@ function nfCheckCoincidenciasBlur(valor){
 // esa revisión, o nunca se disparó (p.ej. pegó el texto y guardó de una),
 // se ejecuta el chequeo aquí como última barrera antes de guardar.
 function nfVerificarCoincidenciasAntesDeGuardar(cb){
+  console.log('[NF-TRACE] nfVerificarCoincidenciasAntesDeGuardar() inicio');
   var tipoNov=(document.getElementById('nf-tipo')||{}).value||'';
-  if(tipoNov!=='Creación'&&tipoNov!=='Modificación'){ cb(); return; }
+  if(tipoNov!=='Creación'&&tipoNov!=='Modificación'){ console.log('[NF-TRACE] Tipo no aplica coincidencias ('+tipoNov+'), continuando directo'); cb(); return; }
   var valor=(document.getElementById('nf-nombredoc')||{}).value||'';
-  if(!valor||valor.trim().length<4){ cb(); return; }
+  if(!valor||valor.trim().length<4){ console.log('[NF-TRACE] Nombre doc muy corto/vacío, continuando directo'); cb(); return; }
   var normActual=_nfNormalizar(valor);
   var estado=window._nfCoincidenciasEstado;
-  if(estado && estado.nombre===normActual && estado.aceptado){ cb(); return; }
+  if(estado && estado.nombre===normActual && estado.aceptado){ console.log('[NF-TRACE] Ya aceptado previamente para este nombre, continuando directo'); cb(); return; }
+  console.log('[NF-TRACE] Ejecutando búsqueda de coincidencias cruzadas...');
   nfEjecutarBusquedaCoincidencias(valor, function(resultados, fallidas){
+    console.log('[NF-TRACE] Búsqueda de coincidencias completada. resultados:',resultados&&resultados.length,'fallidas:',fallidas);
     if(!resultados.length){
       window._nfCoincidenciasEstado={nombre:normActual, aceptado:true, fallidas:fallidas};
+      console.log('[NF-TRACE] Sin coincidencias — continuando directo');
       cb();
       return;
     }
+    console.log('[NF-TRACE] Mostrando modal de coincidencias — esperando decisión del usuario');
     nfMostrarAlertaCoincidencias(resultados, fallidas, valor, function(continuar){
+      console.log('[NF-TRACE] Modal de coincidencias cerrado. continuar=',continuar);
       window._nfCoincidenciasEstado={nombre:normActual, aceptado:!!continuar};
       if(continuar) cb();
       // Si no continúa, el usuario se queda en el formulario para revisar/corregir.
@@ -17413,9 +17419,11 @@ function nfMostrarAlertaCoincidencias(resultados, fallidas, nombre, callback){
   openMo('mo-nf-coincidencias');
 }
 function _nfCoincidenciasContinuar(){
+  console.log('[NF-TRACE] Botón "Continuar de todas formas" clickeado');
   closeMo('mo-nf-coincidencias');
   var cb=_nfCoincidenciasCb; _nfCoincidenciasCb=null;
   if(cb) cb(true);
+  else console.log('[NF-TRACE] ⚠️ No había callback guardado (_nfCoincidenciasCb era null)');
 }
 // Arma un correo (mailto:) con el listado de coincidencias detectadas y lo
 // envía a los destinatarios fijos de revisión de duplicidad de documentos.
@@ -21035,7 +21043,7 @@ async function odGuardarConPicker(){
 //  GUARDAR EXCEL COMPLETO 
 //  CONTROL DE CONCURRENCIA — bloqueo optimista 
 var _odLastModified   = 0;     // timestamp de la última lectura del archivo
-var _odGuardandoAhora=false,_odColaGuardado=false;
+var _odGuardandoAhora=false,_odColaGuardado=false,_odGuardandoAhoraDesde=0;
 // Sistema Auditrail append-only: eventos acumulados en sesión
 var _auditPendientes=[];
 var _odUltimoTam=0; // filas nuevas acumuladas desde la última carga
@@ -21049,13 +21057,22 @@ async function odGuardarListado(silencioso){
   if(!window.currentUser) return false;
   if(!window.XLSX) return false;
 
-  // Si ya hay un guardado en curso, encolar y salir
+  // Si ya hay un guardado en curso, encolar y salir — salvo que ese guardado
+  // lleve trabado (colgado) más de 45s, lo cual indica que quedó huérfano
+  // (p.ej. un requestPermission() que nunca se resolvió) y bloquearía todos
+  // los guardados futuros para siempre si no se libera.
   if(_odGuardandoAhora){
-    _odColaGuardado=true;
-    console.log('[OD] Guardado encolado — ya hay uno en curso');
-    return false;
+    if(_odGuardandoAhoraDesde && (Date.now()-_odGuardandoAhoraDesde)>45000){
+      console.warn('[OD] Mutex de guardado trabado por >45s — se libera y se continúa');
+      _odGuardandoAhora=false;
+    } else {
+      _odColaGuardado=true;
+      console.log('[OD] Guardado encolado — ya hay uno en curso');
+      return false;
+    }
   }
   _odGuardandoAhora=true;
+  _odGuardandoAhoraDesde=Date.now();
   try{
     // ── Función helper: guardar un workbook en un archivo de la carpeta ──
     async function _escribirArchivo(nombreArchivo, wbToWrite){
@@ -21366,7 +21383,10 @@ async function odGuardarListado(silencioso){
           _auditPendientes=_auditPendientes.filter(function(a){var mod=(a.modulo||'').toLowerCase();return !_solLow.some(function(m){return mod.indexOf(m)>=0;});});
         }
         var _okSol=await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2);
-        if(!_okSol) console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.solicitudes);
+        if(!_okSol){
+          console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.solicitudes);
+          toast('⚠️ La solicitud NO se guardó en '+OD_ARCHIVOS.solicitudes+' (archivo ocupado o sin permiso). Vuelve a intentar guardar en unos segundos.','er');
+        }
       }catch(eSol){console.warn('Error guardando Solicitudes:',eSol);}
 
     } else {
@@ -21884,8 +21904,16 @@ function odMostrarReconectar(dirHandle){
     btn.textContent='⏳ Cargando...'; btn.disabled=true;
     try{
       OD.carpetaHandle=dirHandle;
-      OD.permisoEscritura=true;
+      var _permReconectar='granted';
+      try{
+        _permReconectar = window.location.protocol==='file:' ? 'granted' : await dirHandle.queryPermission({mode:'readwrite'});
+        if(_permReconectar!=='granted'){ _permReconectar = await dirHandle.requestPermission({mode:'readwrite'}); }
+      }catch(ePerm){ console.warn('[OD] Error solicitando permiso al reconectar:',ePerm); _permReconectar='denied'; }
+      OD.permisoEscritura=(_permReconectar==='granted');
       OD.syncActivo=true;
+      if(!OD.permisoEscritura){
+        toast('⚠️ No se concedió permiso de escritura sobre la carpeta — los cambios NO se guardarán hasta que aceptes el permiso. Vuelve a intentar.','er');
+      }
       await idbSaveDir(dirHandle);
       var sc=document.getElementById('od-seleccion-screen');
       if(sc) sc.remove();
@@ -22221,6 +22249,7 @@ async function odGuardarAhora(){
       OD.permisoEscritura=(permPre==='granted');
       if(!OD.permisoEscritura){
         odSaveBtnEstado('pendiente');
+        _odGuardando=false;
         toast('⚠️ Permiso de escritura no concedido — vuelve a intentar y acepta el permiso del navegador','er');
         return;
       }
@@ -22240,6 +22269,8 @@ async function odGuardarAhora(){
     } else {
       // odGuardarListado ya dejó el estado/mensaje correcto (pendiente o
       // encolado) — no lo sobrescribimos con un falso éxito.
+      odSaveBtnEstado('pendiente');
+      _odGuardando=false;
       toast('⏳ El guardado no se completó todavía — reintentará automáticamente','if');
     }
   }catch(e){
@@ -24921,7 +24952,11 @@ async function spwActualizarEstado(id, nuevoEstado){
     var nuevoBuf=await zip.generateAsync({type:'arraybuffer'});
 
     var ok=await odEscribirBufferGenerico(OD_ARCHIVOS.solicitudesWeb, nuevoBuf);
-    if(ok) await spwCargar(); // refrescar memoria con el archivo ya actualizado
+    if(ok){
+      await spwCargar(); // refrescar memoria con el archivo ya actualizado
+    } else {
+      toast('⚠️ No se pudo escribir SolicitudesWeb.xlsx (archivo ocupado por OneDrive o sin permiso de escritura). El estado no cambió.','er');
+    }
     return ok;
   }catch(e){
     console.error('[SolicitudesWeb] Error actualizando estado:',e.message);
@@ -29967,6 +30002,7 @@ function nfValidarCampos(){
 }
 
 function nfGuardar(){
+  console.log('[NF-TRACE] nfGuardar() llamado');
   if(window._nfDocObsoleto){alert('⛔ El documento está marcado como Obsoleto.\nNo es posible registrar novedad.');return;}
   if(!OD.fileHandle){ toast('Primero carga el Excel de SharePoint','er'); return; }
   if(!_nfPDFGenerado){
@@ -29975,27 +30011,35 @@ function nfGuardar(){
   }
   var faltantes=nfValidarCampos();
   if(faltantes.length){
+    console.log('[NF-TRACE] Campos faltantes, deteniendo:',faltantes);
     alert('⚠️ Campos obligatorios sin diligenciar:\n\n• '+faltantes.join('\n• '));
     return;
   }
   function _nfContinuarTrasCoincidencias(){
+    console.log('[NF-TRACE] _nfContinuarTrasCoincidencias() llamado');
     // Verificar si el código ya tiene solicitud vigente en Ruta de Borrador
     // (cualquier estado distinto de Oficializado, Anulado o Retirado por Vencimiento)
     var codCheckG=(document.getElementById('nf-cod')||{}).value||'';
     var rbAlertaG=nfVerificarRutaBorrador(codCheckG);
+    console.log('[NF-TRACE] nfVerificarRutaBorrador resultado:',rbAlertaG);
     if(rbAlertaG){
+      console.log('[NF-TRACE] Mostrando alerta RB (Ruta de Borrador) — esperando decisión del usuario');
       nfMostrarAlertaRB(rbAlertaG, function(accion){
+        console.log('[NF-TRACE] Alerta RB — acción elegida:',accion);
         if(accion==='cancelar') return;
         if(accion==='renovar') nfRenovarSolicitud(rbAlertaG);
+        console.log('[NF-TRACE] Llamando nfGuardarEjecutar() desde alerta RB');
         nfGuardarEjecutar();
       });
       return; // esperar decisión del usuario
     }
+    console.log('[NF-TRACE] Llamando nfGuardarEjecutar() directo (sin alerta RB)');
     nfGuardarEjecutar();
   }
   // Candado final: si el nombre del documento (Creación/Modificación) tiene
   // coincidencias sin revisar en el Listado Maestro de otras empresas, se
   // muestra la alerta aquí antes de dejar continuar con el guardado.
+  console.log('[NF-TRACE] Llamando nfVerificarCoincidenciasAntesDeGuardar()');
   nfVerificarCoincidenciasAntesDeGuardar(_nfContinuarTrasCoincidencias);
 }
 // Extraer la lógica de guardado para llamarla tras el modal
@@ -30099,10 +30143,14 @@ function _spwCompletarSiAplica(){
   if(aviso) aviso.remove();
   spwMarcarCompletada(idCompletar).then(function(ok){
     if(ok){ toast('✅ Solicitud web marcada como Completada','ok'); if(typeof updBadges==='function') updBadges(); }
-    else console.warn('[SolicitudesWeb] No se pudo marcar la solicitud '+idCompletar+' como completada');
+    else {
+      console.warn('[SolicitudesWeb] No se pudo marcar la solicitud '+idCompletar+' como completada');
+      toast('⚠️ No se pudo marcar la solicitud como Completada en SolicitudesWeb.xlsx (archivo ocupado o sin permiso). Vuelve a intentarlo desde Solicitudes Pendientes.','er');
+    }
   });
 }
 function nfGuardarEjecutar(){
+  console.log('[NF-TRACE] nfGuardarEjecutar() INICIO — modoEdicion=',_nfModoEdicion);
   var hoy = nfFechaHoy();
   // ── Modo edición: actualizar solicitud existente (cargada desde PDF) ──
   if(_nfModoEdicion){
@@ -30151,7 +30199,16 @@ function nfGuardarEjecutar(){
     if((solData.tipoSolicitud==='Eliminación'||solData.tipoSolicitud==='Eliminacion')&&solData.codigo){
       rbOficializarPorCodigo(solData.codigo,'Eliminación — solicitud editada desde PDF N°'+solData.consecutivo);
     }
-    if(OD.fileHandle){ OD.syncActivo=true; if(OD.saveTimer)clearTimeout(OD.saveTimer); OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500); }
+    if(OD.fileHandle){
+      OD.syncActivo=true; if(OD.saveTimer)clearTimeout(OD.saveTimer);
+      OD.saveTimer=setTimeout(function(){
+        odGuardarListado(false).then(function(ok){
+          if(!ok) toast('⚠️ La solicitud N° '+solData.consecutivo+' NO se pudo escribir en OneDrive/SharePoint (ver aviso anterior). Vuelve a intentarlo.','er');
+        });
+      },1500);
+    } else {
+      toast('⚠️ No hay conexión activa a OneDrive/SharePoint — la solicitud N° '+solData.consecutivo+' quedó SOLO en este navegador y no se reflejará en Solicitudes.xlsx.','er');
+    }
     toast('✅ Solicitud N° '+solData.consecutivo+' actualizada en SharePoint','ok');
     _spwCompletarSiAplica();
     nfSalirModoEdicion();
@@ -30204,7 +30261,13 @@ function nfGuardarEjecutar(){
   if(OD.fileHandle){
     OD.syncActivo = true;
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer = setTimeout(function(){ odGuardarListado(true); }, 1500);
+    OD.saveTimer = setTimeout(function(){
+      odGuardarListado(false).then(function(ok){
+        if(!ok) toast('⚠️ La solicitud N° '+sol.consecutivo+' NO se pudo escribir en OneDrive/SharePoint (ver aviso anterior). Vuelve a intentarlo.','er');
+      });
+    }, 1500);
+  } else {
+    toast('⚠️ No hay conexión activa a OneDrive/SharePoint — la solicitud N° '+sol.consecutivo+' quedó SOLO en este navegador y no se reflejará en Solicitudes.xlsx.','er');
   }
   toast('✅ Solicitud N° '+sol.consecutivo+' guardada en SharePoint','ok');
   _spwCompletarSiAplica();
@@ -30618,7 +30681,10 @@ async function nfGenerarPDF(){
     _nfPDFGenerado=true;
     setTimeout(function(){
       if(confirm('✅ PDF generado correctamente.\n\n¿Desea guardar la solicitud ahora?')){
+        console.log('[NF-TRACE] Usuario aceptó el confirm() post-PDF — llamando nfGuardar()');
         nfGuardar();
+      } else {
+        console.log('[NF-TRACE] Usuario canceló el confirm() post-PDF');
       }
     }, 400);
   }catch(e){
