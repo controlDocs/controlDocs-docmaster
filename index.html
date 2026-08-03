@@ -11007,7 +11007,13 @@ function evNotificar(){
     +'Sistema de Documentación';
 
   var correo=d.correoElectronico||LC.areaACorreo[d.areaGeneradora]||'';
-  window.location.href='mailto:'+encodeURIComponent(correo)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  var _codU=(d.codigoActual||'').toUpperCase().trim();
+  var _mailtoUrl='mailto:'+encodeURIComponent(correo)+'?subject='+encodeURIComponent(asunto);
+  if(_codU.indexOf('DP-')===0||_codU.indexOf('SUB-')===0){
+    _mailtoUrl+='&cc='+encodeURIComponent('omadrid@sofgenpharma.com;lfsanchez@sofgenpharma.com;vsoto@sofgenpharma.com');
+  }
+  _mailtoUrl+='&body='+encodeURIComponent(cuerpo);
+  window.location.href=_mailtoUrl;
   toast('Correo generado para: '+area,'if');
 }
 
@@ -17362,26 +17368,20 @@ function nfCheckCoincidenciasBlur(valor){
 // esa revisión, o nunca se disparó (p.ej. pegó el texto y guardó de una),
 // se ejecuta el chequeo aquí como última barrera antes de guardar.
 function nfVerificarCoincidenciasAntesDeGuardar(cb){
-  console.log('[NF-TRACE] nfVerificarCoincidenciasAntesDeGuardar() inicio');
   var tipoNov=(document.getElementById('nf-tipo')||{}).value||'';
-  if(tipoNov!=='Creación'&&tipoNov!=='Modificación'){ console.log('[NF-TRACE] Tipo no aplica coincidencias ('+tipoNov+'), continuando directo'); cb(); return; }
+  if(tipoNov!=='Creación'&&tipoNov!=='Modificación'){ cb(); return; }
   var valor=(document.getElementById('nf-nombredoc')||{}).value||'';
-  if(!valor||valor.trim().length<4){ console.log('[NF-TRACE] Nombre doc muy corto/vacío, continuando directo'); cb(); return; }
+  if(!valor||valor.trim().length<4){ cb(); return; }
   var normActual=_nfNormalizar(valor);
   var estado=window._nfCoincidenciasEstado;
-  if(estado && estado.nombre===normActual && estado.aceptado){ console.log('[NF-TRACE] Ya aceptado previamente para este nombre, continuando directo'); cb(); return; }
-  console.log('[NF-TRACE] Ejecutando búsqueda de coincidencias cruzadas...');
+  if(estado && estado.nombre===normActual && estado.aceptado){ cb(); return; }
   nfEjecutarBusquedaCoincidencias(valor, function(resultados, fallidas){
-    console.log('[NF-TRACE] Búsqueda de coincidencias completada. resultados:',resultados&&resultados.length,'fallidas:',fallidas);
     if(!resultados.length){
       window._nfCoincidenciasEstado={nombre:normActual, aceptado:true, fallidas:fallidas};
-      console.log('[NF-TRACE] Sin coincidencias — continuando directo');
       cb();
       return;
     }
-    console.log('[NF-TRACE] Mostrando modal de coincidencias — esperando decisión del usuario');
     nfMostrarAlertaCoincidencias(resultados, fallidas, valor, function(continuar){
-      console.log('[NF-TRACE] Modal de coincidencias cerrado. continuar=',continuar);
       window._nfCoincidenciasEstado={nombre:normActual, aceptado:!!continuar};
       if(continuar) cb();
       // Si no continúa, el usuario se queda en el formulario para revisar/corregir.
@@ -17419,11 +17419,9 @@ function nfMostrarAlertaCoincidencias(resultados, fallidas, nombre, callback){
   openMo('mo-nf-coincidencias');
 }
 function _nfCoincidenciasContinuar(){
-  console.log('[NF-TRACE] Botón "Continuar de todas formas" clickeado');
   closeMo('mo-nf-coincidencias');
   var cb=_nfCoincidenciasCb; _nfCoincidenciasCb=null;
   if(cb) cb(true);
-  else console.log('[NF-TRACE] ⚠️ No había callback guardado (_nfCoincidenciasCb era null)');
 }
 // Arma un correo (mailto:) con el listado de coincidencias detectadas y lo
 // envía a los destinatarios fijos de revisión de duplicidad de documentos.
@@ -18965,6 +18963,130 @@ async function odGetArchivoHandle(nombre, modo){
 // se construyó editando el .xlsx original a nivel de ZIP/XML (para no perder
 // el formato de Tabla de Excel, que la librería XLSX no preserva al
 // reconstruir el libro desde cero).
+// Verifica si un archivo .xlsx recién guardado sigue teniendo una Tabla de
+// Excel definida (xl/tables/tableN.xml); si no la tiene, la reconstruye a
+// partir de los encabezados y el rango reales de la hoja. Necesario porque
+// la librería XLSX que usa la app NO conserva las Tablas de Excel al leer y
+// volver a escribir un archivo (se comprobó: ni editando celdas en el mismo
+// objeto ni reconstruyendo la hoja desde cero — la librería simplemente no
+// tiene forma de re-emitir esa parte del archivo).
+async function odAsegurarTablaExcel(nombreArchivo, nombreTabla){
+  try{
+    if(typeof JSZip==='undefined') return false;
+    var data=await odLeerArchivo(nombreArchivo);
+    if(!data) return false;
+    var zip=await JSZip.loadAsync(data.buf);
+
+    var yaExiste=Object.keys(zip.files).some(function(k){ return /^xl\/tables\/table\d+\.xml$/.test(k); });
+    if(yaExiste) return true; // la tabla sigue ahí, no hay que hacer nada
+
+    var parser=new DOMParser();
+    var sheetPath='xl/worksheets/sheet1.xml';
+    if(!zip.file(sheetPath)){
+      try{
+        var wbXml=await zip.file('xl/workbook.xml').async('string');
+        var wbDoc=parser.parseFromString(wbXml,'application/xml');
+        var primerSheet=wbDoc.getElementsByTagName('sheet')[0];
+        var rId=primerSheet&&(primerSheet.getAttribute('r:id')||primerSheet.getAttribute('id'));
+        var relsXmlWb=await zip.file('xl/_rels/workbook.xml.rels').async('string');
+        var relsDocWb=parser.parseFromString(relsXmlWb,'application/xml');
+        var relsWb=relsDocWb.getElementsByTagName('Relationship');
+        for(var k=0;k<relsWb.length;k++){
+          if(relsWb[k].getAttribute('Id')===rId){
+            sheetPath='xl/'+relsWb[k].getAttribute('Target').replace(/^\/?xl\//,'').replace(/^\.\//,'');
+            break;
+          }
+        }
+      }catch(eResolve){ console.warn('[Tabla] No se pudo resolver la ruta de la hoja:',eResolve.message); }
+    }
+    var sheetFile=zip.file(sheetPath);
+    if(!sheetFile) return false;
+    var sheetXmlTexto=await sheetFile.async('string');
+    var sheetDoc=parser.parseFromString(sheetXmlTexto,'application/xml');
+
+    // Rango real de la hoja (por el atributo <dimension ref="...">, o se
+    // calcula a partir de la última celda/fila si no existe ese atributo)
+    var dimNode=sheetDoc.getElementsByTagName('dimension')[0];
+    var rango=dimNode?dimNode.getAttribute('ref'):null;
+    var rowsXml=sheetDoc.getElementsByTagName('row');
+    if(!rango){
+      var ultimaFila=rowsXml.length?rowsXml[rowsXml.length-1].getAttribute('r'):'1';
+      var ultimaCeldas=rowsXml.length?rowsXml[rowsXml.length-1].getElementsByTagName('c'):[];
+      var ultimaCol=ultimaCeldas.length?ultimaCeldas[ultimaCeldas.length-1].getAttribute('r').replace(/\d+$/,''):'A';
+      rango='A1:'+ultimaCol+ultimaFila;
+    }
+
+    // Resolver textos de encabezado vía sharedStrings.xml
+    var sst=[];
+    var sstFile=zip.file('xl/sharedStrings.xml');
+    if(sstFile){
+      var sstDoc=parser.parseFromString(await sstFile.async('string'),'application/xml');
+      var siNodes=sstDoc.getElementsByTagName('si');
+      for(var i=0;i<siNodes.length;i++){
+        var tNodes=siNodes[i].getElementsByTagName('t');
+        var txt=''; for(var j=0;j<tNodes.length;j++) txt+=tNodes[j].textContent;
+        sst.push(txt);
+      }
+    }
+    function celdaTexto(c){
+      var vNode=c.getElementsByTagName('v')[0];
+      if(!vNode) return '';
+      if(c.getAttribute('t')==='s'){ return sst[parseInt(vNode.textContent,10)]||''; }
+      return vNode.textContent;
+    }
+    var filaEncabezado=null;
+    for(var r=0;r<rowsXml.length;r++){ if(rowsXml[r].getAttribute('r')==='1'){ filaEncabezado=rowsXml[r]; break; } }
+    if(!filaEncabezado && rowsXml.length) filaEncabezado=rowsXml[0];
+    if(!filaEncabezado) return false;
+    var celdasHdr=filaEncabezado.getElementsByTagName('c');
+    var encabezados=[];
+    for(var i2=0;i2<celdasHdr.length;i2++) encabezados.push(celdaTexto(celdasHdr[i2])||('Columna'+(i2+1)));
+    if(!encabezados.length) return false;
+
+    function escXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    var NS_SS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+    var colsXml=encabezados.map(function(n,i){ return '<tableColumn id="'+(i+1)+'" name="'+escXml(n)+'"/>'; }).join('');
+    var tableXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<table xmlns="'+NS_SS+'" id="1" name="'+escXml(nombreTabla)+'" displayName="'+escXml(nombreTabla)+'" ref="'+rango+'" totalsRowShown="0">'
+      +'<autoFilter ref="'+rango+'"/>'
+      +'<tableColumns count="'+encabezados.length+'">'+colsXml+'</tableColumns>'
+      +'<tableStyleInfo name="TableStyleMedium2" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/>'
+      +'</table>';
+    zip.file('xl/tables/table1.xml', tableXml);
+
+    var ctPath='[Content_Types].xml';
+    var ctXml=await zip.file(ctPath).async('string');
+    if(ctXml.indexOf('tables/table1.xml')<0){
+      ctXml=ctXml.replace('</Types>','<Override PartName="/xl/tables/table1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/></Types>');
+      zip.file(ctPath, ctXml);
+    }
+
+    var sheetDir=sheetPath.substring(0,sheetPath.lastIndexOf('/'));
+    var sheetFileName=sheetPath.substring(sheetPath.lastIndexOf('/')+1);
+    var relsPath=sheetDir+'/_rels/'+sheetFileName+'.rels';
+    var relsXml=zip.file(relsPath)?await zip.file(relsPath).async('string'):'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+    var nuevoRid='rIdTablaAuto1';
+    var contadorRid=1;
+    while(relsXml.indexOf('Id="'+nuevoRid+'"')>=0){ contadorRid++; nuevoRid='rIdTablaAuto'+contadorRid; }
+    relsXml=relsXml.replace('</Relationships>','<Relationship Id="'+nuevoRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table1.xml"/></Relationships>');
+    zip.file(relsPath, relsXml);
+
+    var nuevoXmlHoja=sheetXmlTexto;
+    if(nuevoXmlHoja.indexOf('<tableParts')<0){
+      nuevoXmlHoja=nuevoXmlHoja.replace('</worksheet>','<tableParts count="1"><tablePart r:id="'+nuevoRid+'"/></tableParts></worksheet>');
+    }
+    zip.file(sheetPath, nuevoXmlHoja);
+
+    var nuevoBuf=await zip.generateAsync({type:'arraybuffer'});
+    var ok=await odEscribirBufferGenerico(nombreArchivo, nuevoBuf);
+    if(ok) console.log('[Tabla] Tabla "'+nombreTabla+'" reconstruida en '+nombreArchivo+' (rango '+rango+')');
+    return ok;
+  }catch(e){
+    console.error('[Tabla] Error verificando/reconstruyendo tabla en '+nombreArchivo+':',e.message);
+    return false;
+  }
+}
 async function odEscribirBufferGenerico(nombreArchivo, bufArray){
   if(SP.activo){
     var ok=await spEscribirBuffer(nombreArchivo, bufArray);
@@ -21043,7 +21165,7 @@ async function odGuardarConPicker(){
 //  GUARDAR EXCEL COMPLETO 
 //  CONTROL DE CONCURRENCIA — bloqueo optimista 
 var _odLastModified   = 0;     // timestamp de la última lectura del archivo
-var _odGuardandoAhora=false,_odColaGuardado=false,_odGuardandoAhoraDesde=0;
+var _odGuardandoAhora=false,_odColaGuardado=false;
 // Sistema Auditrail append-only: eventos acumulados en sesión
 var _auditPendientes=[];
 var _odUltimoTam=0; // filas nuevas acumuladas desde la última carga
@@ -21057,22 +21179,13 @@ async function odGuardarListado(silencioso){
   if(!window.currentUser) return false;
   if(!window.XLSX) return false;
 
-  // Si ya hay un guardado en curso, encolar y salir — salvo que ese guardado
-  // lleve trabado (colgado) más de 45s, lo cual indica que quedó huérfano
-  // (p.ej. un requestPermission() que nunca se resolvió) y bloquearía todos
-  // los guardados futuros para siempre si no se libera.
+  // Si ya hay un guardado en curso, encolar y salir
   if(_odGuardandoAhora){
-    if(_odGuardandoAhoraDesde && (Date.now()-_odGuardandoAhoraDesde)>45000){
-      console.warn('[OD] Mutex de guardado trabado por >45s — se libera y se continúa');
-      _odGuardandoAhora=false;
-    } else {
-      _odColaGuardado=true;
-      console.log('[OD] Guardado encolado — ya hay uno en curso');
-      return false;
-    }
+    _odColaGuardado=true;
+    console.log('[OD] Guardado encolado — ya hay uno en curso');
+    return false;
   }
   _odGuardandoAhora=true;
-  _odGuardandoAhoraDesde=Date.now();
   try{
     // ── Función helper: guardar un workbook en un archivo de la carpeta ──
     async function _escribirArchivo(nombreArchivo, wbToWrite){
@@ -21383,10 +21496,7 @@ async function odGuardarListado(silencioso){
           _auditPendientes=_auditPendientes.filter(function(a){var mod=(a.modulo||'').toLowerCase();return !_solLow.some(function(m){return mod.indexOf(m)>=0;});});
         }
         var _okSol=await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2);
-        if(!_okSol){
-          console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.solicitudes);
-          toast('⚠️ La solicitud NO se guardó en '+OD_ARCHIVOS.solicitudes+' (archivo ocupado o sin permiso). Vuelve a intentar guardar en unos segundos.','er');
-        }
+        if(!_okSol) console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.solicitudes);
       }catch(eSol){console.warn('Error guardando Solicitudes:',eSol);}
 
     } else {
@@ -21524,6 +21634,11 @@ async function odGuardarListado(silencioso){
           _odLastModified=filePos.lastModified;
           _odTsUltimaCarga=filePos.lastModified;
           _odUltimoTam=filePos.size||0; // actualizar tamaño tras guardado exitoso verificado
+          // Verificar que la Tabla de Excel del Listado Maestro sigue intacta
+          // (la librería XLSX no la conserva al reescribir el archivo); si se
+          // perdió, se reconstruye de inmediato con el mismo rango y
+          // encabezados reales, sin esperar al siguiente guardado.
+          try{ await odAsegurarTablaExcel(OD_ARCHIVOS.lm, 'ListadoMaestro'); }catch(eTabla){ console.warn('[Tabla] Verificación de tabla LM falló:',eTabla.message); }
         } else {
           break; // sin permiso, no reintentar
         }
@@ -21904,16 +22019,8 @@ function odMostrarReconectar(dirHandle){
     btn.textContent='⏳ Cargando...'; btn.disabled=true;
     try{
       OD.carpetaHandle=dirHandle;
-      var _permReconectar='granted';
-      try{
-        _permReconectar = window.location.protocol==='file:' ? 'granted' : await dirHandle.queryPermission({mode:'readwrite'});
-        if(_permReconectar!=='granted'){ _permReconectar = await dirHandle.requestPermission({mode:'readwrite'}); }
-      }catch(ePerm){ console.warn('[OD] Error solicitando permiso al reconectar:',ePerm); _permReconectar='denied'; }
-      OD.permisoEscritura=(_permReconectar==='granted');
+      OD.permisoEscritura=true;
       OD.syncActivo=true;
-      if(!OD.permisoEscritura){
-        toast('⚠️ No se concedió permiso de escritura sobre la carpeta — los cambios NO se guardarán hasta que aceptes el permiso. Vuelve a intentar.','er');
-      }
       await idbSaveDir(dirHandle);
       var sc=document.getElementById('od-seleccion-screen');
       if(sc) sc.remove();
@@ -22249,7 +22356,6 @@ async function odGuardarAhora(){
       OD.permisoEscritura=(permPre==='granted');
       if(!OD.permisoEscritura){
         odSaveBtnEstado('pendiente');
-        _odGuardando=false;
         toast('⚠️ Permiso de escritura no concedido — vuelve a intentar y acepta el permiso del navegador','er');
         return;
       }
@@ -22269,8 +22375,6 @@ async function odGuardarAhora(){
     } else {
       // odGuardarListado ya dejó el estado/mensaje correcto (pendiente o
       // encolado) — no lo sobrescribimos con un falso éxito.
-      odSaveBtnEstado('pendiente');
-      _odGuardando=false;
       toast('⏳ El guardado no se completó todavía — reintentará automáticamente','if');
     }
   }catch(e){
@@ -22567,8 +22671,17 @@ function fev_generarCorreo(){
     +'Cordialmente,\n'
     +((cfg&&cfg.org)?cfg.org:'Sofgen DocControl');
 
-  var _fD=docs.find(function(x){return x.codigoActual.toUpperCase()===(codigo||'').toUpperCase();});
+  var _fD=docs.find(function(x){return (x.codigoActual||'').toUpperCase()===(codigo||'').toUpperCase();});
   var _fCC=_fD?docGetCCCorreos(_fD.codigoActual,_fD.docGxP,_fD.mbr,_fD.tipoDocumento,_fD.codigoAntiguo||''):docGetCCCorreos(codigo,'','','','');
+  // Verificación explícita y directa (independiente de docGetCCCorreos): los
+  // documentos DP-/SUB- siempre deben llevar en copia a estos 3 correos,
+  // sin importar si el documento se encontró o no en el Listado Maestro.
+  var _codU=(codigo||'').toUpperCase().trim();
+  if(_codU.indexOf('DP-')===0||_codU.indexOf('SUB-')===0){
+    ['omadrid@sofgenpharma.com','lfsanchez@sofgenpharma.com','vsoto@sofgenpharma.com'].forEach(function(e){
+      if(_fCC.indexOf(e)<0) _fCC.push(e);
+    });
+  }
   var _fP=[];if(_fCC.length)_fP.push('cc='+encodeURIComponent(_fCC.join(';')));_fP.push('subject='+encodeURIComponent(asunto),'body='+encodeURIComponent(cuerpo));
   window.open('mailto:?'+_fP.join('&'),'_blank');
 
@@ -24705,7 +24818,7 @@ async function spwCargar(){
         cTipoDoc=col('tipo de documento nuevo'), cCorp=col('corporativo'),
         cNombreDoc=col('nombre del documento'),
         cSol=col('solicitante'), cDesc=col('descripción')>=0?col('descripción'):col('descripcion'),
-        cEstado=col('estado');
+        cCorreo=col('correo'), cEstado=col('estado');
     var out=[];
     for(var i=1;i<rows.length;i++){
       var r=rows[i];
@@ -24720,6 +24833,7 @@ async function spwCargar(){
         corporativo:String(r[cCorp]||'').trim(),
         nombreDoc:  cNombreDoc>=0?String(r[cNombreDoc]||'').trim():'',
         solicitante:String(r[cSol]||'').trim(),
+        correo:     cCorreo>=0?String(r[cCorreo]||'').trim():'',
         descripcion:String(r[cDesc]||'').trim(),
         estado:     String(r[cEstado]||'').trim()||'Pendiente'
       });
@@ -24952,11 +25066,7 @@ async function spwActualizarEstado(id, nuevoEstado){
     var nuevoBuf=await zip.generateAsync({type:'arraybuffer'});
 
     var ok=await odEscribirBufferGenerico(OD_ARCHIVOS.solicitudesWeb, nuevoBuf);
-    if(ok){
-      await spwCargar(); // refrescar memoria con el archivo ya actualizado
-    } else {
-      toast('⚠️ No se pudo escribir SolicitudesWeb.xlsx (archivo ocupado por OneDrive o sin permiso de escritura). El estado no cambió.','er');
-    }
+    if(ok) await spwCargar(); // refrescar memoria con el archivo ya actualizado
     return ok;
   }catch(e){
     console.error('[SolicitudesWeb] Error actualizando estado:',e.message);
@@ -25164,7 +25274,7 @@ function spwAnularSolicitud(id){
   var motivoFinal=(motivoExtra||motivoBase).trim()||motivoBase;
   var res=spwResolverSolicitante(s.solicitante);
   var correoDestino='';
-  if(res.estado==='ok' && res.opciones && res.opciones[0]) correoDestino=res.opciones[0].correo||'';
+  correoDestino=s.correo||(res.estado==='ok' && res.opciones && res.opciones[0] ? (res.opciones[0].correo||'') : '');
   spwAbrirCorreoRechazo(s, tipoNorm, motivoFinal, correoDestino, 'anulada');
   spwActualizarEstado(id, 'Anulado').then(function(ok){
     if(ok){ toast('🗑️ Solicitud anulada','ok'); renderSolPend(); }
@@ -25195,7 +25305,7 @@ function spwRechazarSolicitud(id){
   var motivoFinal=(motivoExtra||motivoBase).trim()||motivoBase;
   var res=spwResolverSolicitante(s.solicitante);
   var correoDestino='';
-  if(res.estado==='ok' && res.opciones && res.opciones[0]) correoDestino=res.opciones[0].correo||'';
+  correoDestino=s.correo||(res.estado==='ok' && res.opciones && res.opciones[0] ? (res.opciones[0].correo||'') : '');
   var contactoNombre=(val.estado==='en_proceso' && val.rb && val.rb.solicitante)?val.rb.solicitante:'';
   spwAbrirCorreoRechazo(s, tipoNorm, motivoFinal, correoDestino, 'rechazada', contactoNombre);
   spwActualizarEstado(id, 'Rechazado').then(function(ok){
@@ -30002,7 +30112,6 @@ function nfValidarCampos(){
 }
 
 function nfGuardar(){
-  console.log('[NF-TRACE] nfGuardar() llamado');
   if(window._nfDocObsoleto){alert('⛔ El documento está marcado como Obsoleto.\nNo es posible registrar novedad.');return;}
   if(!OD.fileHandle){ toast('Primero carga el Excel de SharePoint','er'); return; }
   if(!_nfPDFGenerado){
@@ -30011,35 +30120,27 @@ function nfGuardar(){
   }
   var faltantes=nfValidarCampos();
   if(faltantes.length){
-    console.log('[NF-TRACE] Campos faltantes, deteniendo:',faltantes);
     alert('⚠️ Campos obligatorios sin diligenciar:\n\n• '+faltantes.join('\n• '));
     return;
   }
   function _nfContinuarTrasCoincidencias(){
-    console.log('[NF-TRACE] _nfContinuarTrasCoincidencias() llamado');
     // Verificar si el código ya tiene solicitud vigente en Ruta de Borrador
     // (cualquier estado distinto de Oficializado, Anulado o Retirado por Vencimiento)
     var codCheckG=(document.getElementById('nf-cod')||{}).value||'';
     var rbAlertaG=nfVerificarRutaBorrador(codCheckG);
-    console.log('[NF-TRACE] nfVerificarRutaBorrador resultado:',rbAlertaG);
     if(rbAlertaG){
-      console.log('[NF-TRACE] Mostrando alerta RB (Ruta de Borrador) — esperando decisión del usuario');
       nfMostrarAlertaRB(rbAlertaG, function(accion){
-        console.log('[NF-TRACE] Alerta RB — acción elegida:',accion);
         if(accion==='cancelar') return;
         if(accion==='renovar') nfRenovarSolicitud(rbAlertaG);
-        console.log('[NF-TRACE] Llamando nfGuardarEjecutar() desde alerta RB');
         nfGuardarEjecutar();
       });
       return; // esperar decisión del usuario
     }
-    console.log('[NF-TRACE] Llamando nfGuardarEjecutar() directo (sin alerta RB)');
     nfGuardarEjecutar();
   }
   // Candado final: si el nombre del documento (Creación/Modificación) tiene
   // coincidencias sin revisar en el Listado Maestro de otras empresas, se
   // muestra la alerta aquí antes de dejar continuar con el guardado.
-  console.log('[NF-TRACE] Llamando nfVerificarCoincidenciasAntesDeGuardar()');
   nfVerificarCoincidenciasAntesDeGuardar(_nfContinuarTrasCoincidencias);
 }
 // Extraer la lógica de guardado para llamarla tras el modal
@@ -30143,14 +30244,10 @@ function _spwCompletarSiAplica(){
   if(aviso) aviso.remove();
   spwMarcarCompletada(idCompletar).then(function(ok){
     if(ok){ toast('✅ Solicitud web marcada como Completada','ok'); if(typeof updBadges==='function') updBadges(); }
-    else {
-      console.warn('[SolicitudesWeb] No se pudo marcar la solicitud '+idCompletar+' como completada');
-      toast('⚠️ No se pudo marcar la solicitud como Completada en SolicitudesWeb.xlsx (archivo ocupado o sin permiso). Vuelve a intentarlo desde Solicitudes Pendientes.','er');
-    }
+    else console.warn('[SolicitudesWeb] No se pudo marcar la solicitud '+idCompletar+' como completada');
   });
 }
 function nfGuardarEjecutar(){
-  console.log('[NF-TRACE] nfGuardarEjecutar() INICIO — modoEdicion=',_nfModoEdicion);
   var hoy = nfFechaHoy();
   // ── Modo edición: actualizar solicitud existente (cargada desde PDF) ──
   if(_nfModoEdicion){
@@ -30199,16 +30296,7 @@ function nfGuardarEjecutar(){
     if((solData.tipoSolicitud==='Eliminación'||solData.tipoSolicitud==='Eliminacion')&&solData.codigo){
       rbOficializarPorCodigo(solData.codigo,'Eliminación — solicitud editada desde PDF N°'+solData.consecutivo);
     }
-    if(OD.fileHandle){
-      OD.syncActivo=true; if(OD.saveTimer)clearTimeout(OD.saveTimer);
-      OD.saveTimer=setTimeout(function(){
-        odGuardarListado(false).then(function(ok){
-          if(!ok) toast('⚠️ La solicitud N° '+solData.consecutivo+' NO se pudo escribir en OneDrive/SharePoint (ver aviso anterior). Vuelve a intentarlo.','er');
-        });
-      },1500);
-    } else {
-      toast('⚠️ No hay conexión activa a OneDrive/SharePoint — la solicitud N° '+solData.consecutivo+' quedó SOLO en este navegador y no se reflejará en Solicitudes.xlsx.','er');
-    }
+    if(OD.fileHandle){ OD.syncActivo=true; if(OD.saveTimer)clearTimeout(OD.saveTimer); OD.saveTimer=setTimeout(function(){odGuardarListado(true);},1500); }
     toast('✅ Solicitud N° '+solData.consecutivo+' actualizada en SharePoint','ok');
     _spwCompletarSiAplica();
     nfSalirModoEdicion();
@@ -30261,13 +30349,7 @@ function nfGuardarEjecutar(){
   if(OD.fileHandle){
     OD.syncActivo = true;
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
-    OD.saveTimer = setTimeout(function(){
-      odGuardarListado(false).then(function(ok){
-        if(!ok) toast('⚠️ La solicitud N° '+sol.consecutivo+' NO se pudo escribir en OneDrive/SharePoint (ver aviso anterior). Vuelve a intentarlo.','er');
-      });
-    }, 1500);
-  } else {
-    toast('⚠️ No hay conexión activa a OneDrive/SharePoint — la solicitud N° '+sol.consecutivo+' quedó SOLO en este navegador y no se reflejará en Solicitudes.xlsx.','er');
+    OD.saveTimer = setTimeout(function(){ odGuardarListado(true); }, 1500);
   }
   toast('✅ Solicitud N° '+sol.consecutivo+' guardada en SharePoint','ok');
   _spwCompletarSiAplica();
@@ -30681,10 +30763,7 @@ async function nfGenerarPDF(){
     _nfPDFGenerado=true;
     setTimeout(function(){
       if(confirm('✅ PDF generado correctamente.\n\n¿Desea guardar la solicitud ahora?')){
-        console.log('[NF-TRACE] Usuario aceptó el confirm() post-PDF — llamando nfGuardar()');
         nfGuardar();
-      } else {
-        console.log('[NF-TRACE] Usuario canceló el confirm() post-PDF');
       }
     }, 400);
   }catch(e){
