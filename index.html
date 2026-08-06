@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Sofgen Pharma — DocControl Pro</title>
+<title>SigDoc — Sofgen Pharma</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -3334,7 +3334,23 @@ function docsEmpresa(){
   if(!emp){_deCache=docs;_deCacheUser=uid;_deCacheLen=docs.length;return docs;}
   function normalizar(s){return(s||'').toLowerCase().trim().replace(/\./g,'').replace(/\s+/g,' ').replace(/ph[ao]r[nm]a/,'pharma');}
   var empNorm=normalizar(emp);
-  _deCache=docs.filter(function(d){var dEmp=normalizar(d.administrador||d.empresa||'');if(!dEmp)return false;return dEmp===empNorm||dEmp.indexOf(empNorm)>=0||empNorm.indexOf(dEmp)>=0;});
+  var resultado=docs.filter(function(d){var dEmp=normalizar(d.administrador||d.empresa||'');if(!dEmp)return false;return dEmp===empNorm||dEmp.indexOf(empNorm)>=0||empNorm.indexOf(dEmp)>=0;});
+  // Respaldo: si la columna "Administrador" no identificó ningún documento
+  // (a veces queda vacía o inconsistente en el Excel), reconocer la empresa
+  // por el indicativo que ya llevan sus propios códigos (ej. los documentos
+  // locales de Pharmayect terminan en " PHA" — ver INDICATIVOS_EMPRESA).
+  if(!resultado.length && typeof INDICATIVOS_EMPRESA!=='undefined'){
+    var empresaOriginal=(currentUser.empresa||currentUser.area||'').trim();
+    var indic=INDICATIVOS_EMPRESA[empresaOriginal]||'';
+    if(indic){
+      var indicLibre=typeof _codComparacionLibre==='function'?_codComparacionLibre(indic):indic.toUpperCase();
+      resultado=docs.filter(function(d){
+        var codLibre=typeof _codComparacionLibre==='function'?_codComparacionLibre(d.codigoActual):(d.codigoActual||'').toUpperCase();
+        return codLibre.endsWith(indicLibre);
+      });
+    }
+  }
+  _deCache=resultado;
   _deCacheLen=docs.length;_deCacheUser=uid;return _deCache;
 }
 
@@ -7600,7 +7616,7 @@ function enviarCorreoCopias(cod, tipo){
   lista.forEach(function(x,i){
     cuerpo+='    '+(i+1)+'. Área: '+x.area+(x.subarea?' / '+x.subarea:'')+' — Responsable: '+x.responsable+'\n';
   });
-  cuerpo+='\nEste es un mensaje automático generado por Sofgen Pharma DocControl Pro.\n\n';
+  cuerpo+='\nEste es un mensaje automático generado por SigDoc — Sistema Integrado de Documentación Sofgen Pharma.\n\n';
   cuerpo+='Saludos cordiales,\nSistema de Documentación';
 
   var mailtoUrl='mailto:'+todosCorreos;
@@ -7689,7 +7705,7 @@ function enviarCorreoDocumento(){
   cuerpo+='    Estado:              '+(estado||'—')+'\n';
   if(fvig)  cuerpo+='    Fecha de vigencia:  '+fvig+'\n';
   if(fvenc) cuerpo+='    Fecha de vencim.:   '+fvenc+'\n';
-  cuerpo+='\nEste es un mensaje automático generado por Sofgen Pharma DocControl Pro.\n\n';
+  cuerpo+='\nEste es un mensaje automático generado por SigDoc — Sistema Integrado de Documentación Sofgen Pharma.\n\n';
   cuerpo+='Saludos cordiales,\n';
   cuerpo+='Sistema de Documentación';
 
@@ -7927,7 +7943,7 @@ function copOnArea(){
 function openNewCopia() {
   document.getElementById('c-eid').value='';
   var sel=document.getElementById('c-cod');
-  sel.innerHTML='<option value="">Selecciona</option>'+docs.map(function(d){return'<option value="'+d.codigoActual+'">'+d.codigoActual+' - '+d.descripcion.substring(0,40)+'</option>';}).join('');
+  sel.innerHTML='<option value="">Selecciona</option>'+docs.map(function(d){return'<option value="'+d.codigoActual+'">'+d.codigoActual+' - '+(d.descripcion||'').substring(0,40)+'</option>';}).join('');
   ['c-ver','c-desc','c-area','c-sub','c-proc','c-resp','c-mail'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   copPoblarDatalist();
   copOnArea();
@@ -7955,7 +7971,7 @@ function editCopia(id) {
   var x=copias.find(function(c){return c.id===id;});if(!x)return;
   document.getElementById('c-eid').value=id;
   var sel=document.getElementById('c-cod');
-  sel.innerHTML='<option value="">Selecciona</option>'+docs.map(function(d){return'<option value="'+d.codigoActual+'"'+(d.codigoActual===x.codigo?' selected':'')+'>'+d.codigoActual+' - '+d.descripcion.substring(0,40)+'</option>';}).join('');
+  sel.innerHTML='<option value="">Selecciona</option>'+docs.map(function(d){return'<option value="'+d.codigoActual+'"'+(d.codigoActual===x.codigo?' selected':'')+'>'+d.codigoActual+' - '+(d.descripcion||'').substring(0,40)+'</option>';}).join('');
   sel.value=x.codigo;
   document.getElementById('c-ver').value=x.version||'';
   document.getElementById('c-desc').value=x.descripcion||'';  // ← corregido: era x.desc
@@ -10803,7 +10819,7 @@ function obsNotificar() {
   var motivo = document.getElementById('obs-motivo2').value||'Documento obsoleto';
   var org = cfg.org||'Sofgen Pharma';
   var NL = '\n';
-  var asunto = '[OBSOLETO] '+obsDocSel.codigoActual+' — '+obsDocSel.descripcion.substring(0,40)+' — '+org;
+  var asunto = '[OBSOLETO] '+obsDocSel.codigoActual+' — '+(obsDocSel.descripcion||'').substring(0,40)+' — '+org;
   var body = getSaludo()+'(a),'+NL+NL+
     'Se informa que el siguiente documento ha sido declarado OBSOLETO:'+NL+NL+
     'Codigo: '+obsDocSel.codigoActual+NL+
@@ -10872,11 +10888,19 @@ function evFiltroTipo(btn,tipo){
   btn.className='btn sm';btn.style.borderRadius='99px';
   window._evTipo=tipo==='Todos'?'':tipo;
 }
+// Compara códigos ignorando espacios y guiones (para reconocer los códigos
+// de Pharmayect, que usan un espacio en vez de un guion antes del indicativo
+// de empresa, ej. "SOP-0001 PHA") sin importar cómo lo escriba el usuario.
+function _codComparacionLibre(s){ return String(s||'').toUpperCase().replace(/[\s-]/g,''); }
+
 function evBuscar(){
-  var q=(document.getElementById('ev-q').value||'').trim().toLowerCase();
+  if(typeof docsEmpresaInvalidar==='function') docsEmpresaInvalidar();
+  var qRaw=(document.getElementById('ev-q').value||'').trim();
+  var q=qRaw.toLowerCase();
+  var qCod=_codComparacionLibre(qRaw);
   var tipo=window._evTipo||'';
   var res=docsEmpresa().filter(function(d){
-    var matchQ=!q||d.codigoActual.toLowerCase().indexOf(q)>=0||d.descripcion.toLowerCase().indexOf(q)>=0;
+    var matchQ=!qRaw||_codComparacionLibre(d.codigoActual).indexOf(qCod)>=0||(d.descripcion||'').toLowerCase().indexOf(q)>=0;
     var matchT=!tipo||d.codigoActual.toUpperCase().indexOf(tipo.toUpperCase())===0;
     var di=dH(d.fechaVencimiento);
     var tieneExt=d.extensionVigencia&&d.extensionVigencia.trim()&&d.extensionVigencia.toLowerCase()!=='no aplica';
@@ -11032,18 +11056,19 @@ function renderMarObs(){
 }
 
 function moBuscar(){
+  if(typeof docsEmpresaInvalidar==='function') docsEmpresaInvalidar();
   var q=(document.getElementById('mo-q').value||'').trim();
   if(!q){ document.getElementById('mo-lista').innerHTML=''; return; }
-  var qUp=q.toUpperCase(); var qLow=q.toLowerCase();
+  var qUp=q.toUpperCase(); var qLow=q.toLowerCase(); var qCod=_codComparacionLibre(q);
   var listEl=document.getElementById('mo-lista');
 
-  var exacto=docsEmpresa().filter(function(d){ return d.codigoActual.toUpperCase()===qUp; });
+  var exacto=docsEmpresa().filter(function(d){ return d.codigoActual.toUpperCase()===qUp||_codComparacionLibre(d.codigoActual)===qCod; });
   if(exacto.length){
     listEl.innerHTML=exacto.map(function(d){ return moItemHTML(d,true); }).join('');
     return;
   }
   var parcial=docsEmpresa().filter(function(d){
-    return d.codigoActual.toLowerCase().indexOf(qLow)>=0||d.descripcion.toLowerCase().indexOf(qLow)>=0;
+    return (d.codigoActual||'').toLowerCase().indexOf(qLow)>=0||(d.descripcion||'').toLowerCase().indexOf(qLow)>=0||_codComparacionLibre(d.codigoActual).indexOf(qCod)>=0;
   });
   if(!parcial.length){ listEl.innerHTML='<div style="font-size:12px;color:var(--tx3);padding:10px">Sin resultados para "'+q+'"</div>'; return; }
   listEl.innerHTML=parcial.slice(0,15).map(function(d){ return moItemHTML(d,false); }).join('')
@@ -12592,7 +12617,7 @@ function generarPDF(area, mes){
     +'<style>'+css+'</style></head><body>';
 
   // Encabezado
-  html+='<div class="enc"><div><div class="org-n">'+org+'</div><div class="org-s">Control Documental · DocControl Pro</div></div>'
+  html+='<div class="enc"><div><div class="org-n">'+org+'</div><div class="org-s">Control Documental · SigDoc</div></div>'
     +'<div class="cod-r"><strong>CÓDIGO:</strong> '+codInforme+'<br><strong>FECHA:</strong> '+fechaGen+'</div></div>'
     +'<hr style="border:none;border-top:2px solid #00695C;margin-bottom:8px">';
 
@@ -12691,7 +12716,7 @@ function generarPDF(area, mes){
     +'</div>';
 
   html+='<div style="margin-top:18px;font-size:8px;color:#aaa;text-align:center;border-top:1px solid #e0e0e0;padding-top:7px">'
-    +org+' · DocControl Pro · '+codInforme+' · '+fechaGen+' · Confidencial</div>';
+    +org+' · SigDoc · '+codInforme+' · '+fechaGen+' · Confidencial</div>';
   html+='</body></html>';
 
   var nombreArchivo=(area+'_'+MESES_FULL[mes]).replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,'').replace(/\s+/g,'_');
@@ -14264,6 +14289,7 @@ function eccRegenerarHtmlActa(a){
 // ============================================================
 
 function renderPdfBarcode(){
+  if(typeof docsEmpresaInvalidar==='function') docsEmpresaInvalidar();
 
   document.querySelector('.mn').scrollTop = 0;
   window.scrollTo(0, 0);
@@ -14284,7 +14310,7 @@ function renderPdfBarcode(){
     + docsEmpresa().filter(function(d){ return d.estado !== 'Obsoleto'; })
           .sort(function(a,b){ return a.codigoActual.localeCompare(b.codigoActual); })
           .map(function(d){
-            return '<option value="'+d.id+'">'+d.codigoActual+' — '+d.descripcion.substring(0,50)+'</option>';
+            return '<option value="'+d.id+'">'+d.codigoActual+' — '+(d.descripcion||'').substring(0,50)+'</option>';
           }).join('');
   // Reset UI
   var infoBox = document.getElementById('pdfbc-info-box');
@@ -21079,6 +21105,14 @@ async function odCargarListado(){
     if(document.getElementById('pg-solpend') && document.getElementById('pg-solpend').classList.contains('act') && typeof renderSolPend==='function'){
       renderSolPend();
     }
+    // Mismo caso para el módulo de Estampar Código de Barras: el select de
+    // "Documento del listado maestro" se puebla una sola vez al entrar al
+    // módulo (renderPdfBarcode); si esta carga aún no había terminado en ese
+    // momento, el select quedaba vacío. Se vuelve a poblar aquí si el
+    // usuario sigue en ese módulo cuando la carga termina.
+    if(document.getElementById('pg-pdfbarcode') && document.getElementById('pg-pdfbarcode').classList.contains('act') && typeof renderPdfBarcode==='function'){
+      renderPdfBarcode();
+    }
     // Desactivar protección DH después de 60s
     // (tiempo suficiente para que expiren todos los timers automáticos de 3-5s)
     setTimeout(function(){
@@ -21934,8 +21968,8 @@ function odMostrarReconectarSinHandle(nombreCarpeta){
   d.innerHTML=''
     +'<div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">'
       +'<div style="font-size:48px;margin-bottom:8px">📁</div>'
-      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>'
-      +'<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Sofgen Pharma · Grupo Procaps</div>'
+      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SigDoc</div>'
+      +'<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Empresas que conforman Sofgen Pharma</div>'
       +'<div style="background:#e8f8f1;border:2px solid #00A99E;border-radius:10px;padding:16px;margin-bottom:20px;text-align:left">'
         +'<div style="font-size:11px;font-weight:700;color:#006860;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">📂 Última carpeta usada</div>'
         +'<div style="font-size:14px;font-weight:700;font-family:monospace;color:#0a4a4a;padding:8px 12px;background:#fff;border-radius:6px;border-left:4px solid #00A99E;margin-bottom:8px">'+nombreCarpeta+'</div>'
@@ -22004,8 +22038,8 @@ function odMostrarReconectar(dirHandle){
   d.innerHTML=''
     +'<div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">'
       +'<div style="font-size:48px;margin-bottom:8px">📁</div>'
-      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>'
-      +'<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Sofgen Pharma · Grupo Procaps</div>'
+      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SigDoc</div>'
+      +'<div style="font-size:12px;color:#5e9090;margin-bottom:20px">Empresas que conforman Sofgen Pharma</div>'
       +'<div style="background:#e8f8f1;border:2px solid #00A99E;border-radius:10px;padding:16px;margin-bottom:20px;text-align:left">'
         +'<div style="font-size:11px;font-weight:700;color:#006860;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">✅ Carpeta detectada</div>'
         +'<div style="font-size:14px;font-weight:700;font-family:monospace;color:#0a4a4a;padding:8px 12px;background:#fff;border-radius:6px;border-left:4px solid #00A99E;margin-bottom:8px">'+dirHandle.name+'</div>'
@@ -22073,7 +22107,7 @@ function odMostrarCargando(nombre){
   d.id='od-loading-screen';
   d.style.cssText='position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#003e37,#006860);display:flex;align-items:center;justify-content:center';
   d.innerHTML='<div style="text-align:center;color:#fff"><div style="font-size:48px;margin-bottom:16px">☁️</div>'
-    +'<div style="font-size:18px;font-weight:700;margin-bottom:8px">SofGen DocControl Pro</div>'
+    +'<div style="font-size:18px;font-weight:700;margin-bottom:8px">SigDoc</div>'
     +'<div style="font-size:13px;opacity:.8;margin-bottom:24px">Cargando desde OneDrive...</div>'
     +'<div style="font-size:11px;opacity:.6">'+nombre+'</div>'
     +'<div style="margin-top:20px;width:200px;height:4px;background:rgba(255,255,255,.2);border-radius:99px;overflow:hidden">'
@@ -22102,8 +22136,8 @@ function odMostrarSeleccion(avisoMsg){
   d.innerHTML=''
     +'<div style="background:#fff;border-radius:16px;padding:32px;max-width:460px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.4)">'
       +'<div style="font-size:40px;margin-bottom:12px">📋</div>'
-      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SofGen DocControl Pro</div>'
-      +'<div style="font-size:12px;color:#5e9090;margin-bottom:16px">Sofgen Pharma · Grupo Procaps</div>'
+      +'<div style="font-size:20px;font-weight:800;color:#0a2828;margin-bottom:4px">SigDoc</div>'
+      +'<div style="font-size:12px;color:#5e9090;margin-bottom:16px">Empresas que conforman Sofgen Pharma</div>'
       +avisoHtml
       +'<div style="background:#f0f9f8;border:1px solid #c8dede;border-radius:10px;padding:14px;margin-bottom:16px;text-align:left">'
         +'<div style="font-size:12px;font-weight:700;color:#006860;margin-bottom:8px">📁 ¿Cómo seleccionar la carpeta?</div>'
@@ -24884,7 +24918,7 @@ function _spwTipoDocNorm(sel, textoFormulario){
 // escribir el código a mano en el módulo F-Extensión de Vigencia.
 function fevEvaluarElegibilidadExt(codigo){
   var val=(codigo||'').trim().toUpperCase();
-  var doc=(docs||[]).find(function(d){return d.codigoActual&&d.codigoActual.toUpperCase()===val;});
+  var doc=(docs||[]).find(function(d){return d.codigoActual&&(d.codigoActual.toUpperCase()===val||_codComparacionLibre(d.codigoActual)===_codComparacionLibre(codigo));});
   if(!doc) return {doc:null, encontrado:false};
   var today=new Date(); today.setHours(0,0,0,0);
   var esPRG=val.startsWith('PRG-');
@@ -25100,7 +25134,7 @@ function spwValidarSolicitud(s, tipoNorm){
   }
   if((tipoNorm!=='Modificación'&&tipoNorm!=='Eliminación') || !s.codigo) return {estado:'ok'};
   var codU=s.codigo.toUpperCase().trim();
-  var doc=(docs||[]).find(function(d){ return (d.codigoActual||'').toUpperCase().trim()===codU; });
+  var doc=(docs||[]).find(function(d){ return (d.codigoActual||'').toUpperCase().trim()===codU || _codComparacionLibre(d.codigoActual)===_codComparacionLibre(s.codigo); });
   if(doc && typeof _icEsObsoleto==='function' && _icEsObsoleto(doc)){
     return {estado:'obsoleto', doc:doc};
   }
@@ -26752,8 +26786,9 @@ function rbMarcarRenovada(consecutivo){
 }
 
 function rbAbrirOficializar(consecutivo){
-  var idx=rbGetIdx(iFiltered);
-    var s=solicitudes.find(function(x){return String(x.consecutivo)===String(consecutivo);}); _rbOficIdx=idx;
+  var s=solicitudes.find(function(x){return String(x.consecutivo)===String(consecutivo);});
+  if(!s){ toast('No se encontró la solicitud #'+consecutivo,'er'); return; }
+  _rbOficIdx=solicitudes.indexOf(s);
   var hoy=new Date().toISOString().split('T')[0];
   document.getElementById('rb-mo-ofic-desc').textContent=s.codigo+' — '+s.nombreDoc;
   document.getElementById('rb-of-frev-ini').value=hoy;
@@ -26766,9 +26801,10 @@ function rbAbrirOficializar(consecutivo){
 }
 
 function rbOficializarConfirmar(){
-  if(_rbOficIdx<0) return;
-  var s=solicitudes[_rbOficIdx];
+  if(_rbOficIdx<0 || !solicitudes[_rbOficIdx]) { toast('No se encontró la solicitud a oficializar','er'); return; }
   var g=function(id){var el=document.getElementById(id);return el?el.value:'';};
+  if(!g('rb-of-fofic')){ toast('Debes indicar la fecha de oficialización','er'); return; }
+  var s=solicitudes[_rbOficIdx];
   s.fechaRevIni       = g('rb-of-frev-ini');
   s.fechaRevFin       = g('rb-of-frev-fin');
   s.fechaEntregaFirma = g('rb-of-fentrega');
@@ -27716,13 +27752,13 @@ function rlExportarExcel(datos){
 
 <div id="login-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(8,32,28,.78);align-items:center;justify-content:center;padding:16px">
   <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.3);overflow:hidden">
-    <div style="background:#17324A;padding:38px 32px 28px;text-align:center">
+    <div style="background:#0D7A5F;padding:38px 32px 28px;text-align:center">
       <div style="width:64px;height:64px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;overflow:hidden">
         <img src="data:image/png;base64,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" alt="Sofgen Pharma" style="width:42px;height:42px;object-fit:contain">
       </div>
       <div style="color:#fff;font-size:26px;font-weight:700;letter-spacing:.5px">SigDoc</div>
-      <div style="color:#2CD9C5;font-size:11px;font-weight:600;margin-top:4px;line-height:1.4">Sistema Integrado de Documentación Sofgen Pharma</div>
-      <div style="width:36px;height:2px;background:#2CD9C5;margin:14px auto"></div>
+      <div style="color:#9FE1CB;font-size:11px;font-weight:600;margin-top:4px;line-height:1.4">Sistema Integrado de Documentación Sofgen Pharma</div>
+      <div style="width:36px;height:2px;background:#9FE1CB;margin:14px auto"></div>
       <div style="color:#9FE1CB;font-size:9px;letter-spacing:.5px;font-weight:600">ÁMBITO DE APLICACIÓN</div>
       <div style="color:#fff;font-size:11.5px;font-weight:600;margin-top:2px">Empresas que conforman Sofgen Pharma</div>
     </div>
@@ -27736,7 +27772,7 @@ function rlExportarExcel(datos){
         <input class="fi" id="login-pass" type="password" placeholder="Contraseña" onkeydown="loginOnEnter(event)" autocomplete="current-password" style="font-size:13px">
       </div>
       <div id="login-err" style="font-size:11px;color:var(--R);margin-bottom:10px;min-height:16px;text-align:center;font-weight:600"></div>
-      <button class="btn" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:#17324A" onclick="doLogin()">Iniciar sesión</button>
+      <button class="btn" style="width:100%;justify-content:center;padding:10px;font-size:13px;background:#0D7A5F" onclick="doLogin()">Iniciar sesión</button>
       <div style="text-align:center;font-size:10.5px;color:#9ca3af;font-style:italic;margin-top:18px;line-height:1.6">"Sistema para transformar datos en conocimiento y conocimiento en oportunidades. Porque una buena gestión de la información conecta personas, procesos y resultados."</div>
     </div>
   </div>
@@ -28930,7 +28966,7 @@ function ecc_generarInformeGlobal(){
     +'<div style="font-size:14px;font-weight:800;color:#1a3a3a;margin-bottom:12px;border-bottom:2px solid #f59e0b;padding-bottom:4px">CARPETAS NO REVISADAS</div>'
     +secCarpNoRev
     +'<div style="margin-top:20px;padding:12px;background:#f5f5f5;border-radius:6px;font-size:10px;color:#666">'
-      +'Informe generado automáticamente por SofGen DocControl Pro · '+fechaGen
+      +'Informe generado automáticamente por SigDoc · '+fechaGen
     +'</div>'
     +'<div class="no-print" style="text-align:center;margin-top:16px">'
       +'<button onclick="window.print()" style="padding:10px 24px;background:#006860;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700">🖨️ Imprimir</button>'
@@ -29575,7 +29611,7 @@ function nfBuscarDoc(cod){
   var tipoNov=(document.getElementById('nf-tipo')||{}).value||'';
   if(tipoNov==='Creación') nfVerificarCodigoDuplicado(cod);
   var doc = (docs||[]).find(function(d){
-    return d.codigoActual && d.codigoActual.toUpperCase() === cod.toUpperCase();
+    return d.codigoActual && (d.codigoActual.toUpperCase() === cod.toUpperCase() || _codComparacionLibre(d.codigoActual)===_codComparacionLibre(cod));
   });
   var nomEl = document.getElementById('nf-nombredoc');
   var verEl = document.getElementById('nf-version');
