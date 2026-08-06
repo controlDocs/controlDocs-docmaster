@@ -16739,7 +16739,39 @@ async function guardarConfigCompartida(){
   };
   var ok=await _escribirArchivoJSONEnCarpeta(OD_EMPRESAS.carpetaHandle, CONFIG_COMPARTIDA_ARCHIVO, payload);
   if(!ok) console.warn('[ConfigCompartida] No se pudo escribir la configuración compartida — quedó guardada solo en este navegador');
+  // Publicar TAMBIÉN dentro de la carpeta de CADA empresa — así, cualquier
+  // usuario que solo conecte la carpeta de su propia empresa (sin la
+  // carpeta madre, que es exclusiva del Administrador) recibe igual los
+  // formatos oficiales asignados a su empresa, sin importar en qué PC entre.
+  try{
+    for await (var entry of OD_EMPRESAS.carpetaHandle.entries()){
+      var handleSub=entry[1];
+      if(!handleSub||handleSub.kind!=='directory') continue;
+      if(entry[0].toLowerCase()==='colaboradores') continue;
+      _escribirArchivoJSONEnCarpeta(handleSub, CONFIG_COMPARTIDA_ARCHIVO, payload);
+    }
+  }catch(ePub){ console.warn('[ConfigCompartida] No se pudo publicar en las carpetas de empresa:', ePub.message); }
   return ok;
+}
+// Lee los formatos oficiales publicados dentro de la PROPIA carpeta de la
+// empresa del usuario (sin necesitar la carpeta madre, que es exclusiva del
+// Administrador). Así, cualquier usuario ve los códigos de formato que le
+// corresponden a su empresa, en cualquier PC donde abra la app, siempre y
+// cuando un Administrador los haya guardado al menos una vez desde
+// Configuración (lo cual los publica en la carpeta de cada empresa).
+async function cargarFormatosOficialesPropios(){
+  if(!OD.carpetaHandle) return false;
+  try{
+    var datos=await _leerArchivoJSONDeCarpeta(OD.carpetaHandle, CONFIG_COMPARTIDA_ARCHIVO);
+    if(datos && datos.formatosOficiales){
+      FORMATOS_OFICIALES=datos.formatosOficiales;
+      guardarFormatosOficiales();
+      if(typeof cfgFormatosRender==='function') cfgFormatosRender();
+      if(typeof refrescarFormatosOficialesUI==='function') refrescarFormatosOficialesUI();
+      return true;
+    }
+  }catch(e){ console.warn('[FormatosOficiales] No se pudo leer la configuración publicada en la carpeta propia:', e.message); }
+  return false;
 }
 async function cargarConfigCompartida(silencioso){
   if(!OD_EMPRESAS.carpetaHandle) return false;
@@ -16813,6 +16845,7 @@ async function cfgRegenerarConsolidadoCompleto(){
     var nEmpresas=Object.keys(datosGen.porEmpresa||{}).length;
     var datosCompletos=await obtenerDocsTodasEmpresasCompleto(true);
     var nEmpresasCompleto=Object.keys(datosCompletos.porEmpresa||{}).length;
+    if(typeof guardarConfigCompartida==='function') await guardarConfigCompartida();
     if(typeof _dashPoblarEmpresasIntentado!=='undefined') _dashPoblarEmpresasIntentado=false;
     toast('✅ Consolidado regenerado y publicado en '+nEmpresas+' empresa(s) (ligero) y '+nEmpresasCompleto+' empresa(s) (completo)'+((datosGen.fallidas&&datosGen.fallidas.length)?' ('+datosGen.fallidas.length+' con error, ver consola)':''),'ok');
     if(typeof dashPoblarEmpresas==='function') dashPoblarEmpresas();
@@ -21113,6 +21146,10 @@ async function odCargarListado(){
     if(document.getElementById('pg-pdfbarcode') && document.getElementById('pg-pdfbarcode').classList.contains('act') && typeof renderPdfBarcode==='function'){
       renderPdfBarcode();
     }
+    // Traer los formatos oficiales (códigos por empresa) publicados en la
+    // propia carpeta — para que cualquier usuario, en cualquier PC, vea los
+    // códigos correctos de su empresa sin necesitar la carpeta madre.
+    if(typeof cargarFormatosOficialesPropios==='function') cargarFormatosOficialesPropios();
     // Desactivar protección DH después de 60s
     // (tiempo suficiente para que expiren todos los timers automáticos de 3-5s)
     setTimeout(function(){
