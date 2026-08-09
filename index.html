@@ -21548,9 +21548,32 @@ async function odGuardarListado(silencioso, forzarTodo){
 
         // 4. Escribir el archivo con keepExistingData:false para reemplazar completamente
         // (bufW ya se generó arriba, con la Tabla inyectada si tablaInfo lo pedía)
-        var wr   = await fh.createWritable({keepExistingData: false});
-        await wr.write(new Uint8Array(bufW));
-        await wr.close();
+        // Con reintentos — igual que ya hace Listado Maestro: un guardado
+        // manual ahora escribe los 4 archivos en ráfaga, y si OneDrive tiene
+        // alguno de ellos ocupado en ese instante, un solo intento fallido
+        // antes se perdía en silencio (solo console.error, sin reintentar),
+        // dejando ese archivo —y su Tabla de Excel— desactualizado hasta el
+        // siguiente ciclo.
+        var _escritoOk=false, _intentosArch=0, _ultimoErrArch=null;
+        while(!_escritoOk && _intentosArch<_odReintentosMax){
+          _intentosArch++;
+          try{
+            var wr   = await fh.createWritable({keepExistingData: false});
+            await wr.write(new Uint8Array(bufW));
+            await wr.close();
+            _escritoOk=true;
+          }catch(eWrite){
+            _ultimoErrArch=eWrite;
+            console.warn('[OD] Intento '+_intentosArch+'/'+_odReintentosMax+' de guardar '+nombreArchivo+' falló:',eWrite.message);
+            if(_intentosArch<_odReintentosMax){
+              await new Promise(function(r){ setTimeout(r,_odReintentosDelay); });
+            }
+          }
+        }
+        if(!_escritoOk){
+          console.error('[OD] No se pudo guardar '+nombreArchivo+' tras '+_odReintentosMax+' intentos:',_ultimoErrArch&&_ultimoErrArch.message);
+          return false;
+        }
 
         // Verificación: releer el archivo con el MISMO handle recién usado
         // para escribir. Se registra si el tamaño no coincide, pero no se
