@@ -25153,7 +25153,18 @@ function dashActualizarUI(){
 // ============================================================
 // MÓDULO RUTA DE BORRADOR — SOLICITUDES DE USUARIOS
 // ============================================================
-var solicitudes = []; // array global
+// A diferencia de docs[] (que sí se recupera de localStorage al iniciar
+// vía loadDocs()), solicitudes[] arrancaba siempre vacío y dependía
+// EXCLUSIVAMENTE de lo que hubiera en el Solicitudes.xlsx compartido al
+// reconectar. Si el guardado a Excel (debounce de 1.5s tras cada
+// solicitud) no alcanzaba a completarse antes de cerrar la app, esos
+// registros se perdían: no había ninguna otra fuente de la que
+// recuperarlos al reabrir. Cargar desde localStorage aquí soluciona eso:
+// la fusión que ya existe en la carga de OneDrive (más abajo, "Merge:
+// actualizar con datos del Excel pero respetar cambios locales") ya sabe
+// preservar correctamente las entradas que solo existen localmente — solo
+// hacía falta que solicitudes[] arrancara con esos datos en vez de vacío.
+var solicitudes = loadArr('sol'); // array global
 
 // Columnas de la hoja (B=índice0 en el array tras omitir col A)
 var colaboradores = []; // {nombre, cargo, correo} de hoja Listado de Colaboradores
