@@ -3225,6 +3225,7 @@ var CHUNK=40;
 
 
 function saveDocs(arr){
+  if(typeof _odMarcarSucio==='function') _odMarcarSucio('lm');
   if(typeof docsEmpresaInvalidar==='function')docsEmpresaInvalidar();
   if(typeof lmPoblarAdministradores==='function')setTimeout(lmPoblarAdministradores,0);
   var prev=parseInt(lsGet('sg_dn')||'0');
@@ -3290,7 +3291,19 @@ function loadDocs(){
   for(var i=0;i<n;i++){try{var v=lsGet('sg_d'+i);if(v)r=r.concat(JSON.parse(v));}catch(e){}}
   return r.map(function(d){return Object.assign({historial:[],flujo:null},d);});
 }
-function saveArr(k,v){try{lsSet('sg_'+k,JSON.stringify(v));}catch(e){}}
+function saveArr(k,v){
+  try{lsSet('sg_'+k,JSON.stringify(v));}catch(e){}
+  // Marcar qué archivo Excel compartido necesita reescribirse — ver
+  // _odDirty más abajo (definido junto a odGuardarListado). 'p' (procesos)
+  // y 'nh' (notificaciones) no se reflejan en ningún Excel compartido, así
+  // que no marcan ningún archivo.
+  if(typeof _odMarcarSucio==='function'){
+    if(k==='c') _odMarcarSucio('copias');
+    else if(k==='sol') _odMarcarSucio('sol');
+    else if(k==='insp'||k==='inspProg') _odMarcarSucio('insp');
+    else if(k==='u') _odMarcarSucio('lm');
+  }
+}
 function loadArr(k){try{var v=lsGet('sg_'+k);return v?JSON.parse(v):[];}catch(e){return[];}}
 function loadObj(k,def){try{var v=lsGet('sg_'+k);return v?JSON.parse(v):def;}catch(e){return def;}}
 
@@ -18858,7 +18871,7 @@ var OD = {
   syncActivo:    false,
   syncTimer:     null,
   saveTimer:     null,
-  SYNC_INTERVAL: 60000,   // auto-guardar cada 60s
+  SYNC_INTERVAL: 300000,   // red de seguridad: guardado completo cada 5 min (antes: 60s en cada ciclo, sin condición)
   COLUMNAS_EXCEL: [
     'Código Actual','Código Antiguo','Descripción','Description','Descrição (PT)','Versión',
     'Tipo De Documento','Área Generadora','Proceso','Fecha De Vigencia','Fecha De Vencimiento2',
@@ -19149,6 +19162,154 @@ async function odAsegurarTablaExcel(nombreArchivo, nombreTabla){
     return false;
   }
 }
+
+// Inyecta una Tabla de Excel directamente en un buffer XLSX YA SERIALIZADO
+// por XLSX.write(), ANTES de escribirlo a disco — en memoria, sin releer
+// el archivo. Esto reemplaza al método anterior (odAsegurarTablaExcel), que
+// guardaba primero y luego releía el archivo desde disco para reparar la
+// Tabla: esa relectura podía llegar antes de que OneDrive/el sistema de
+// archivos liberara la escritura anterior, o fallar en silencio, dejando la
+// Tabla perdida sin que nadie se enterara. Al inyectar la Tabla en el mismo
+// buffer que se va a escribir, se garantiza que el archivo que llega a
+// disco YA la incluye, en un solo guardado.
+// sheetSelector: índice 0-based de la hoja dentro de wb.SheetNames (0 =
+// primera hoja), O el nombre exacto de la hoja (string) — útil cuando la
+// hoja se reconstruye con book_append_sheet y puede terminar en una
+// posición distinta cada vez (ej. "Solicitudes de Usuarios"). Si la hoja
+// no se encuentra (aún no existe, por ejemplo), no hace nada y devuelve el
+// buffer intacto. idTabla: número único de tabla dentro del libro (1, 2,
+// 3…) para no chocar si se inyecta más de una en el mismo archivo.
+async function _inyectarTablaEnBuffer(bufArray, sheetSelector, nombreTabla, idTabla){
+  if(typeof JSZip==='undefined') return bufArray;
+  try{
+    var zip=await JSZip.loadAsync(bufArray);
+    var parser=new DOMParser();
+
+    // Resolver la ruta real de la hoja vía workbook.xml + rels
+    var wbXmlFile=zip.file('xl/workbook.xml');
+    if(!wbXmlFile) return bufArray;
+    var wbXml=await wbXmlFile.async('string');
+    var wbDoc=parser.parseFromString(wbXml,'application/xml');
+    var sheetsNodes=wbDoc.getElementsByTagName('sheet');
+    var sheetNode=null;
+    if(typeof sheetSelector==='string'){
+      for(var si=0; si<sheetsNodes.length; si++){
+        if(sheetsNodes[si].getAttribute('name')===sheetSelector){ sheetNode=sheetsNodes[si]; break; }
+      }
+    } else {
+      sheetNode=sheetsNodes[sheetSelector]||null;
+    }
+    if(!sheetNode) return bufArray; // hoja no encontrada (p.ej. aún no existe) — no hacer nada
+    var rId=sheetNode.getAttribute('r:id')||sheetNode.getAttribute('id');
+    var relsXmlWbFile=zip.file('xl/_rels/workbook.xml.rels');
+    if(!relsXmlWbFile) return bufArray;
+    var relsXmlWb=await relsXmlWbFile.async('string');
+    var relsDocWb=parser.parseFromString(relsXmlWb,'application/xml');
+    var relsWb=relsDocWb.getElementsByTagName('Relationship');
+    var sheetPath=null;
+    for(var k=0;k<relsWb.length;k++){
+      if(relsWb[k].getAttribute('Id')===rId){
+        sheetPath='xl/'+relsWb[k].getAttribute('Target').replace(/^\/?xl\//,'').replace(/^\.\//,'');
+        break;
+      }
+    }
+    if(!sheetPath || !zip.file(sheetPath)) return bufArray;
+
+    var sheetXmlTexto=await zip.file(sheetPath).async('string');
+    // Ya tiene Tabla (por ejemplo si se inyectó dos veces por error) — no tocar
+    if(sheetXmlTexto.indexOf('<tableParts')>=0) return bufArray;
+
+    var sheetDoc=parser.parseFromString(sheetXmlTexto,'application/xml');
+    var dimNode=sheetDoc.getElementsByTagName('dimension')[0];
+    var rango=dimNode?dimNode.getAttribute('ref'):null;
+    var rowsXml=sheetDoc.getElementsByTagName('row');
+    if(!rango){
+      var ultimaFila=rowsXml.length?rowsXml[rowsXml.length-1].getAttribute('r'):'1';
+      var ultimaCeldas=rowsXml.length?rowsXml[rowsXml.length-1].getElementsByTagName('c'):[];
+      var ultimaCol=ultimaCeldas.length?ultimaCeldas[ultimaCeldas.length-1].getAttribute('r').replace(/\d+$/,''):'A';
+      rango='A1:'+ultimaCol+ultimaFila;
+    }
+
+    // Resolver textos de encabezado vía sharedStrings.xml
+    var sst=[];
+    var sstFile=zip.file('xl/sharedStrings.xml');
+    if(sstFile){
+      var sstDoc=parser.parseFromString(await sstFile.async('string'),'application/xml');
+      var siNodes=sstDoc.getElementsByTagName('si');
+      for(var i=0;i<siNodes.length;i++){
+        var tNodes=siNodes[i].getElementsByTagName('t');
+        var txt=''; for(var j=0;j<tNodes.length;j++) txt+=tNodes[j].textContent;
+        sst.push(txt);
+      }
+    }
+    function celdaTexto(c){
+      var vNode=c.getElementsByTagName('v')[0];
+      if(!vNode) return '';
+      if(c.getAttribute('t')==='s'){ return sst[parseInt(vNode.textContent,10)]||''; }
+      return vNode.textContent;
+    }
+    var filaEncabezado=null;
+    for(var r=0;r<rowsXml.length;r++){ if(rowsXml[r].getAttribute('r')==='1'){ filaEncabezado=rowsXml[r]; break; } }
+    if(!filaEncabezado && rowsXml.length) filaEncabezado=rowsXml[0];
+    if(!filaEncabezado) return bufArray;
+    var celdasHdr=filaEncabezado.getElementsByTagName('c');
+    var encabezados=[];
+    for(var i2=0;i2<celdasHdr.length;i2++) encabezados.push(celdaTexto(celdasHdr[i2])||('Columna'+(i2+1)));
+    if(!encabezados.length) return bufArray;
+
+    // Evitar encabezados duplicados/vacíos: Excel exige nombres de columna
+    // de Tabla únicos y no vacíos.
+    var vistos={};
+    encabezados=encabezados.map(function(n,i){
+      var base=n&&String(n).trim()?String(n).trim():('Columna'+(i+1));
+      var nombreFinal=base, contador=2;
+      while(vistos[nombreFinal]){ nombreFinal=base+' '+contador; contador++; }
+      vistos[nombreFinal]=true;
+      return nombreFinal;
+    });
+
+    function escXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    var NS_SS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+    var colsXml=encabezados.map(function(n,i){ return '<tableColumn id="'+(i+1)+'" name="'+escXml(n)+'"/>'; }).join('');
+    var tablePartName='table'+idTabla+'.xml';
+    var tableXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<table xmlns="'+NS_SS+'" id="'+idTabla+'" name="'+escXml(nombreTabla)+'" displayName="'+escXml(nombreTabla)+'" ref="'+rango+'" totalsRowShown="0">'
+      +'<autoFilter ref="'+rango+'"/>'
+      +'<tableColumns count="'+encabezados.length+'">'+colsXml+'</tableColumns>'
+      +'<tableStyleInfo name="TableStyleMedium2" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/>'
+      +'</table>';
+    zip.file('xl/tables/'+tablePartName, tableXml);
+
+    var ctPath='[Content_Types].xml';
+    var ctXml=await zip.file(ctPath).async('string');
+    if(ctXml.indexOf('tables/'+tablePartName)<0){
+      ctXml=ctXml.replace('</Types>','<Override PartName="/xl/tables/'+tablePartName+'" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/></Types>');
+      zip.file(ctPath, ctXml);
+    }
+
+    var sheetDir=sheetPath.substring(0,sheetPath.lastIndexOf('/'));
+    var sheetFileName=sheetPath.substring(sheetPath.lastIndexOf('/')+1);
+    var relsPath=sheetDir+'/_rels/'+sheetFileName+'.rels';
+    var relsXml=zip.file(relsPath)?await zip.file(relsPath).async('string'):'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+    var nuevoRid='rIdTablaAuto'+idTabla;
+    var contadorRid=idTabla;
+    while(relsXml.indexOf('Id="'+nuevoRid+'"')>=0){ contadorRid++; nuevoRid='rIdTablaAuto'+contadorRid; }
+    relsXml=relsXml.replace('</Relationships>','<Relationship Id="'+nuevoRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/'+tablePartName+'"/></Relationships>');
+    zip.file(relsPath, relsXml);
+
+    var nuevoXmlHoja=sheetXmlTexto.replace('</worksheet>','<tableParts count="1"><tablePart r:id="'+nuevoRid+'"/></tableParts></worksheet>');
+    zip.file(sheetPath, nuevoXmlHoja);
+
+    var bufFinal=await zip.generateAsync({type:'arraybuffer'});
+    console.log('[Tabla] Tabla "'+nombreTabla+'" inyectada en memoria (hoja #'+sheetIndex+', rango '+rango+')');
+    return bufFinal;
+  }catch(e){
+    console.error('[Tabla] Error inyectando Tabla en buffer (hoja #'+sheetIndex+'):',e.message);
+    return bufArray; // ante cualquier error, devolver el buffer original intacto sin bloquear el guardado
+  }
+}
+
 async function odEscribirBufferGenerico(nombreArchivo, bufArray){
   if(SP.activo){
     var ok=await spEscribirBuffer(nombreArchivo, bufArray);
@@ -21242,16 +21403,64 @@ var _odLastModified   = 0;     // timestamp de la última lectura del archivo
 var _odGuardandoAhora=false,_odColaGuardado=false;
 // Sistema Auditrail append-only: eventos acumulados en sesión
 var _auditPendientes=[];
+
+// ── Guardado dirigido por cambio real ──────────────────────────────
+// Antes, cada ciclo de autoguardado (cada 60s) reescribía SIEMPRE los 4
+// archivos (ListadoMaestro, CopiaControladas, Inspecciones, Solicitudes),
+// aunque no hubiera cambios reales en la mayoría de ellos — generando
+// escrituras innecesarias que aumentaban la ventana de choque con
+// consumidores externos (p. ej. un flujo de Power Automate leyendo la
+// Tabla de Solicitudes). Ahora cada archivo se marca "sucio" solo cuando
+// algo que realmente vive en ESE archivo cambia — vía saveDocs()/saveArr(),
+// que ya son el punto central por el que pasa toda mutación de datos — y
+// odGuardarListado() solo reescribe los archivos marcados como sucios (o
+// con auditoría pendiente para ese módulo). La marca se limpia solo tras
+// un guardado EXITOSO de ese archivo específico.
+// Empiezan en true para que el primer guardado de la sesión sea completo
+// (igual que el comportamiento de siempre al conectar).
+var _odDirty = {lm:true, copias:true, insp:true, sol:true};
+function _odMarcarSucio(archivo){
+  if(_odDirty.hasOwnProperty(archivo)) _odDirty[archivo]=true;
+}
+// ¿Hay alguna entrada de auditoría pendiente para alguno de los módulos
+// dados? Se usa para forzar el guardado de un archivo aunque su arreglo
+// de datos principal no haya cambiado, y así nunca dejar una entrada de
+// auditoría esperando indefinidamente.
+function _odHayAuditPendiente(modulos){
+  if(!_auditPendientes.length || !modulos || !modulos.length) return false;
+  var low=modulos.map(function(m){return m.toLowerCase();});
+  return _auditPendientes.some(function(a){
+    var mod=(a.modulo||'').toLowerCase();
+    return low.some(function(m){return mod.indexOf(m)>=0;});
+  });
+}
 var _odUltimoTam=0; // filas nuevas acumuladas desde la última carga
 var _odTsUltimaCarga=0;  // timestamp del archivo cuando se cargó por última vez // mutex: evita escrituras simultáneas
 var _odColaGuardado   = false; // hay un guardado pendiente en cola
 var _odReintentosMax  = 5;     // máx reintentos si el archivo está bloqueado
 var _odReintentosDelay= 4000;  // ms entre reintentos (4s)
 
-async function odGuardarListado(silencioso){
+async function odGuardarListado(silencioso, forzarTodo){
   if(!OD.fileHandle||!OD.syncActivo) return false;
   if(!window.currentUser) return false;
   if(!window.XLSX) return false;
+
+  // ── Determinar qué archivos realmente necesitan guardarse ──────────
+  // multiArchivo=true → Copias/Inspecciones/Solicitudes viven en sus
+  // propios .xlsx y pueden guardarse de forma independiente. En modo "un
+  // solo archivo" (compatibilidad) todo vive en el mismo libro que
+  // Listado Maestro, así que cualquier cambio en cualquiera de ellos
+  // obliga a reescribir ese único archivo.
+  var multiArchivo = !!OD.carpetaHandle;
+  var needLM     = !!(forzarTodo || _odDirty.lm     || _odHayAuditPendiente(_AUDIT_MODULOS_LM));
+  var needCopias = !!(forzarTodo || _odDirty.copias || _odHayAuditPendiente(_AUDIT_MODULOS_COPIAS));
+  var needInsp   = !!(forzarTodo || _odDirty.insp   || _odHayAuditPendiente(_AUDIT_MODULOS_INSP));
+  var needSol    = !!(forzarTodo || _odDirty.sol    || _odHayAuditPendiente(_AUDIT_MODULOS_SOL));
+  if(!multiArchivo && (needCopias||needInsp||needSol)) needLM=true;
+  if(!needLM && !needCopias && !needInsp && !needSol){
+    console.log('[OD] Nada que guardar — sin cambios pendientes desde el último guardado');
+    return true; // no es un error: simplemente no había nada nuevo que persistir
+  }
 
   // Si ya hay un guardado en curso, encolar y salir
   if(_odGuardandoAhora){
@@ -21262,10 +21471,29 @@ async function odGuardarListado(silencioso){
   _odGuardandoAhora=true;
   try{
     // ── Función helper: guardar un workbook en un archivo de la carpeta ──
-    async function _escribirArchivo(nombreArchivo, wbToWrite){
+    // tablaInfo (opcional): {hoja: nombre o índice de hoja, nombreTabla, idTabla}
+    // — si se pasa, se inyecta/preserva la Tabla de Excel de esa hoja en el
+    // MISMO buffer que se va a guardar, antes de escribirlo (igual que se
+    // hace con ListadoMaestro.xlsx), en vez de dejar que XLSX.write() la
+    // borre silenciosamente.
+    async function _escribirArchivo(nombreArchivo, wbToWrite, tablaInfo){
+      // Generar el buffer UNA sola vez y, si corresponde, inyectar la Tabla
+      // ANTES de escribir — así tanto SharePoint como File System Access
+      // usan el mismo buffer ya reparado.
+      _saneaCeldasLargasWB(wbToWrite); // red de seguridad: evita "Text length must not exceed 32767"
+      _protegerTodasHojasWB(wbToWrite); // proteger hoja (bloquear edición manual en Excel)
+      var bufW = XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
+      if(tablaInfo){
+        try{
+          bufW = await _inyectarTablaEnBuffer(bufW, tablaInfo.hoja, tablaInfo.nombreTabla, tablaInfo.idTabla||1);
+        }catch(eIny){
+          console.warn('[Tabla] No se pudo inyectar Tabla en '+nombreArchivo+':',eIny.message);
+        }
+      }
+
       // MODO SHAREPOINT: usar REST API en lugar de File System Access
       if(SP.activo){
-        var ok=await spEscribirArchivo(nombreArchivo, wbToWrite);
+        var ok=await spEscribirBuffer(nombreArchivo, bufW);
         if(!ok) throw new Error('Error al guardar '+nombreArchivo+' en SharePoint');
         return true;
       }
@@ -21319,9 +21547,7 @@ async function odGuardarListado(silencioso){
         }
 
         // 4. Escribir el archivo con keepExistingData:false para reemplazar completamente
-        _saneaCeldasLargasWB(wbToWrite); // red de seguridad: evita "Text length must not exceed 32767"
-        _protegerTodasHojasWB(wbToWrite); // proteger hoja (bloquear edición manual en Excel)
-        var bufW = XLSX.write(wbToWrite,{type:'array',bookType:'xlsx'});
+        // (bufW ya se generó arriba, con la Tabla inyectada si tablaInfo lo pedía)
         var wr   = await fh.createWritable({keepExistingData: false});
         await wr.write(new Uint8Array(bufW));
         await wr.close();
@@ -21348,7 +21574,11 @@ async function odGuardarListado(silencioso){
     }
 
     // ── Leer ListadoMaestro.xlsx (archivo principal) ──────────
-    var fileActual;
+    // (todo este bloque, hasta la escritura final más abajo, solo se
+    // ejecuta si needLM===true — ver el cálculo al inicio de la función)
+    var fileActual, wb, escrituraOk=null, buf;
+    if(needLM){
+    fileActual = null;
     if(OD.carpetaHandle){
       var fhLM=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.lm,{create:false});
       fileActual=await fhLM.getFile();
@@ -21507,6 +21737,7 @@ async function odGuardarListado(silencioso){
       while(wb.Workbook.Sheets.length<wb.SheetNames.length-1) wb.Workbook.Sheets.push({});
       wb.Workbook.Sheets.push({Hidden:1});
     }
+    } // fin if(needLM) — parte 1 (lectura + reconstrucción de Listado Maestro)
 
     // Actualizar hoja Copias_Controladas
     var wsCopData=[OD.COLUMNAS_COPIAS_LABEL];
@@ -21524,8 +21755,11 @@ async function odGuardarListado(silencioso){
       }));
     });
     if(OD.carpetaHandle){
-      // ── Multi-archivo: cada hoja va a su Excel ──────────────
+      // ── Multi-archivo: cada hoja va a su Excel, y solo se toca el
+      // archivo que realmente tiene cambios pendientes ──────────────
+      var _okCop=null, _okInsp=null, _okSol=null;
       // CopiaControladas.xlsx
+      if(needCopias){
       try{
         var copData2=await odLeerArchivo(OD_ARCHIVOS.copias);
         var wbCop=copData2?XLSX.read(copData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
@@ -21538,11 +21772,14 @@ async function odGuardarListado(silencioso){
           var _copLow=(_AUDIT_MODULOS_COPIAS||[]).map(function(m){return m.toLowerCase();});
           _auditPendientes=_auditPendientes.filter(function(a){var mod=(a.modulo||'').toLowerCase();return !_copLow.some(function(m){return mod.indexOf(m)>=0;});});
         }
-        var _okCop=await _escribirArchivo(OD_ARCHIVOS.copias,wbCop);
-        if(!_okCop) console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.copias);
+        _okCop=await _escribirArchivo(OD_ARCHIVOS.copias,wbCop);
+        if(_okCop) _odDirty.copias=false;
+        else console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.copias);
       }catch(eCop){console.warn('Error guardando CopiaControladas:',eCop);}
+      }
 
       // Inspecciones.xlsx
+      if(needInsp){
       try{
         var inspData2=await odLeerArchivo(OD_ARCHIVOS.inspecciones);
         var wbInsp2=inspData2?XLSX.read(inspData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
@@ -21554,11 +21791,14 @@ async function odGuardarListado(silencioso){
           window._dhPendiente=false;
         }
         if(typeof _auditAppendToWB==='function'&&_auditPendientes.length) _auditAppendToWB(wbInsp2,_AUDIT_MODULOS_INSP);
-        var _okInsp=await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
-        if(!_okInsp) console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.inspecciones);
+        _okInsp=await _escribirArchivo(OD_ARCHIVOS.inspecciones,wbInsp2);
+        if(_okInsp) _odDirty.insp=false;
+        else console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.inspecciones);
       }catch(eInsp){console.warn('Error guardando Inspecciones:',eInsp);}
+      }
 
       // Solicitudes.xlsx
+      if(needSol){
       try{
         var solData2=await odLeerArchivo(OD_ARCHIVOS.solicitudes);
         var wbSol2=solData2?XLSX.read(solData2.buf,{type:'array',cellDates:false,raw:false}):XLSX.utils.book_new();
@@ -21569,12 +21809,16 @@ async function odGuardarListado(silencioso){
           var _solLow=(_AUDIT_MODULOS_SOL||[]).map(function(m){return m.toLowerCase();});
           _auditPendientes=_auditPendientes.filter(function(a){var mod=(a.modulo||'').toLowerCase();return !_solLow.some(function(m){return mod.indexOf(m)>=0;});});
         }
-        var _okSol=await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2);
-        if(!_okSol) console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.solicitudes);
+        _okSol=await _escribirArchivo(OD_ARCHIVOS.solicitudes,wbSol2,{hoja:'Solicitudes de Usuarios',nombreTabla:'Solicitudes',idTabla:1});
+        if(_okSol) _odDirty.sol=false;
+        else console.warn('[OD] No se pudo confirmar el guardado de '+OD_ARCHIVOS.solicitudes);
       }catch(eSol){console.warn('Error guardando Solicitudes:',eSol);}
+      }
 
-    } else {
+    } else if(needLM){
       // ── Modo un solo archivo (compatibilidad) ────────────────
+      // (needLM ya está forzado a true si cualquiera de copias/insp/sol
+      // tenía cambios pendientes — ver el cálculo al inicio de la función)
       var wsCop=XLSX.utils.aoa_to_sheet(wsCopData);
       var nombreHojaCop='Copias_Controladas';
       if(wb.Sheets[nombreHojaCop]){wb.Sheets[nombreHojaCop]=wsCop;}
@@ -21590,10 +21834,11 @@ async function odGuardarListado(silencioso){
     }
     // Auditrail ya escrito con append-only en el bloque de colisión (ver arriba)
 
+    if(needLM){
     // Generar buffer del ListadoMaestro.xlsx
     _saneaCeldasLargasWB(wb); // red de seguridad: evita "Text length must not exceed 32767"
     _protegerTodasHojasWB(wb); // proteger hoja (bloquear edición manual en Excel)
-    var buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+    buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
 
     // ── DETECCIÓN DE COLISIÓN REAL ────────────────────────────
     // OneDrive modifica el timestamp cada vez que sincroniza (~cada 30-60s)
@@ -21656,6 +21901,27 @@ async function odGuardarListado(silencioso){
     _protegerTodasHojasWB(wb); // proteger hoja (bloquear edición manual en Excel)
     buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
 
+    // Inyectar la Tabla de Excel de "Listado Maestro" (hoja #0) directamente
+    // en el buffer, EN MEMORIA, antes de escribirlo a disco. XLSX.write()
+    // no conserva las Tablas de Excel del libro (limitación de la librería),
+    // así que sin este paso la Tabla se pierde en cada guardado. Se hace
+    // aquí —sobre el buffer que se va a guardar— y no releyendo el archivo
+    // después de escribirlo, para no depender de una relectura que puede
+    // llegar antes de que OneDrive/el sistema de archivos libere el archivo.
+    try{
+      buf=await _inyectarTablaEnBuffer(buf, 0, 'ListadoMaestro', 1);
+    }catch(eInyTabla){
+      console.warn('[Tabla] No se pudo inyectar la Tabla de Listado Maestro en el buffer:',eInyTabla.message);
+    }
+    // Modo "un solo archivo": la hoja de Solicitudes vive en este mismo
+    // libro (ver rbEscribirHoja más arriba) — si no existe, esto no hace
+    // nada (devuelve el buffer intacto).
+    try{
+      buf=await _inyectarTablaEnBuffer(buf, 'Solicitudes de Usuarios', 'Solicitudes', 2);
+    }catch(eInyTabla2){
+      console.warn('[Tabla] No se pudo inyectar la Tabla de Solicitudes en el buffer:',eInyTabla2.message);
+    }
+
     // Actualizar timestamp de referencia (en SP mode usamos Date.now())
     _odTsUltimaCarga=tsArchivoActual||Date.now();
     _odLastModified=tsArchivoActual||Date.now();
@@ -21705,6 +21971,13 @@ async function odGuardarListado(silencioso){
             console.warn('[OD] Tamaño tras guardar no coincide exacto (posible actividad de OneDrive): esperado '+buf.byteLength+' bytes, leído '+filePos.size+' bytes');
           }
           escrituraOk=true;
+          _odDirty.lm=false;
+          if(!multiArchivo){
+            // Modo un solo archivo: copias/inspecciones/solicitudes viven en
+            // este mismo archivo, así que un guardado exitoso de LM también
+            // los persiste a todos.
+            _odDirty.copias=false; _odDirty.insp=false; _odDirty.sol=false;
+          }
           _odLastModified=filePos.lastModified;
           _odTsUltimaCarga=filePos.lastModified;
           _odUltimoTam=filePos.size||0; // actualizar tamaño tras guardado exitoso verificado
@@ -21756,6 +22029,26 @@ async function odGuardarListado(silencioso){
       OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
       if(typeof odSaveBtnEstado==='function') odSaveBtnEstado('pendiente');
     }
+    } // fin if(needLM) — parte 2 (buffer, colisión, escritura y reporte de Listado Maestro)
+
+    // ── Resultado final ─────────────────────────────────────────────
+    // Si needLM era false, escrituraOk sigue en null (no se tocó Listado
+    // Maestro) — en ese caso el resultado depende de si los archivos
+    // secundarios que sí se necesitaban guardar (Copias/Inspecciones/
+    // Solicitudes) se guardaron correctamente.
+    var huboFalloSecundario = (needCopias&&_okCop===false) || (needInsp&&_okInsp===false) || (needSol&&_okSol===false);
+    if(escrituraOk===null){
+      escrituraOk = !huboFalloSecundario;
+      if(!silencioso){
+        if(escrituraOk) odSetInfo('☁️ Sincronizado · '+fTH(),'var(--G)');
+        else odSetInfo('⚠️ Algunos archivos no se pudieron guardar','var(--A)');
+      }
+      if(typeof odSaveBtnEstado==='function') odSaveBtnEstado(escrituraOk?'ok':'pendiente');
+      if(!escrituraOk){
+        if(OD.saveTimer) clearTimeout(OD.saveTimer);
+        OD.saveTimer=setTimeout(function(){odGuardarListado(true);},60000);
+      }
+    }
     return escrituraOk;
 
   }catch(err){
@@ -21801,7 +22094,13 @@ function odHookSaveDocs(){
 function odIniciarSyncAuto(){
   if(OD.syncTimer) clearInterval(OD.syncTimer);
   OD.syncTimer=setInterval(function(){
-    if(OD.fileHandle&&OD.syncActivo&&_odAutosaveHabilitado()&&window.currentUser&&!_odGuardandoAhora) odGuardarListado(true);
+    // Red de seguridad: fuerza un guardado COMPLETO de los 4 archivos,
+    // sin importar las marcas de "sucio" — para atrapar cualquier cambio
+    // que por alguna razón no haya quedado bien enganchado al detector de
+    // cambios (ver _odDirty). Los guardados dirigidos por cambio real
+    // (saveDocs/saveArr) siguen disparándose aparte, con su propio
+    // debounce de 60s, sin esperar a este ciclo.
+    if(OD.fileHandle&&OD.syncActivo&&_odAutosaveHabilitado()&&window.currentUser&&!_odGuardandoAhora) odGuardarListado(true, true);
   },OD.SYNC_INTERVAL);
 
   // Revisar vencimientos cada hora — detecta cuando un doc llega a 0 días durante la sesión
@@ -22443,7 +22742,7 @@ async function odGuardarAhora(){
     // odGuardarListado() — si el guardado se encolaba (por estar otro en
     // curso) o fallaba todos sus reintentos, esta función igual mostraba
     // verde por un instante, y el estado real (naranja) volvía enseguida.
-    var ok = await odGuardarListado(false);
+    var ok = await odGuardarListado(false, true);
     if(ok){
       odSaveBtnEstado('ok');
     } else {
