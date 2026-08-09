@@ -19270,6 +19270,33 @@ async function _inyectarTablaEnBuffer(bufArray, sheetSelector, nombreTabla, idTa
 
     function escXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+    // Excel EXIGE que el texto real de cada celda de encabezado coincida
+    // exactamente con el nombre declarado en <tableColumn name="...">. Si
+    // no coincide (columna con encabezado vacío, o con nombre duplicado
+    // que tuvimos que renombrar arriba), Excel lo detecta como corrupción
+    // al abrir el archivo y "repara" la Tabla — quitándola — con el aviso
+    // "Registros reparados: Tabla...". Por eso, cualquier celda cuyo texto
+    // real difiera del nombre final resuelto se reescribe aquí para que
+    // ambos queden sincronizados.
+    var filaEncabezadoRegex=/<row r="1"[^>]*>[\s\S]*?<\/row>/;
+    var filaMatch=sheetXmlTexto.match(filaEncabezadoRegex);
+    if(filaMatch){
+      var filaOriginal=filaMatch[0];
+      var filaNueva=filaOriginal;
+      for(var i4=0;i4<celdasHdr.length;i4++){
+        var textoReal=celdaTexto(celdasHdr[i4]);
+        if(textoReal!==encabezados[i4]){
+          var refCelda=celdasHdr[i4].getAttribute('r');
+          if(refCelda){
+            var celdaRegex=new RegExp('<c r="'+refCelda+'"[^>]*>[\\s\\S]*?<\\/c>|<c r="'+refCelda+'"[^>]*\\/>');
+            var celdaNueva='<c r="'+refCelda+'" t="str"><v>'+escXml(encabezados[i4])+'</v></c>';
+            filaNueva=filaNueva.replace(celdaRegex,celdaNueva);
+          }
+        }
+      }
+      if(filaNueva!==filaOriginal) sheetXmlTexto=sheetXmlTexto.replace(filaOriginal,filaNueva);
+    }
+
     var NS_SS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
     var colsXml=encabezados.map(function(n,i){ return '<tableColumn id="'+(i+1)+'" name="'+escXml(n)+'"/>'; }).join('');
     var tablePartName='table'+idTabla+'.xml';
