@@ -19302,10 +19302,10 @@ async function _inyectarTablaEnBuffer(bufArray, sheetSelector, nombreTabla, idTa
     zip.file(sheetPath, nuevoXmlHoja);
 
     var bufFinal=await zip.generateAsync({type:'arraybuffer'});
-    console.log('[Tabla] Tabla "'+nombreTabla+'" inyectada en memoria (hoja #'+sheetIndex+', rango '+rango+')');
+    console.log('[Tabla] Tabla "'+nombreTabla+'" inyectada en memoria (hoja '+JSON.stringify(sheetSelector)+', rango '+rango+')');
     return bufFinal;
   }catch(e){
-    console.error('[Tabla] Error inyectando Tabla en buffer (hoja #'+sheetIndex+'):',e.message);
+    console.error('[Tabla] Error inyectando Tabla en buffer (hoja '+JSON.stringify(sheetSelector)+'):',e.message);
     return bufArray; // ante cualquier error, devolver el buffer original intacto sin bloquear el guardado
   }
 }
