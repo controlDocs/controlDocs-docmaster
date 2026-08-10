@@ -3311,7 +3311,12 @@ function loadObj(k,def){try{var v=lsGet('sg_'+k);return v?JSON.parse(v):def;}cat
 // STATE
 // ============================================================
 
-var docs=[],auditoria=[],copias=[],procesos=[],usuarios=[],notifH=[];
+// copias[] se recupera de localStorage al iniciar (igual que docs vía
+// loadDocs() y solicitudes) — necesario para que un guardado local que no
+// alcanzó a sincronizarse, o una lectura fallida del Excel compartido al
+// reconectar, no dejen el módulo de Copias vacío sin ninguna otra fuente
+// de la que recuperar el último estado conocido.
+var docs=[],auditoria=[],copias=loadArr('c'),procesos=[],usuarios=[],notifH=[];
 var cfg={org:'Sofgen Pharma',revDias:365,alertDias:30};
 var inspecciones=[];
 var programaInsp2026=[];
@@ -19417,6 +19422,27 @@ async function odEscribirArchivoGenerico(nombreArchivo, wbToWrite){
     return false;
   }
 }
+// Aviso claro y accionable cuando un archivo no se pudo leer tras agotar
+// los reintentos. La causa más común (confirmada en campo): el archivo es
+// un "marcador en la nube" de OneDrive que nunca se descargó a este
+// equipo — se ve con un ícono de nube ☁️ en el Explorador de archivos en
+// vez de un check verde. La API del navegador que usa esta app para leer
+// archivos NO logra activar esa descarga (a diferencia de abrir el
+// archivo con doble clic en el Explorador), así que ni reintentar ni
+// esperar lo resuelve solo — requiere una acción del usuario en OneDrive.
+function odAvisarArchivoNoDescargado(nombreArchivo){
+  console.error('[OD] '+nombreArchivo+' no se pudo leer — probable archivo de OneDrive no descargado (ícono de nube).');
+  if(typeof toast==='function') toast('⚠️ '+nombreArchivo+' no se pudo leer — revisa que esté descargado en OneDrive (no debe verse con ícono de nube)','er');
+  alert('⚠️ No se pudo leer "'+nombreArchivo+'".\n\n'+
+    'Causa más común: OneDrive todavía no ha descargado ese archivo a este equipo (se ve con un ícono de nube ☁️ en el Explorador de archivos, en vez de un check verde ✅).\n\n'+
+    'Para solucionarlo en este equipo:\n'+
+    '1. Abre el Explorador de archivos y ve a la carpeta de OneDrive donde están estos Excel.\n'+
+    '2. Clic derecho sobre la carpeta (o sobre "'+nombreArchivo+'") → "Conservar siempre en este dispositivo".\n'+
+    '3. Espera a que el ícono cambie de nube a check verde.\n'+
+    '4. Vuelve a esta app y recarga (o reconecta la carpeta).\n\n'+
+    'Mientras tanto, los datos de este archivo pueden verse vacíos o desactualizados en la app.');
+}
+
 async function odLeerArchivo(nombre){
   // MODO SHAREPOINT: leer por fetch desde la misma carpeta
   if(SP.activo){
@@ -21018,24 +21044,40 @@ async function odCargarListado(){
     odSetProgreso(88,'Cargando copias controladas...');
     // Leer CopiaControladas.xlsx (o del LM si no hay carpeta)
     var bufCopias=buf; var wbCopias=wb;
+    var _copiasLecturaFallo=false;
     if(OD.carpetaHandle){
       var copData=await odLeerArchivo(OD_ARCHIVOS.copias);
-      if(copData){ bufCopias=copData.buf; wbCopias=XLSX.read(copData.buf,{type:'array',cellDates:false,raw:false}); }
+      if(copData){
+        bufCopias=copData.buf; wbCopias=XLSX.read(copData.buf,{type:'array',cellDates:false,raw:false});
+      } else {
+        // No confundir "no se pudo leer el archivo" con "la hoja no existe":
+        // si se deja bufCopias/wbCopias en su valor inicial (buf/wb =
+        // Listado Maestro), se termina buscando la hoja de Copias DENTRO
+        // del archivo equivocado. Se marca el fallo y se evita procesar
+        // cualquier dato para no pisar copias[] con algo incorrecto.
+        _copiasLecturaFallo=true;
+      }
     }
-    var nuevasCopias=await odLeerHojaCopiasBuf(bufCopias, wbCopias);
-    if(nuevasCopias!==null){
-      copias=nuevasCopias;
-      saveArr('c',copias);
-      console.log('OD: '+copias.length+' copias cargadas desde Excel');
-      // Sincronizar campo estado de copias con el Listado Maestro
-      // Se hace aquí porque ya están cargados tanto docs como copias
-      copias.forEach(function(cop){
-        cop.estadoReal=ccEstadoReal(cop); // cache del estado real
-      });
+    if(_copiasLecturaFallo){
+      odAvisarArchivoNoDescargado(OD_ARCHIVOS.copias);
+      var _badgeCopFallo=document.getElementById('od-info');
+      if(_badgeCopFallo) odSetInfo('⚠️ '+OD_ARCHIVOS.copias+' no se pudo leer — datos de Copias desactualizados','var(--A)');
     } else {
-      copias=[];
-      saveArr('c',copias);
-      console.log('OD: hoja Copias_Controladas no encontrada en Excel — copias vacías');
+      var nuevasCopias=await odLeerHojaCopiasBuf(bufCopias, wbCopias);
+      if(nuevasCopias!==null){
+        copias=nuevasCopias;
+        saveArr('c',copias);
+        console.log('OD: '+copias.length+' copias cargadas desde Excel');
+        // Sincronizar campo estado de copias con el Listado Maestro
+        // Se hace aquí porque ya están cargados tanto docs como copias
+        copias.forEach(function(cop){
+          cop.estadoReal=ccEstadoReal(cop); // cache del estado real
+        });
+      } else {
+        copias=[];
+        saveArr('c',copias);
+        console.log('OD: hoja Copias_Controladas no encontrada en Excel — copias vacías');
+      }
     }
 
     // Leer hoja Programa_Inspeccion_Procaps del Excel
@@ -22579,13 +22621,34 @@ async function odSeleccionarDesdeSeleccion(){
     // Archivos opcionales (se crean automáticamente si no existen)
     // var archivosOpcionales=[OD_ARCHIVOS.actividades,OD_ARCHIVOS.colaboradores];
     var faltantes=[];
+    var noDescargados=[];
     for(var i=0;i<archivosObligatorios.length;i++){
-      try{ await dirHandle.getFileHandle(archivosObligatorios[i],{create:false}); }
-      catch(e){ faltantes.push(archivosObligatorios[i]); }
+      var _fhChk;
+      try{ _fhChk=await dirHandle.getFileHandle(archivosObligatorios[i],{create:false}); }
+      catch(e){ faltantes.push(archivosObligatorios[i]); continue; }
+      // Verificar que el CONTENIDO realmente se pueda leer, no solo que el
+      // archivo exista — un archivo de OneDrive sin descargar ("marcador
+      // en la nube") pasa la verificación de arriba sin problema, pero
+      // falla aquí. Detectarlo en este punto, antes de seguir cargando la
+      // app con datos a medias, evita el escenario de "módulos vacíos"
+      // silenciosos que solo se nota más adelante.
+      try{ var _fChk=await _fhChk.getFile(); await _fChk.arrayBuffer(); }
+      catch(eRead){ noDescargados.push(archivosObligatorios[i]); }
     }
     if(faltantes.length){
       var msg='Faltan archivos en la carpeta:\n'+faltantes.join('\n')+'\n\nVerifica que seleccionaste la carpeta correcta (la que contiene los archivos Excel compartidos).';
       alert(msg);
+      if(btn){btn.textContent='📁 Seleccionar carpeta de archivos';btn.disabled=false;}
+      return;
+    }
+    if(noDescargados.length){
+      alert('⚠️ Estos archivos existen en la carpeta, pero OneDrive todavía no los ha descargado a este equipo (se ven con un ícono de nube ☁️ en el Explorador de archivos, en vez de un check verde ✅):\n\n'+
+        noDescargados.join('\n')+
+        '\n\nPara solucionarlo antes de continuar:\n'+
+        '1. Abre el Explorador de archivos y ve a esa carpeta de OneDrive.\n'+
+        '2. Clic derecho sobre la carpeta → "Conservar siempre en este dispositivo".\n'+
+        '3. Espera a que todos los archivos muestren el check verde.\n'+
+        '4. Vuelve aquí y selecciona la carpeta de nuevo.');
       if(btn){btn.textContent='📁 Seleccionar carpeta de archivos';btn.disabled=false;}
       return;
     }
