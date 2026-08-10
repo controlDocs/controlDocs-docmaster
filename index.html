@@ -19425,10 +19425,31 @@ async function odLeerArchivo(nombre){
   // MODO LOCAL: File System Access API
   var fh=await odGetArchivoHandle(nombre,'read');
   if(!fh) return null;
-  try{
-    var file=await fh.getFile();
-    return {buf:await file.arrayBuffer(), lastModified:file.lastModified, handle:fh};
-  }catch(e){ console.warn('Error leyendo '+nombre+':',e.message); return null; }
+  // Con reintentos: en equipos nuevos (o carpetas de OneDrive recién
+  // sincronizadas) un archivo puede existir como marcador en la nube
+  // ("Files On-Demand") y aún no estar descargado localmente cuando la
+  // app intenta leerlo por primera vez — el error típico es "The
+  // requested file could not be read, typically due to permission
+  // problems...". Antes, un solo fallo transitorio como ese hacía que la
+  // app tratara el archivo entero como "no encontrado" (datos vacíos) sin
+  // volver a intentarlo. Ahora reintenta, dando tiempo a que OneDrive
+  // termine de bajar el archivo.
+  var _intentosLeer=0, _ultimoErrLeer=null;
+  while(_intentosLeer<_odReintentosMax){
+    _intentosLeer++;
+    try{
+      var file=await fh.getFile();
+      return {buf:await file.arrayBuffer(), lastModified:file.lastModified, handle:fh};
+    }catch(e){
+      _ultimoErrLeer=e;
+      console.warn('[OD] Intento '+_intentosLeer+'/'+_odReintentosMax+' de leer '+nombre+' falló:',e.message);
+      if(_intentosLeer<_odReintentosMax){
+        await new Promise(function(r){ setTimeout(r,_odReintentosDelay); });
+      }
+    }
+  }
+  console.error('[OD] No se pudo leer '+nombre+' tras '+_odReintentosMax+' intentos:',_ultimoErrLeer&&_ultimoErrLeer.message);
+  return null;
 }
 
 //  UI helpers 
