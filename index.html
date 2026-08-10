@@ -29432,6 +29432,13 @@ function ecc_generarInformeGlobal(){
 // ============================================================
 var _nfConsecActual = null;
 var _nfPDFGenerado = false; // true después de generar el PDF
+// La solicitud ahora se guarda automáticamente al generar el PDF (ver
+// nfGenerarPDF). Estas dos variables permiten que nfGuardarEjecutar() sea
+// segura de llamar más de una vez para la MISMA solicitud sin duplicarla
+// ni volver a avanzar el consecutivo — se reinician al limpiar el
+// formulario o al abrir el módulo (nfLimpiar/nfInit).
+var _nfYaGuardadoAuto = false; // true una vez que esta solicitud (con este consecutivo) ya quedó guardada
+var _nfConsecEnCurso = null;   // consecutivo fijo de la solicitud en curso, independiente de _nfConsecActual (que ya puede apuntar al siguiente)
 
 function nfActualizarConsec(){
   var maxC=0;
@@ -29461,6 +29468,8 @@ function nfFechaHoy(){
 
 function nfInit(){
   nfActualizarConsec();
+  _nfYaGuardadoAuto=false;
+  _nfConsecEnCurso=null;
   nfActualizarBannerUltimo();
   // Fecha hoy
   var fd = document.getElementById('nf-fecha');
@@ -30748,13 +30757,24 @@ function nfGuardarEjecutar(){
     nfSalirModoEdicion();
     return;
   }
-  // ── Modo normal: crear nueva solicitud ────────────────────
-  nfActualizarConsec(); // asegurar consecutivo correcto antes de guardar
+  // ── Modo normal: crear nueva solicitud (o actualizar la misma si ya se
+  // había auto-guardado al generar el PDF — ver nfGenerarPDF) ──────────
+  // _nfYaGuardadoAuto + _nfConsecEnCurso hacen que esta función sea segura
+  // de llamar más de una vez para LA MISMA solicitud (p.ej. una vez al
+  // generar el PDF, y otra vez si el usuario además pasa por el flujo de
+  // "Guardar" con el aviso de coincidencias): la segunda llamada actualiza
+  // el mismo registro en vez de duplicarlo, y no vuelve a avanzar el
+  // consecutivo para la siguiente solicitud.
+  if(!_nfYaGuardadoAuto){
+    nfActualizarConsec(); // asegurar consecutivo correcto antes del primer guardado de este ciclo
+    _nfConsecEnCurso=_nfConsecActual;
+  }
+  var consecUsar=(_nfConsecEnCurso!=null)?_nfConsecEnCurso:_nfConsecActual;
   var sol = {
     codigo:             document.getElementById('nf-cod').value.trim(),
     nombreDoc:          document.getElementById('nf-nombredoc').value.trim(),
     tipoSolicitud:      document.getElementById('nf-tipo').value,
-    consecutivo:        String(_nfConsecActual),
+    consecutivo:        String(consecUsar),
     solicitante:        document.getElementById('nf-nombre').value.trim(),
     areaGeneradora:     document.getElementById('nf-area').value.trim(),
     fechaSolicitud:     hoy,
@@ -30770,7 +30790,10 @@ function nfGuardarEjecutar(){
     correoUsuario:      (document.getElementById('nf-correo')||{}).value||'',
     retiroRuta:''
   };
-  solicitudes.unshift(sol);
+  var idxExistenteN=(solicitudes||[]).findIndex(function(x){return String(x.consecutivo)===String(consecUsar);});
+  var yaTeniaCN=idxExistenteN>=0 && solicitudes[idxExistenteN]._cnRegistrado;
+  if(yaTeniaCN) sol._cnRegistrado=true;
+  if(idxExistenteN>=0){ solicitudes[idxExistenteN]=sol; } else { solicitudes.unshift(sol); }
   saveArr('sol', solicitudes);
   if(typeof rbRecalcCache==='function') rbRecalcCache();
   // Guardar referencia del último formato para recuperación
@@ -30786,9 +30809,12 @@ function nfGuardarEjecutar(){
     rbOficializarPorCodigo(sol.codigo,'Eliminación — solicitud de novedad N°'+sol.consecutivo);
   }
   // Si es Creación, también registrar en codigosNuevos (se guardará en Codigo_Doc_Nuevos)
-  if(sol.tipoSolicitud==='Creación'&&sol.codigo){
+  // — solo la primera vez para esta solicitud, para no duplicar el registro
+  // si nfGuardarEjecutar() se llama de nuevo (ver _cnRegistrado arriba).
+  if(sol.tipoSolicitud==='Creación'&&sol.codigo&&!sol._cnRegistrado){
     var entradaCN={fecha:sol.fechaSolicitud,codigo:sol.codigo.toUpperCase(),nombre:sol.nombreDoc};
     codigosNuevos.unshift(entradaCN);
+    sol._cnRegistrado=true;
     console.log('nfGuardar: agregado a Codigo_Doc_Nuevos:',entradaCN);
   }
   logA(currentUser?currentUser.nombre:'Usuario','Novedad de Documento','Nueva solicitud: '+sol.codigo+' — Consec. '+sol.consecutivo+' — Tipo: '+sol.tipoSolicitud,'',' Novedad de Documento');
@@ -30797,11 +30823,14 @@ function nfGuardarEjecutar(){
     if(OD.saveTimer) clearTimeout(OD.saveTimer);
     OD.saveTimer = setTimeout(function(){ odGuardarListado(true); }, 1500);
   }
-  toast('✅ Solicitud N° '+sol.consecutivo+' guardada en SharePoint','ok');
+  toast('✅ Solicitud N° '+sol.consecutivo+(_nfYaGuardadoAuto?' actualizada':' guardada')+' en SharePoint','ok');
   _spwCompletarSiAplica();
-  _nfConsecActual = (_nfConsecActual||0) + 1;
-  var badge = document.getElementById('nf-consec-badge');
-  if(badge) badge.textContent = _nfConsecActual;
+  if(!_nfYaGuardadoAuto){
+    _nfYaGuardadoAuto=true;
+    _nfConsecActual = (consecUsar||0) + 1;
+    var badge = document.getElementById('nf-consec-badge');
+    if(badge) badge.textContent = _nfConsecActual;
+  }
 }
 
 // ── Limpiar ──────────────────────────────────────────────────
@@ -31207,11 +31236,23 @@ async function nfGenerarPDF(){
     setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href);},3000);
     toast('📄 PDF descargado: '+nombreFinal+'.pdf','ok');
     _nfPDFGenerado=true;
-    setTimeout(function(){
-      if(confirm('✅ PDF generado correctamente.\n\n¿Desea guardar la solicitud ahora?')){
-        nfGuardar();
-      }
-    }, 400);
+
+    // Guardar la solicitud AHORA MISMO, de forma incondicional, apenas se
+    // genera el PDF. Antes, guardar dependía de que el usuario además
+    // confirmara un diálogo y, si aparecía, le diera "Continuar de todos
+    // modos" en el aviso de coincidencias — si no completaba ese segundo
+    // paso, la solicitud nunca quedaba guardada aunque el PDF ya se
+    // hubiera generado y descargado con su consecutivo (causa real de
+    // solicitudes "perdidas" reportada). nfGuardarEjecutar() es segura de
+    // llamar más de una vez para la misma solicitud: actualiza el mismo
+    // registro en vez de duplicarlo.
+    nfGuardarEjecutar();
+
+    // El resto de las verificaciones (campos obligatorios, coincidencias
+    // de nombre con otras empresas, Ruta de Borrador) ahora corren como
+    // una revisión posterior — informativa, no bloqueante: la solicitud
+    // ya quedó guardada pase lo que pase con este aviso.
+    setTimeout(function(){ nfGuardar(); }, 400);
   }catch(e){
     console.error('[nfGenerarPDF]',e);
     toast('Error al generar el PDF: '+e.message,'er');
@@ -31547,6 +31588,8 @@ function nfSalirModoEdicion(){
 function nfLimpiar(){
   if(!confirm('¿Limpiar todos los campos del formulario?')) return;
   _nfPDFGenerado=false;
+  _nfYaGuardadoAuto=false;
+  _nfConsecEnCurso=null;
   // Salir del modo edición si estaba activo
   if(_nfModoEdicion) nfSalirModoEdicion();
   var extra=document.getElementById('nf-creacion-extra');if(extra)extra.style.display='none';
