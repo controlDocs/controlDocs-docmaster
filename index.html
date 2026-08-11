@@ -4096,10 +4096,11 @@ var IC_FECHA_LIMITE_ANTICIPADA='2028-07-01';
 // para que el conteo del KPI sea el total real de la organización, sin
 // aplicar el filtro de visibilidad por administrador/empresa del usuario
 // que tenga la sesión abierta.
-function _icListaAnticipada(){
+function _icListaAnticipada(fechaLimite){
+  var _fl=fechaLimite||IC_FECHA_LIMITE_ANTICIPADA;
   return dashDocsBase().filter(function(d){
     return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
-      && d.fechaVencimiento && d.fechaVencimiento>IC_FECHA_LIMITE_ANTICIPADA
+      && d.fechaVencimiento && d.fechaVencimiento>_fl
       && !_icTieneIdentidadNueva(d);
   });
 }
@@ -4114,10 +4115,11 @@ function _icListaAnticipada(){
 // debe contarse aquí — solo se tienen en cuenta las actualizaciones de
 // documentos que ya hacían parte de los códigos identificados con esta
 // condición de vencimiento.
-function _icListaConIdentidad(){
+function _icListaConIdentidad(fechaLimite){
+  var _fl=fechaLimite||IC_FECHA_LIMITE_ANTICIPADA;
   return dashDocsBase().filter(function(d){
     return !_icEsFormato(d) && !_icEsObsoleto(d) && !_icEsDocumentoNuevo(d)
-      && d.fechaVencimiento && d.fechaVencimiento>IC_FECHA_LIMITE_ANTICIPADA
+      && d.fechaVencimiento && d.fechaVencimiento>_fl
       && _icTieneIdentidadNueva(d);
   });
 }
@@ -4510,6 +4512,13 @@ function renderIndicadoresCiclo(){
   // sin importar la empresa elegida.
   var base=dashDocsBase();
 
+  // Empresa efectiva que se está viendo en KPIs (la elegida manualmente en
+  // el selector, o si no hay ninguna elegida, la del usuario logueado).
+  // Se usa para los ajustes fijos por empresa de varios indicadores más
+  // abajo (eliminados por depuración, revisados anticipadamente).
+  var _icEmpresaActual=_dashEmpresaFiltro||(currentUser&&currentUser.empresa)||'';
+  var _icEmpresaNorm=_dashNormEmp(_icEmpresaActual);
+
   // ── 1. % Documentos nueva identidad ───────────────────────────────────
   // Fuente: checkbox "Cambio Identidad Corporativa" (cambioIdentidad) de
   // solicitudes de Ruta de Borrador ya OFICIALIZADAS.
@@ -4529,9 +4538,27 @@ function renderIndicadoresCiclo(){
   // Un documento nuevo que se cree después no cambia este número porque
   // queda excluido por _icEsDocumentoNuevo.
   // % avance = depurados / activos × 100
+  //
+  // Ajuste por empresa (acordado fuera del cálculo automático, verificado
+  // manualmente — ver conversación): para estas 5 empresas, el total de
+  // "aplicables" queda fijo en el valor verificado — no se recalcula desde
+  // el listado en vivo. (La resta depuración − anticipada − aprovechamiento
+  // natural se usó solo como verificación de consistencia entre los tres
+  // indicadores, dio 0 en las 5 empresas, confirmando que los números
+  // cuadran entre sí — no es el valor que se muestra aquí.)
+  var IC_DEPURACION_APLICABLES_FIJO_POR_EMPRESA={
+    'Procaps S.A.':2138,
+    'Crynssen Pharma S.A.S.':337,
+    'Pharmayect S.A.':789,
+    'Funtrition S.A.S':306,
+    'Procaps S.A. de C.V. (antes Laboratorios López S.A de C.V)':1309
+  };
   var listaDepurados=_icListaDepurados();
   var listaActivosDep=_icListaActivosDepuracion();
   var universoDepuracion=listaActivosDep.length;
+  Object.keys(IC_DEPURACION_APLICABLES_FIJO_POR_EMPRESA).forEach(function(nombreEmp){
+    if(_dashNormEmp(nombreEmp)===_icEmpresaNorm) universoDepuracion=IC_DEPURACION_APLICABLES_FIJO_POR_EMPRESA[nombreEmp];
+  });
   var pctDepuracion=universoDepuracion?Math.round(listaDepurados.length/universoDepuracion*100):0;
   var elDep=document.getElementById('dd-k-depuracion'); if(elDep) elDep.textContent=pctDepuracion+'%';
   var elDepS=document.getElementById('dd-k-depuracion-sub'); if(elDepS) elDepS.textContent=universoDepuracion?(listaDepurados.length+' depurados de '+universoDepuracion+' aplicables'):'Sin documentos aplicables';
@@ -4539,16 +4566,51 @@ function renderIndicadoresCiclo(){
 
   // ── 3. % Documentos revisados anticipadamente (avance real) ──────────
   // Universo aplicable: documentos (sin formatos, sin obsoletos) con
-  // vencimiento posterior al 1 de julio de 2028 = pendientes (base) +
+  // vencimiento posterior a la fecha límite = pendientes (base) +
   // ya cambiados a nueva identidad corporativa.
   // % avance = completados / (completados + pendientes) × 100  → 0-100%
-  var listaAnticipada=_icListaAnticipada();      // pendientes
-  var listaConIdentidad=_icListaConIdentidad();  // completados
-  var universoAnticipada=listaAnticipada.length+listaConIdentidad.length;
+  //
+  // Ajuste por empresa (acordado fuera del cálculo automático, verificado
+  // manualmente — ver conversación): para estas 5 empresas, el total de
+  // "aplicables" queda fijo — no se recalcula desde el listado en vivo.
+  // Las fechas de corte de Crynssen/Pharmayect/Funtrition (usadas para
+  // otros cálculos relacionados) se conservan más abajo, pero aquí el
+  // total ya no depende de ellas: es el valor fijo directamente.
+  var IC_ANTICIPADA_APLICABLES_FIJO_POR_EMPRESA={
+    'Procaps S.A.':577,
+    'Crynssen Pharma S.A.S.':138,
+    'Pharmayect S.A.':191,
+    'Funtrition S.A.S':106,
+    'Procaps S.A. de C.V. (antes Laboratorios López S.A de C.V)':630
+  };
+  var IC_FECHA_LIMITE_ANTICIPADA_POR_EMPRESA={
+    'Crynssen Pharma S.A.S.':'2027-06-01',
+    'Pharmayect S.A.':'2027-12-01',
+    'Funtrition S.A.S':'2027-06-01'
+  };
+  var _icFechaLimiteAnticipadaEfectiva=IC_FECHA_LIMITE_ANTICIPADA;
+  Object.keys(IC_FECHA_LIMITE_ANTICIPADA_POR_EMPRESA).forEach(function(nombreEmp){
+    if(_dashNormEmp(nombreEmp)===_icEmpresaNorm) _icFechaLimiteAnticipadaEfectiva=IC_FECHA_LIMITE_ANTICIPADA_POR_EMPRESA[nombreEmp];
+  });
+  var _icAnticipadaFijo=null;
+  Object.keys(IC_ANTICIPADA_APLICABLES_FIJO_POR_EMPRESA).forEach(function(nombreEmp){
+    if(_dashNormEmp(nombreEmp)===_icEmpresaNorm) _icAnticipadaFijo=IC_ANTICIPADA_APLICABLES_FIJO_POR_EMPRESA[nombreEmp];
+  });
+
+  var listaAnticipada=_icListaAnticipada(_icFechaLimiteAnticipadaEfectiva);      // pendientes
+  var listaConIdentidad=_icListaConIdentidad(_icFechaLimiteAnticipadaEfectiva);  // completados
+  var universoAnticipada, pendientesAnticipada;
+  if(_icAnticipadaFijo!==null){
+    universoAnticipada=_icAnticipadaFijo;
+    pendientesAnticipada=Math.max(0,universoAnticipada-listaConIdentidad.length);
+  } else {
+    universoAnticipada=listaAnticipada.length+listaConIdentidad.length;
+    pendientesAnticipada=listaAnticipada.length;
+  }
   var pctAnticipada=universoAnticipada?Math.round(listaConIdentidad.length/universoAnticipada*100):0;
   var elAnt=document.getElementById('dd-k-anticipada'); if(elAnt) elAnt.textContent=pctAnticipada+'%';
-  var elAntS=document.getElementById('dd-k-anticipada-sub'); if(elAntS) elAntS.textContent=universoAnticipada?(listaConIdentidad.length+' completados de '+universoAnticipada+' aplicables ('+listaAnticipada.length+' pendientes)'):'Sin documentos aplicables';
-  if(typeof icDibujarDonutAnticipada==='function') icDibujarDonutAnticipada(pctAnticipada,listaConIdentidad.length,listaAnticipada.length);
+  var elAntS=document.getElementById('dd-k-anticipada-sub'); if(elAntS) elAntS.textContent=universoAnticipada?(listaConIdentidad.length+' completados de '+universoAnticipada+' aplicables ('+pendientesAnticipada+' pendientes)'):'Sin documentos aplicables';
+  if(typeof icDibujarDonutAnticipada==='function') icDibujarDonutAnticipada(pctAnticipada,listaConIdentidad.length,pendientesAnticipada);
 
   // ── 4. Índice de Aprovechamiento del Ciclo Natural ────────────────────
   // Documentos (sin formatos, sin obsoletos, sin recién creados) cuyo
@@ -4557,13 +4619,37 @@ function renderIndicadoresCiclo(){
   // ya aprovecharon esa revisión para incluir el Cambio de Identidad
   // Corporativa, frente a los que aún están pendientes de hacerlo.
   // % avance = completados / (completados + pendientes) × 100 → 0-100%
+  //
+  // Ajuste por empresa (acordado fuera del cálculo automático, verificado
+  // manualmente — ver conversación): para estas 5 empresas, el total de
+  // "aplicables" queda fijo — no se recalcula desde el listado en vivo.
+  // Los "completados" se siguen contando en vivo; los "pendientes" son la
+  // diferencia entre el fijo y los completados.
+  var IC_CICLO_APLICABLES_FIJO_POR_EMPRESA={
+    'Procaps S.A.':1561,
+    'Crynssen Pharma S.A.S.':199,
+    'Pharmayect S.A.':598,
+    'Funtrition S.A.S':200,
+    'Procaps S.A. de C.V. (antes Laboratorios López S.A de C.V)':679
+  };
   var listaCicloPend=_icListaCicloPendiente();
   var listaCicloComp=_icListaCicloCompletado();
-  var universoCiclo2=listaCicloPend.length+listaCicloComp.length;
+  var universoCiclo2, pendientesCiclo2;
+  var _icCicloFijo=null;
+  Object.keys(IC_CICLO_APLICABLES_FIJO_POR_EMPRESA).forEach(function(nombreEmp){
+    if(_dashNormEmp(nombreEmp)===_icEmpresaNorm) _icCicloFijo=IC_CICLO_APLICABLES_FIJO_POR_EMPRESA[nombreEmp];
+  });
+  if(_icCicloFijo!==null){
+    universoCiclo2=_icCicloFijo;
+    pendientesCiclo2=Math.max(0,universoCiclo2-listaCicloComp.length);
+  } else {
+    universoCiclo2=listaCicloPend.length+listaCicloComp.length;
+    pendientesCiclo2=listaCicloPend.length;
+  }
   var pctCiclo=universoCiclo2?Math.round(listaCicloComp.length/universoCiclo2*100):0;
   var elCic=document.getElementById('dd-k-ciclo'); if(elCic){ elCic.textContent=pctCiclo+'%'; elCic.style.color=pctCiclo>=70?'var(--G)':pctCiclo>=40?'var(--A)':'var(--R)'; }
-  var elCicS=document.getElementById('dd-k-ciclo-sub'); if(elCicS) elCicS.textContent=universoCiclo2?(listaCicloComp.length+' completados de '+universoCiclo2+' aplicables ('+listaCicloPend.length+' pendientes)'):'Sin documentos aplicables';
-  if(typeof icDibujarDonutCiclo==='function') icDibujarDonutCiclo(pctCiclo,listaCicloComp.length,listaCicloPend.length);
+  var elCicS=document.getElementById('dd-k-ciclo-sub'); if(elCicS) elCicS.textContent=universoCiclo2?(listaCicloComp.length+' completados de '+universoCiclo2+' aplicables ('+pendientesCiclo2+' pendientes)'):'Sin documentos aplicables';
+  if(typeof icDibujarDonutCiclo==='function') icDibujarDonutCiclo(pctCiclo,listaCicloComp.length,pendientesCiclo2);
 
   // ── 5. Solicitudes Renovadas (Ruta de Borrador) ───────────────────────
   var totalSol=(solicitudes||[]).length;
