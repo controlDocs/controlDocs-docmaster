@@ -19271,6 +19271,15 @@ async function odAsegurarTablaExcel(nombreArchivo, nombreTabla){
 // buffer intacto. idTabla: número único de tabla dentro del libro (1, 2,
 // 3…) para no chocar si se inyecta más de una en el mismo archivo.
 async function _inyectarTablaEnBuffer(bufArray, sheetSelector, nombreTabla, idTabla){
+  // DESACTIVADO (ver diagnóstico): la inyección manual de XML de Tablas de
+  // Excel (<tableParts>, xl/tables/tableN.xml, relaciones .rels, etc.)
+  // podía dejar el paquete OOXML en un estado que Excel considera inválido
+  // al abrirlo ("Hemos encontrado un problema con el contenido..."), aunque
+  // la propia app pudiera releerlo sin problema. Se prioriza la integridad
+  // del archivo sobre conservar el formato de "Tabla" (autofiltro/estilo);
+  // los datos, hojas y auditoría NO dependen de esto. Para reactivar,
+  // eliminar este "return" temprano.
+  return bufArray;
   if(typeof JSZip==='undefined') return bufArray;
   try{
     var zip=await JSZip.loadAsync(bufArray);
@@ -22180,11 +22189,12 @@ async function odGuardarListado(silencioso, forzarTodo){
           _odLastModified=filePos.lastModified;
           _odTsUltimaCarga=filePos.lastModified;
           _odUltimoTam=filePos.size||0; // actualizar tamaño tras guardado exitoso verificado
-          // Verificar que la Tabla de Excel del Listado Maestro sigue intacta
-          // (la librería XLSX no la conserva al reescribir el archivo); si se
-          // perdió, se reconstruye de inmediato con el mismo rango y
-          // encabezados reales, sin esperar al siguiente guardado.
-          try{ await odAsegurarTablaExcel(OD_ARCHIVOS.lm, 'ListadoMaestro'); }catch(eTabla){ console.warn('[Tabla] Verificación de tabla LM falló:',eTabla.message); }
+          // DESACTIVADO: antes se releía el archivo recién guardado para
+          // verificar/reconstruir la Tabla de Excel del Listado Maestro.
+          // Esa relectura + posible reescritura inmediata era una fuente de
+          // corrupción (podía chocar con la sincronización de OneDrive o
+          // con la propia inyección en memoria). Se prioriza no tocar el
+          // archivo de nuevo justo después de un guardado exitoso.
         } else {
           break; // sin permiso, no reintentar
         }
@@ -30673,8 +30683,16 @@ function nfVerificarRutaBorrador(cod){
   // Buscar solicitudes con este código ordenadas por fecha descendente
   if(!cod||!solicitudes||!solicitudes.length) return null;
   var codU=cod.toUpperCase().trim();
+  // Excluir el propio borrador que esta MISMA sesión de "Novedad" ya
+  // auto-guardó al generar el PDF (ver nfGuardarEjecutar/_nfConsecEnCurso).
+  // Sin esto, al regenerar el PDF una segunda vez (p.ej. tras corregir un
+  // dato) la función se "auto-detectaba" como si otra solicitud distinta
+  // ya estuviera en trámite para el mismo código, mostrando una alerta
+  // falsa con los datos que el propio usuario acababa de diligenciar.
+  var consecPropio=(_nfConsecEnCurso!=null)?String(_nfConsecEnCurso):null;
   // Filtrar por código y ordenar por fecha más reciente
   var coincidencias=(solicitudes||[]).filter(function(s){
+    if(consecPropio!=null && String(s.consecutivo)===consecPropio) return false;
     return (s.codigo||'').toUpperCase().trim()===codU;
   }).sort(function(a,b){
     // Ordenar por fecha descendente
