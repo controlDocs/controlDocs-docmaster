@@ -469,6 +469,8 @@ tbody tr:last-child td{border-bottom:none}
           <div class="home-mod-card" onclick="nav('usrs',document.querySelector('[data-p=usrs]'))"><div class="home-mod-icon" style="background:#e8f0fb">👥</div><div class="home-mod-name">Usuarios</div></div>
           <div class="home-mod-card" onclick="nav('correos',document.querySelector('[data-p=correos]'))"><div class="home-mod-icon" style="background:#e8f0fb">📧</div><div class="home-mod-name">Correos</div></div>
           <div class="home-mod-card" onclick="nav('cfg',document.querySelector('[data-p=cfg]'))"><div class="home-mod-icon" style="background:#f0f0f0">⚙️</div><div class="home-mod-name">Configuración</div></div>
+          <div class="home-mod-card" onclick="nav('docext',document.querySelector('[data-p=docext]'))"><div class="home-mod-icon" style="background:#faeeda">📚</div><div class="home-mod-name">Documentos Externos</div></div>
+          <div class="home-mod-card" onclick="nav('hseg',document.querySelector('[data-p=hseg]'))"><div class="home-mod-icon" style="background:#e6f1fb">🧪</div><div class="home-mod-name">Hojas de Seguridad</div></div>
           
           
         </div>
@@ -1144,6 +1146,81 @@ tbody tr:last-child td{border-bottom:none}
             <tbody id="insp-tb"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PÁGINA: DOCUMENTOS EXTERNOS                                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="pg" id="pg-docext">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">Documentos Externos</div>
+        <div style="font-size:12px;color:var(--tx3)">Acuerdos de Calidad, Certificaciones, Normas, Guías Técnicas y otros insumos externos</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn gh sm" onclick="descargarDocExt()">⬇ Descargar Excel</button>
+        <button class="btn sm" id="dext-btn-nuevo" onclick="openNewDocExt()">+ Nuevo</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+      <div class="kpi"><div class="kl">TOTAL</div><div class="kv tl" id="dext-k-total">0</div><div class="ks">Documentos registrados</div></div>
+      <div class="kpi"><div class="kl">VIGENTES</div><div class="kv g" id="dext-k-vig">0</div><div class="ks">Estado Vigente</div></div>
+      <div class="kpi"><div class="kl">OBSOLETOS</div><div class="kv r" id="dext-k-obs">0</div><div class="ks">Estado Obsoleto</div></div>
+    </div>
+
+    <div class="card">
+      <div class="sh">
+        <div class="st">Listado de documentos externos</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="fi" id="dext-f-q" placeholder="Buscar por nombre o código..." style="width:220px" oninput="renderDocExt()">
+          <select class="fsel" id="dext-f-estado" onchange="renderDocExt()">
+            <option value="">Todos los estados</option>
+            <option value="Vigente">Vigente</option>
+            <option value="Obsoleto">Obsoleto</option>
+          </select>
+        </div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Código</th><th>Código Publicación</th><th>Nombre</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="dext-tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PÁGINA: HOJAS DE SEGURIDAD                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div class="pg" id="pg-hseg">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">Hojas de Seguridad</div>
+        <div style="font-size:12px;color:var(--tx3)">Relación entre código de Producto Terminado y código a Granel</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn gh sm" onclick="descargarHojasSeg()">⬇ Descargar Excel</button>
+        <button class="btn sm" id="hseg-btn-nuevo" onclick="openNewHojaSeg()">+ Nuevo</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div class="kpi" style="max-width:260px"><div class="kl">TOTAL</div><div class="kv tl" id="hseg-k-total">0</div><div class="ks">Hojas registradas</div></div>
+    </div>
+
+    <div class="card">
+      <div class="sh">
+        <div class="st">Listado de hojas de seguridad</div>
+        <input class="fi" id="hseg-f-q" placeholder="Buscar por código PT, granel o descripción..." style="width:280px" oninput="renderHojasSeg()">
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Código PT</th><th>Descripción</th><th>Código Granel</th><th>Descripción Granel</th><th></th></tr></thead>
+          <tbody id="hseg-tb"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -3146,6 +3223,8 @@ tbody tr:last-child td{border-bottom:none}
 	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="novedad"> 📋 Novedad Documento</label>
 	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="correos"> ✉️ Correos</label>
 	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="solpend"> 🔔 Solicitudes Pendientes</label>
+	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="docext"> 📚 Documentos Externos</label>
+	<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" value="hseg"> 🧪 Hojas de Seguridad</label>
 
  </div>
   </div>
@@ -3156,7 +3235,6 @@ tbody tr:last-child td{border-bottom:none}
   </div>
   <input type="hidden" id="u-eid" value="">
 </div></div>
-
 
 
 <script>
@@ -3303,6 +3381,13 @@ function saveArr(k,v){
     else if(k==='insp'||k==='inspProg') _odMarcarSucio('insp');
     else if(k==='u') _odMarcarSucio('lm');
   }
+  // Documentos Externos vive en su propio archivo (DocumentosExternos.xlsx),
+  // fuera del ciclo de _odDirty/odGuardarListado (que solo cubre los 4
+  // archivos históricos lm/copias/insp/sol) — se guarda directo aquí mismo,
+  // de forma independiente, cada vez que cambia.
+  if(k==='dext' && typeof odGuardarDocExternos==='function') odGuardarDocExternos();
+  // Hojas de Seguridad funciona igual: archivo propio, guardado directo.
+  if(k==='hseg' && typeof odGuardarHojasSeguridad==='function') odGuardarHojasSeguridad();
 }
 function loadArr(k){try{var v=lsGet('sg_'+k);return v?JSON.parse(v):[];}catch(e){return[];}}
 function loadObj(k,def){try{var v=lsGet('sg_'+k);return v?JSON.parse(v):def;}catch(e){return def;}}
@@ -3320,6 +3405,14 @@ var docs=[],auditoria=[],copias=loadArr('c'),procesos=[],usuarios=[],notifH=[];
 var cfg={org:'Sofgen Pharma',revDias:365,alertDias:30};
 var inspecciones=[];
 var programaInsp2026=[];
+// Documentos Externos — Acuerdos de Calidad, Certificaciones, Normas, Guías
+// Técnicas y otros insumos externos aplicables a los procesos. Cada
+// registro: {id, codigo (EXT-XXX-VVVV), codigoPublicacion, nombre, vigencia, estado}
+var docsExternos=loadArr('dext');
+// Hojas de Seguridad — funciona igual que Documentos Externos (mismo
+// patrón de módulo autocontenido con Excel propio). Cada registro:
+// {id, codigoPT, descripcion, codigoGranel, descripcionGranel}
+var hojasSeguridad=loadArr('hseg');
 var mstInfo={fecha:null,archivo:null,registros:0};
 var selProc=null,ntipo=null;
 var copiasAlertaCtx={tipo:'',lista:[]};
@@ -3744,8 +3837,8 @@ function getSaludo(){var h=new Date().getHours();if(h>=5&&h<12)return'Buenos dia
 // NAV
 // ============================================================
 
-var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Programa de Inspecciones Rutinarias',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento',solpend:'Solicitudes Pendientes'};
-var PR={dash:renderDash,kpi:function(){renderKPI();renderKpiHallazgos();},docs:function(){renderDocs();lmInit();},venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:function(){window._usrShowPass=false;renderUsrs();},notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();},solpend:function(){renderSolPend();}};
+var PT={dash:'Inicio',kpi:'KPIs',docs:'Documentos',copias:'Copias Controladas',entregacc:'Entrega de Copias',insp:'Programa de Inspecciones Rutinarias',usrs:'Usuarios',notif:'Notificaciones',audit:'Auditoria',rep:'Reportes',cfg:'Configuracion',extvigor:'Extender Vigencia',marobs:'Marcar Obsoleto',docsrel:'Documentos Relacionados',pdfbarcode:'Estampar Código de Barras en PDF',revdoc:'Revisión de Documentos',fextvig:'F-Extensión de Vigencia',rutabor:'Ruta de Borrador',novedad:'Novedad de Documento',solpend:'Solicitudes Pendientes',docext:'Documentos Externos',hseg:'Hojas de Seguridad'};
+var PR={dash:renderDash,kpi:function(){renderKPI();renderKpiHallazgos();},docs:function(){renderDocs();lmInit();},venc:renderVenc,copias:function(){_ccSelectedArea=null;_ccSelectedSub=null;_ccEstadoFiltro=null;var q=document.getElementById('fc-q');if(q)q.value='';ccRenderTree();var tb=document.getElementById('copias-tb');if(tb)tb.innerHTML='<tr><td colspan="9"><div class="emp" style="padding:48px 20px;flex-direction:column;gap:10px"><div style="font-size:32px">📋</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:4px">Selecciona un área en el árbol izquierdo</div><div style="font-size:11px;color:var(--tx3)">o busca un código específico en el campo de búsqueda</div></div></td></tr>';var c=document.getElementById('cc-detail-title');if(c)c.textContent='Todas las áreas';},entregacc:function(){renderEntregaCC();},insp:function(){renderInsp();checkInspAlerts();},usrs:function(){window._usrShowPass=false;renderUsrs();},notif:renderNotif,audit:renderAudit,rep:renderRep,correos:renderCorreos,cfg:renderCfg,extvigor:renderExtVigor,marobs:renderMarObs,docsrel:renderDocsRel,pdfbarcode:renderPdfBarcode,revdoc:renderRevDoc,fextvig:function(){renderFExtVig();},rutabor:function(){rbRender();},novedad:function(){nfInit();},solpend:function(){renderSolPend();},docext:function(){renderDocExt();},hseg:function(){renderHojasSeg();}};
 
 var _navPgNodes=null,_navNiNodes=null;
 function _navGetNodes(){if(!_navPgNodes)_navPgNodes=Array.from(document.querySelectorAll('.pg'));if(!_navNiNodes)_navNiNodes=Array.from(document.querySelectorAll('.ni'));}
@@ -3760,7 +3853,7 @@ function _navGetNodes(){if(!_navPgNodes)_navPgNodes=Array.from(document.querySel
 // cierto tiempo; si el latido se vence (mismo tiempo que el cierre de
 // sesión por inactividad), el bloqueo se considera abandonado y se libera
 // automáticamente para que otro usuario pueda entrar.
-var LOCKABLE_MODULES = ['docs','copias','entregacc','insp','usrs','cfg','extvigor','marobs','fextvig','rutabor','novedad','correos'];
+var LOCKABLE_MODULES = ['docs','copias','entregacc','insp','usrs','cfg','extvigor','marobs','fextvig','rutabor','novedad','correos','docext','hseg'];
 // _miSesionId se guarda en sessionStorage (no solo en una variable JS) para
 // que sobreviva a un refresco (F5) de la misma pestaña. Antes se generaba un
 // id nuevo en cada carga de página: si el usuario refrescaba estando dentro
@@ -8867,17 +8960,40 @@ function genBorrador(){
   var di=dH(d.fechaVencimiento),org=cfg.org||'Sofgen Pharma';
   var fecha=fDL();
   var hdr='Estimado(a) '+(d.administrador||'responsable')+',\n\n';
-  var firma='\n\nSaludos cordiales,\nSistema de Documentación';
-  var datos='\n\nDATOS DEL DOCUMENTO:\n- Codigo: '+d.codigoActual+(d.codigoAntiguo&&d.codigoAntiguo!=='No Aplica'?' (Ant: '+d.codigoAntiguo+')':'')+'\n- Descripcion: '+d.descripcion+'\n- Tipo: '+(d.tipoDocumento||'-')+'\n- Version: '+fVer(d.version)+'\n- Area: '+(d.areaGeneradora||'-')+'\n- Proceso: '+(d.proceso||'-')+'\n- Administrador: '+(d.administrador||'-')+'\n- Lider: '+(d.liderProceso||'-')+'\n- Estado: '+d.estado+'\n- Vigencia: '+fDD(d.fechaVigencia)+'\n- Vencimiento: '+fDD(d.fechaVencimiento)+'\n- GxP: '+(d.docGxP||'No especificado');
+  var firma='\n\nCordialmente,\nSistema de Documentación';
+  // ── Bloque de datos organizado con viñetas (estilo "DATOS:" con icono) ──
+  var datos='\n\n📋 DATOS:\n'
+    +'• Código: '+d.codigoActual+(d.codigoAntiguo&&d.codigoAntiguo!=='No Aplica'?' (Ant: '+d.codigoAntiguo+')':'')+'\n'
+    +'• Documento: '+d.descripcion+'\n'
+    +'• Versión: '+fVer(d.version)+'\n'
+    +'• Vigencia: '+fDD(d.fechaVigencia)+'\n'
+    +'• Vencimiento: '+fDD(d.fechaVencimiento);
   var asunto='',cuerpo='';
-  if(ntipo==='vencido'){asunto='[URGENTE] Documento vencido - '+d.codigoActual;cuerpo=hdr+'El siguiente documento esta VENCIDO con '+Math.abs(di)+' dia(s) de atraso:'+datos+'\n\nACCION REQUERIDA: Inicie el proceso de revision y actualizacion.'+firma;}
-  else if(ntipo==='por_vencer'){asunto='[ALERTA] Documento proximo a vencer - '+d.codigoActual;cuerpo=hdr+'El siguiente documento vencera en '+di+' dia(s):'+datos+'\n\nACCION REQUERIDA: Inicie el proceso de revision antes de la fecha de vencimiento.'+firma;}
-  else if(ntipo==='flujo_envio'){asunto='[REVISION] Documento enviado para aprobacion - '+d.codigoActual;cuerpo=hdr+'Se le asigno la revision del siguiente documento:'+datos+'\n\nPor favor revise y proceda con su aprobacion o devolucion.'+firma;}
-  else if(ntipo==='flujo_aprob'){asunto='[APROBADO] Documento aprobado - '+d.codigoActual;cuerpo=hdr+'El siguiente documento ha sido APROBADO:'+datos+'\n\nYa esta disponible en el sistema documental.'+firma;}
-  else if(ntipo==='flujo_rech'){asunto='[RECHAZADO] Documento devuelto - '+d.codigoActual;cuerpo=hdr+'El siguiente documento fue RECHAZADO y devuelto para correccion:'+datos+'\n\nMOTIVO: [Completar motivo]\n\nPor favor realice las correcciones y reenvie al flujo.'+firma;}
-  else if(ntipo==='copia'){asunto='[COPIA] Entrega de copia controlada - '+d.codigoActual;cuerpo=hdr+'Se le asigno la siguiente copia controlada:'+datos+'\n\nPor favor confirme la recepcion respondiendo este correo.'+firma;}
-  else if(ntipo==='nuevo'){asunto='[NUEVO] Nuevo documento disponible - '+d.codigoActual;cuerpo=hdr+'Se publico un nuevo documento en el sistema de '+org+':'+datos+'\n\nYa esta disponible para consulta.'+firma;}
-  else if(ntipo==='no_entrega'){asunto='[URGENTE] Pendiente entrega de reporte - '+d.codigoActual;cuerpo=hdr+'El reporte del siguiente documento esta PENDIENTE:'+datos+'\n- Reporte: NO ENTREGADO\n\nPor favor proceda con la entrega a la brevedad.'+firma;}
+  if(ntipo==='vencido'){
+    asunto='[URGENTE] Documento vencido - '+d.codigoActual;
+    cuerpo=hdr+'Le recordamos que el siguiente documento se encuentra VENCIDO:'+datos+'\n• Resultado: ❌ VENCIDO ('+Math.abs(di)+' día(s) de atraso)'+'\n\nPor favor proceda con la revisión y actualización a la brevedad posible.'+firma;
+  } else if(ntipo==='por_vencer'){
+    asunto='[ALERTA] Documento proximo a vencer - '+d.codigoActual;
+    cuerpo=hdr+'Le recordamos que el siguiente documento está próximo a vencer:'+datos+'\n• Resultado: ⏳ Vence en '+di+' día(s)'+'\n\nPor favor inicie el proceso de revisión antes de la fecha de vencimiento.'+firma;
+  } else if(ntipo==='flujo_envio'){
+    asunto='[REVISION] Documento enviado para aprobacion - '+d.codigoActual;
+    cuerpo=hdr+'Le informamos que se le asignó la revisión del siguiente documento:'+datos+'\n• Resultado: 🔎 PENDIENTE DE REVISIÓN'+'\n\nPor favor revise y proceda con su aprobación o devolución.'+firma;
+  } else if(ntipo==='flujo_aprob'){
+    asunto='[OFICIALIZADO] Documento aprobado - '+d.codigoActual;
+    cuerpo=hdr+'Le informamos que el siguiente documento fue oficializado:'+datos+'\n• Resultado: ✅ APROBADO / OFICIALIZADO'+'\n\nYa está disponible en el sistema documental.'+firma;
+  } else if(ntipo==='flujo_rech'){
+    asunto='[RECHAZADO] Documento devuelto - '+d.codigoActual;
+    cuerpo=hdr+'Le informamos que el siguiente documento fue devuelto para corrección:'+datos+'\n• Resultado: ❌ RECHAZADO'+'\n• Motivo: [Completar motivo]'+'\n\nPor favor realice las correcciones y reenvíe al flujo.'+firma;
+  } else if(ntipo==='copia'){
+    asunto='[COPIA] Entrega de copia controlada - '+d.codigoActual;
+    cuerpo=hdr+'Le informamos que se le asignó la siguiente copia controlada:'+datos+'\n• Resultado: 📦 Copia controlada'+'\n\nPor favor confirme la recepción respondiendo este correo.'+firma;
+  } else if(ntipo==='nuevo'){
+    asunto='[NUEVO] Nuevo documento disponible - '+d.codigoActual;
+    cuerpo=hdr+'Le informamos que se publicó un nuevo documento en el sistema de '+org+':'+datos+'\n• Resultado: 🆕 NUEVO DOCUMENTO'+'\n\nYa está disponible para consulta.'+firma;
+  } else if(ntipo==='no_entrega'){
+    asunto='[URGENTE] Pendiente entrega de reporte - '+d.codigoActual;
+    cuerpo=hdr+'Le recordamos que el reporte del siguiente documento se encuentra PENDIENTE de entrega:'+datos+'\n• Resultado: ❌ NO ENTREGADA'+'\n\nPor favor proceda con la elaboración y entrega a la brevedad posible.'+firma;
+  }
   document.getElementById('n-asunto').value=asunto;
   document.getElementById('n-cuerpo').value=cuerpo;
   toast('Borrador generado','if');
@@ -12565,6 +12681,684 @@ function delInsp(id){
     renderInsp(); checkInspAlerts(); renderDashInsp();
   });
 }
+
+// ============================================================
+// MÓDULO: DOCUMENTOS EXTERNOS
+// Estructura de código: EXT-XXX-VVV
+//   EXT = Origen (Externo)
+//   XXX = Tipo de documento (ACD/CER/NOR/GTE/OTR)
+//   VVV = Consecutivo dentro del sistema de documentación
+// Persiste en su propio archivo "DocumentosExternos.xlsx" dentro de la
+// carpeta compartida, igual que Copias/Inspecciones/Solicitudes.
+// ============================================================
+var DOCEXT_TIPOS={
+  'ACD':'Acuerdos de Calidad',
+  'CER':'Certificaciones',
+  'NOR':'Normas',
+  'GTE':'Guías Técnicas',
+  'OTR':'Otros documentos externos aplicables como insumos para los procesos'
+};
+
+// Siguiente consecutivo disponible para un prefijo de tipo dado (XXX)
+function docExtSiguienteConsecutivo(tipoPref){
+  var max=0;
+  var re=new RegExp('^EXT-'+tipoPref+'-(\\d{3,})$');
+  (docsExternos||[]).forEach(function(d){
+    var m=String(d.codigo||'').toUpperCase().trim().match(re);
+    if(m){ var n=parseInt(m[1],10)||0; if(n>max) max=n; }
+  });
+  return max+1;
+}
+
+// Cierra y elimina el formulario dinámico de Documento Externo (si existe)
+function _dextCerrarFormulario(){
+  var ov=document.getElementById('dext-form-overlay');
+  if(ov && ov.parentNode) ov.parentNode.removeChild(ov);
+}
+
+// Construye y muestra el formulario de alta/edición como un overlay 100%
+// autocontenido: se crea con JavaScript puro y se agrega al final de
+// <body>, con TODOS sus estilos en línea (nada depende de clases CSS
+// externas ni de elementos estáticos preexistentes en el HTML). Esto
+// evita cualquier conflicto posible con hojas de estilo, z-index de
+// otros elementos, o estado corrupto de un modal reutilizado.
+function _dextAbrirFormulario(existente){
+  console.log('[DocExt] Abriendo formulario dinámico. Editando:',existente?existente.codigo:'(nuevo)');
+  _dextCerrarFormulario(); // por si había uno abierto
+
+  var d=existente||null;
+  var tipoActual='';
+  if(d){
+    var m=String(d.codigo||'').toUpperCase().match(/^EXT-([A-Z]{3})-\d+$/);
+    tipoActual=m?m[1]:'';
+  }
+
+  var ov=document.createElement('div');
+  ov.id='dext-form-overlay';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;'
+    +'background:rgba(8,32,28,.58);z-index:2147483000;display:flex;align-items:center;'
+    +'justify-content:center;padding:14px;box-sizing:border-box;';
+  ov.addEventListener('click',function(e){ if(e.target===ov) _dextCerrarFormulario(); });
+
+  var box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:460px;'
+    +'max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.3);'
+    +'font-family:Inter,Arial,sans-serif;box-sizing:border-box;';
+  box.addEventListener('click',function(e){ e.stopPropagation(); });
+
+  var lbl='font-size:10px;color:#7a9a94;font-weight:700;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;';
+  var inp='width:100%;padding:8px 10px;border:1px solid #d5e5e2;border-radius:6px;font-size:13px;background:#f4faf9;color:#0a2828;box-sizing:border-box;font-family:inherit;';
+
+  box.innerHTML=
+     '<button type="button" id="dextf-x" style="position:absolute;top:13px;right:13px;background:#f0f0f0;border:1px solid #ddd;color:#888;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:13px;line-height:1">X</button>'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:16px;color:#0a2828">'+(d?'Editar documento externo':'Nuevo documento externo')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:12px">'
+      +'<div>'
+        +'<label style="'+lbl+'">Tipo de documento *</label>'
+        +'<select id="dextf-tipo" style="'+inp+'">'
+          +'<option value="">Seleccionar tipo...</option>'
+          +'<option value="ACD">ACD — Acuerdos de Calidad</option>'
+          +'<option value="CER">CER — Certificaciones</option>'
+          +'<option value="NOR">NOR — Normas</option>'
+          +'<option value="GTE">GTE — Guías Técnicas</option>'
+          +'<option value="OTR">OTR — Otros documentos externos aplicables como insumos para los procesos</option>'
+        +'</select>'
+        +'<div style="font-size:9px;color:#7a9a94;margin-top:4px">Código: <strong id="dextf-cod-preview" style="color:#0a2828">'+(d?d.codigo:'—')+'</strong> (formato EXT-XXX-VVV, asignado automáticamente)</div>'
+      +'</div>'
+      +'<div>'
+        +'<label style="'+lbl+'">Nombre *</label>'
+        +'<input id="dextf-nom" placeholder="Nombre del documento externo" style="'+inp+'">'
+      +'</div>'
+      +'<div>'
+        +'<label style="'+lbl+'">Código de Publicación</label>'
+        +'<input id="dextf-codpub" placeholder="Código de publicación (manual)" style="'+inp+'">'
+      +'</div>'
+      +'<div>'
+        +'<label style="'+lbl+'">Vigencia</label>'
+        +'<input id="dextf-vig" type="date" style="'+inp+'">'
+      +'</div>'
+      +'<div>'
+        +'<label style="'+lbl+'">Estado</label>'
+        +'<select id="dextf-estado" style="'+inp+'">'
+          +'<option value="Vigente">Vigente</option>'
+          +'<option value="Obsoleto">Obsoleto</option>'
+        +'</select>'
+      +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">'
+      +'<button type="button" id="dextf-cancel" style="padding:8px 14px;border-radius:8px;border:1px solid #d5e5e2;background:#fff;color:#4a6a64;font-size:12px;cursor:pointer;font-weight:600">Cancelar</button>'
+      +'<button type="button" id="dextf-save" style="padding:8px 18px;border-radius:8px;border:none;background:#0a8a6e;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Guardar</button>'
+    +'</div>';
+
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+  console.log('[DocExt] overlay agregado a document.body — hijos de body:',document.body.children.length);
+
+  document.getElementById('dextf-x').addEventListener('click',_dextCerrarFormulario);
+  document.getElementById('dextf-cancel').addEventListener('click',_dextCerrarFormulario);
+
+  var selTipo=document.getElementById('dextf-tipo');
+  var codPrev=document.getElementById('dextf-cod-preview');
+  if(d){
+    selTipo.value=tipoActual;
+    document.getElementById('dextf-nom').value=d.nombre||'';
+    document.getElementById('dextf-codpub').value=d.codigoPublicacion||'';
+    document.getElementById('dextf-vig').value=d.vigencia||'';
+    document.getElementById('dextf-estado').value=d.estado||'Vigente';
+  }
+  selTipo.addEventListener('change',function(){
+    if(d){ codPrev.textContent=d.codigo||'—'; return; }
+    var tipo=selTipo.value;
+    if(!tipo){ codPrev.textContent='—'; return; }
+    var n=docExtSiguienteConsecutivo(tipo);
+    codPrev.textContent='EXT-'+tipo+'-'+String(n).padStart(4,'0');
+  });
+
+  document.getElementById('dextf-save').addEventListener('click',function(){
+    try{
+      var tipo=selTipo.value;
+      var nombre=(document.getElementById('dextf-nom').value||'').trim();
+      var codigoPublicacion=(document.getElementById('dextf-codpub').value||'').trim();
+      var vigencia=document.getElementById('dextf-vig').value||'';
+      var estado=document.getElementById('dextf-estado').value||'Vigente';
+
+      if(!tipo){ toast('Selecciona el tipo de documento','er'); return; }
+      if(!nombre){ toast('El nombre es obligatorio','er'); return; }
+
+      if(d){
+        var idx=docsExternos.findIndex(function(x){return x.id===d.id;});
+        if(idx>=0){
+          docsExternos[idx].nombre=nombre;
+          docsExternos[idx].codigoPublicacion=codigoPublicacion;
+          docsExternos[idx].vigencia=vigencia;
+          docsExternos[idx].estado=estado;
+        }
+      } else {
+        var n=docExtSiguienteConsecutivo(tipo);
+        var codigo='EXT-'+tipo+'-'+String(n).padStart(4,'0');
+        while(docsExternos.some(function(x){return String(x.codigo||'').toUpperCase()===codigo;})){
+          n++; codigo='EXT-'+tipo+'-'+String(n).padStart(4,'0');
+        }
+        docsExternos.push({id:Date.now(), codigo:codigo, codigoPublicacion:codigoPublicacion, nombre:nombre, vigencia:vigencia, estado:estado});
+        logA(window.currentUser?currentUser.nombre:'Usuario','Creacion','Documento Externo: '+codigo+' — '+nombre,undefined,'docext');
+      }
+      saveArr('dext',docsExternos); // dispara odGuardarDocExternos() automáticamente
+      toast('Documento externo guardado','ok');
+      _dextCerrarFormulario();
+      renderDocExt();
+    }catch(e){
+      console.error('[DocExt] Error guardando:',e);
+      toast('⚠️ Error guardando: '+e.message,'er');
+    }
+  });
+}
+
+function openNewDocExt(){
+  console.log('[DocExt] openNewDocExt() invocado');
+  try{
+    _dextAbrirFormulario(null);
+  }catch(e){
+    console.error('[DocExt] Error en openNewDocExt:',e);
+    toast('⚠️ Error abriendo el formulario: '+e.message,'er');
+  }
+}
+
+function editDocExt(id){
+  try{
+    var d=docsExternos.find(function(x){return x.id===id;});
+    if(!d){ toast('Registro no encontrado','er'); return; }
+    _dextAbrirFormulario(d);
+  }catch(e){
+    console.error('[DocExt] Error en editDocExt:',e);
+    toast('⚠️ Error abriendo el formulario: '+e.message,'er');
+  }
+}
+
+function delDocExt(id){
+  var d=docsExternos.find(function(x){return x.id===id;});
+  var desc=d?(d.codigo+' — '+d.nombre):('ID '+id);
+  moDelPedir('Eliminar documento externo', desc, function(just){
+    docsExternos=docsExternos.filter(function(x){return x.id!==id;});
+    saveArr('dext',docsExternos);
+    logA(window.currentUser?currentUser.nombre:'Admin','Eliminacion','Documento Externo: '+desc+' | Justificación: '+just,undefined,'docext');
+    toast('Eliminado','if');
+    renderDocExt();
+  });
+}
+
+function renderDocExt(){
+  var tb=document.getElementById('dext-tb');
+  if(!tb) return;
+  var fEstado=(document.getElementById('dext-f-estado')||{}).value||'';
+  var q=((document.getElementById('dext-f-q')||{}).value||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var lista=(docsExternos||[]).filter(function(d){
+    if(fEstado && d.estado!==fEstado) return false;
+    if(q){
+      var cod=String(d.codigo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      var nom=String(d.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      var codPub=String(d.codigoPublicacion||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if(cod.indexOf(q)<0 && nom.indexOf(q)<0 && codPub.indexOf(q)<0) return false;
+    }
+    return true;
+  }).slice().sort(function(a,b){return String(a.codigo||'').localeCompare(String(b.codigo||''));});
+
+  tb.innerHTML=lista.length?lista.map(function(d){
+    var obs=d.estado==='Obsoleto';
+    return '<tr>'
+      +'<td><strong>'+(d.codigo||'')+'</strong></td>'
+      +'<td>'+(d.codigoPublicacion||'—')+'</td>'
+      +'<td>'+(d.nombre||'')+'</td>'
+      +'<td>'+(d.vigencia?fDD(d.vigencia):'—')+'</td>'
+      +'<td><span class="b '+(obs?'r':'g')+'">'+(d.estado||'')+'</span></td>'
+      +'<td style="text-align:right;white-space:nowrap">'
+        +'<button class="btn gh sm" onclick="editDocExt('+d.id+')">✏️</button> '
+        +'<button class="btn gh sm" style="color:var(--R)" onclick="delDocExt('+d.id+')">🗑️</button>'
+      +'</td>'
+    +'</tr>';
+  }).join('') : '<tr><td colspan="6"><div class="emp">Sin documentos externos registrados</div></td></tr>';
+
+  var kt=document.getElementById('dext-k-total'), kv=document.getElementById('dext-k-vig'), ko=document.getElementById('dext-k-obs');
+  if(kt) kt.textContent=(docsExternos||[]).length;
+  if(kv) kv.textContent=(docsExternos||[]).filter(function(d){return d.estado==='Vigente';}).length;
+  if(ko) ko.textContent=(docsExternos||[]).filter(function(d){return d.estado==='Obsoleto';}).length;
+}
+
+// Descarga a Excel EXCLUYENDO los Obsoletos, igual que el resto de
+// descargas de la app (KPIs, Auditores calificados, etc.)
+function descargarDocExt(){
+  var lista=(docsExternos||[]).filter(function(d){return d.estado!=='Obsoleto';})
+    .slice().sort(function(a,b){return String(a.codigo||'').localeCompare(String(b.codigo||''));});
+  var aoa=[['CODIGO','CODIGO DE PUBLICACION','NOMBRE','VIGENCIA','ESTADO']];
+  lista.forEach(function(d){
+    aoa.push([d.codigo||'', d.codigoPublicacion||'', d.nombre||'', d.vigencia?fDD(d.vigencia):'', d.estado||'']);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:16},{wch:20},{wch:50},{wch:14},{wch:12}];
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:4}})};
+  XLSX.utils.book_append_sheet(wb,ws,'Documentos Externos');
+  var fname='Documentos_Externos_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  try{
+    XLSX.writeFile(wb,fname,{cellStyles:true});
+    toast('✅ Excel descargado: '+fname,'ok');
+    logA(window.currentUser?currentUser.nombre:'Sistema','Descarga','Documentos Externos: '+lista.length+' docs (excluye obsoletos)',undefined,'docext');
+  }catch(e){
+    toast('❌ Error al descargar: '+e.message,'er');
+  }
+}
+
+// Guarda docsExternos en "DocumentosExternos.xlsx" dentro de la carpeta
+// compartida (o vía SharePoint). Crea el archivo si todavía no existe —
+// a diferencia del resto de archivos de la app, este es autocontenido y
+// no depende del ciclo de _odDirty/odGuardarListado.
+var _dextGuardando=false, _dextGuardarPendiente=false;
+async function odGuardarDocExternos(){
+  if(!(OD&&OD.carpetaHandle) && !(SP&&SP.activo)) return false; // sin carpeta compartida: solo queda local
+  if(!window.XLSX) return false;
+  if(_dextGuardando){ _dextGuardarPendiente=true; return false; }
+  _dextGuardando=true;
+  try{
+    var aoa=[['CODIGO','CODIGO DE PUBLICACION','NOMBRE','VIGENCIA','ESTADO']];
+    (docsExternos||[]).slice().sort(function(a,b){return String(a.codigo||'').localeCompare(String(b.codigo||''));}).forEach(function(d){
+      aoa.push([d.codigo||'', d.codigoPublicacion||'', d.nombre||'', d.vigencia||'', d.estado||'Vigente']);
+    });
+    var wb=XLSX.utils.book_new();
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:16},{wch:20},{wch:50},{wch:14},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,ws,'Listado Doc Ext');
+
+    var ok=false;
+    if(SP.activo){
+      ok=await spEscribirArchivo(OD_ARCHIVOS.documentosExternos, wb);
+    } else if(OD.carpetaHandle){
+      var fh=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.documentosExternos,{create:true});
+      var perm;
+      if(window.location.protocol==='file:'){ perm='granted'; }
+      else {
+        perm=await fh.queryPermission({mode:'readwrite'});
+        if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
+      }
+      if(perm!=='granted'){
+        console.warn('Sin permiso escritura en '+OD_ARCHIVOS.documentosExternos);
+        ok=false;
+      } else {
+        if(typeof _saneaCeldasLargasWB==='function') _saneaCeldasLargasWB(wb);
+        var bufW=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+        var wr=await fh.createWritable({keepExistingData:false});
+        await wr.write(new Uint8Array(bufW));
+        await wr.close();
+        console.log('[OD] Guardado OK: '+OD_ARCHIVOS.documentosExternos);
+        ok=true;
+      }
+    }
+    return ok;
+  }catch(e){
+    console.error('[OD] Error guardando Documentos Externos:',e.message);
+    toast('⚠️ Error guardando Documentos Externos: '+e.message,'er');
+    return false;
+  }finally{
+    _dextGuardando=false;
+    if(_dextGuardarPendiente){ _dextGuardarPendiente=false; setTimeout(odGuardarDocExternos,300); }
+  }
+}
+
+// Carga docsExternos desde "DocumentosExternos.xlsx" (si ya existe) al
+// conectar la carpeta compartida. Si el archivo aún no existe, se crea
+// automáticamente al guardar el primer registro — no bloquea el login.
+async function odCargarDocExternos(){
+  try{
+    var data=await odLeerArchivo(OD_ARCHIVOS.documentosExternos);
+    if(!data){
+      console.log('[OD] '+OD_ARCHIVOS.documentosExternos+' aún no existe — se creará al guardar el primer registro');
+      return;
+    }
+    var wb=XLSX.read(data.buf,{type:'array',cellDates:false,raw:false});
+    console.log('[OD] '+OD_ARCHIVOS.documentosExternos+' — hojas encontradas:',wb.SheetNames);
+    var hoja=odBuscarHoja(wb,['Listado Doc Ext','ListadoDocExt','Documentos_Externos','Documentos Externos','DocumentosExternos']);
+    var ws=hoja?hoja.ws:wb.Sheets[wb.SheetNames[0]];
+    if(hoja) console.log('[OD] Hoja usada para Documentos Externos: "'+hoja.nombre+'"');
+    else console.warn('[OD] No se encontró una hoja "Listado Doc Ext" — usando la primera hoja del libro: "'+wb.SheetNames[0]+'"');
+    if(!ws) return;
+    var filas=XLSX.utils.sheet_to_json(ws,{defval:''});
+    // Normaliza un encabezado: minúsculas, sin tildes, sin espacios/guiones
+    function _normEnc(s){
+      return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s_\-]/g,'');
+    }
+    // Busca el valor de una fila probando varios nombres de encabezado posibles
+    function _val(f,candidatos){
+      var keys=Object.keys(f);
+      for(var i=0;i<candidatos.length;i++){
+        var target=_normEnc(candidatos[i]);
+        for(var j=0;j<keys.length;j++){
+          if(_normEnc(keys[j])===target) return f[keys[j]];
+        }
+      }
+      return '';
+    }
+    var lista=[];
+    filas.forEach(function(f){
+      var codigo=String(_val(f,['CODIGO','Código','Code'])||'').trim();
+      if(!codigo) return;
+      lista.push({
+        id: Date.now()+lista.length,
+        codigo: codigo.toUpperCase(),
+        codigoPublicacion: String(_val(f,['CODIGO DE PUBLICACION','Código de Publicación','CODIGO PUBLICACION','Publication Code'])||'').trim(),
+        nombre: String(_val(f,['NOMBRE','Name'])||'').trim(),
+        vigencia: String(_val(f,['VIGENCIA','Vigency'])||'').trim(),
+        estado: String(_val(f,['ESTADO','Status'])||'Vigente').trim()||'Vigente'
+      });
+    });
+    if(filas.length && !lista.length){
+      console.warn('[OD] La hoja tiene '+filas.length+' fila(s) pero ninguna con columna CODIGO reconocible. Encabezados detectados:',Object.keys(filas[0]||{}));
+    }
+    docsExternos=lista;
+    try{lsSet('sg_dext',JSON.stringify(docsExternos));}catch(eLS){}
+    console.log('[OD] '+docsExternos.length+' documentos externos cargados desde Excel');
+    if(typeof renderDocExt==='function') renderDocExt();
+  }catch(e){
+    console.warn('[OD] Error leyendo DocumentosExternos.xlsx:',e.message);
+  }
+}
+
+// ============================================================
+// MÓDULO: HOJAS DE SEGURIDAD
+// Funciona igual que Documentos Externos: formulario dinámico
+// autocontenido, guardado automático en su propio Excel dentro de la
+// carpeta compartida ("HojasDeSeguridad.xlsx", hoja "Hojas De Seguridad").
+// Campos: Código PT, Descripción, Código Granel, Descripción Granel.
+// ============================================================
+
+function _hsegCerrarFormulario(){
+  var ov=document.getElementById('hseg-form-overlay');
+  if(ov && ov.parentNode) ov.parentNode.removeChild(ov);
+}
+
+function _hsegAbrirFormulario(existente){
+  console.log('[HSeg] Abriendo formulario dinámico. Editando:',existente?existente.codigoPT:'(nuevo)');
+  _hsegCerrarFormulario();
+
+  var d=existente||null;
+
+  var ov=document.createElement('div');
+  ov.id='hseg-form-overlay';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;'
+    +'background:rgba(8,32,28,.58);z-index:2147483000;display:flex;align-items:center;'
+    +'justify-content:center;padding:14px;box-sizing:border-box;';
+  ov.addEventListener('click',function(e){ if(e.target===ov) _hsegCerrarFormulario(); });
+
+  var box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:14px;padding:22px;width:100%;max-width:460px;'
+    +'max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.3);'
+    +'font-family:Inter,Arial,sans-serif;box-sizing:border-box;';
+  box.addEventListener('click',function(e){ e.stopPropagation(); });
+
+  var lbl='font-size:10px;color:#7a9a94;font-weight:700;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:4px;';
+  var inp='width:100%;padding:8px 10px;border:1px solid #d5e5e2;border-radius:6px;font-size:13px;background:#f4faf9;color:#0a2828;box-sizing:border-box;font-family:inherit;';
+
+  box.innerHTML=
+     '<button type="button" id="hsegf-x" style="position:absolute;top:13px;right:13px;background:#f0f0f0;border:1px solid #ddd;color:#888;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:13px;line-height:1">X</button>'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:16px;color:#0a2828">'+(d?'Editar hoja de seguridad':'Nueva hoja de seguridad')+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:12px">'
+      +'<div>'
+        +'<label style="'+lbl+'">Código PT *</label>'
+        +'<input id="hsegf-codpt" placeholder="Código de Producto Terminado" style="'+inp+'">'
+      +'</div>'
+      +'<div>'
+        +'<label style="'+lbl+'">Descripción</label>'
+        +'<input id="hsegf-desc" placeholder="Descripción del Producto Terminado" style="'+inp+'">'
+      +'</div>'
+      +'<div>'
+        +'<label style="'+lbl+'">Código Granel</label>'
+        +'<input id="hsegf-codgr" placeholder="Código a Granel" style="'+inp+'">'
+      +'</div>'
+      +'<div>'
+        +'<label style="'+lbl+'">Descripción Granel</label>'
+        +'<input id="hsegf-descgr" placeholder="Descripción a Granel" style="'+inp+'">'
+      +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">'
+      +'<button type="button" id="hsegf-cancel" style="padding:8px 14px;border-radius:8px;border:1px solid #d5e5e2;background:#fff;color:#4a6a64;font-size:12px;cursor:pointer;font-weight:600">Cancelar</button>'
+      +'<button type="button" id="hsegf-save" style="padding:8px 18px;border-radius:8px;border:none;background:#0a8a6e;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Guardar</button>'
+    +'</div>';
+
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+
+  document.getElementById('hsegf-x').addEventListener('click',_hsegCerrarFormulario);
+  document.getElementById('hsegf-cancel').addEventListener('click',_hsegCerrarFormulario);
+
+  if(d){
+    document.getElementById('hsegf-codpt').value=d.codigoPT||'';
+    document.getElementById('hsegf-desc').value=d.descripcion||'';
+    document.getElementById('hsegf-codgr').value=d.codigoGranel||'';
+    document.getElementById('hsegf-descgr').value=d.descripcionGranel||'';
+  }
+
+  document.getElementById('hsegf-save').addEventListener('click',function(){
+    try{
+      var codigoPT=(document.getElementById('hsegf-codpt').value||'').trim();
+      var descripcion=(document.getElementById('hsegf-desc').value||'').trim();
+      var codigoGranel=(document.getElementById('hsegf-codgr').value||'').trim();
+      var descripcionGranel=(document.getElementById('hsegf-descgr').value||'').trim();
+
+      if(!codigoPT){ toast('El código PT es obligatorio','er'); return; }
+
+      if(d){
+        var idx=hojasSeguridad.findIndex(function(x){return x.id===d.id;});
+        if(idx>=0){
+          hojasSeguridad[idx].codigoPT=codigoPT;
+          hojasSeguridad[idx].descripcion=descripcion;
+          hojasSeguridad[idx].codigoGranel=codigoGranel;
+          hojasSeguridad[idx].descripcionGranel=descripcionGranel;
+        }
+      } else {
+        hojasSeguridad.push({id:Date.now(), codigoPT:codigoPT, descripcion:descripcion, codigoGranel:codigoGranel, descripcionGranel:descripcionGranel});
+        logA(window.currentUser?currentUser.nombre:'Usuario','Creacion','Hoja de Seguridad: '+codigoPT,undefined,'hseg');
+      }
+      saveArr('hseg',hojasSeguridad); // dispara odGuardarHojasSeguridad() automáticamente
+      toast('Hoja de seguridad guardada','ok');
+      _hsegCerrarFormulario();
+      renderHojasSeg();
+    }catch(e){
+      console.error('[HSeg] Error guardando:',e);
+      toast('⚠️ Error guardando: '+e.message,'er');
+    }
+  });
+}
+
+function openNewHojaSeg(){
+  console.log('[HSeg] openNewHojaSeg() invocado');
+  try{
+    _hsegAbrirFormulario(null);
+  }catch(e){
+    console.error('[HSeg] Error en openNewHojaSeg:',e);
+    toast('⚠️ Error abriendo el formulario: '+e.message,'er');
+  }
+}
+
+function editHojaSeg(id){
+  try{
+    var d=hojasSeguridad.find(function(x){return x.id===id;});
+    if(!d){ toast('Registro no encontrado','er'); return; }
+    _hsegAbrirFormulario(d);
+  }catch(e){
+    console.error('[HSeg] Error en editHojaSeg:',e);
+    toast('⚠️ Error abriendo el formulario: '+e.message,'er');
+  }
+}
+
+function delHojaSeg(id){
+  var d=hojasSeguridad.find(function(x){return x.id===id;});
+  var desc=d?(d.codigoPT+(d.descripcion?' — '+d.descripcion:'')):('ID '+id);
+  moDelPedir('Eliminar hoja de seguridad', desc, function(just){
+    hojasSeguridad=hojasSeguridad.filter(function(x){return x.id!==id;});
+    saveArr('hseg',hojasSeguridad);
+    logA(window.currentUser?currentUser.nombre:'Admin','Eliminacion','Hoja de Seguridad: '+desc+' | Justificación: '+just,undefined,'hseg');
+    toast('Eliminado','if');
+    renderHojasSeg();
+  });
+}
+
+function renderHojasSeg(){
+  var tb=document.getElementById('hseg-tb');
+  if(!tb) return;
+  var q=((document.getElementById('hseg-f-q')||{}).value||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var lista=(hojasSeguridad||[]).filter(function(d){
+    if(!q) return true;
+    var campos=[d.codigoPT,d.descripcion,d.codigoGranel,d.descripcionGranel].map(function(v){
+      return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    });
+    return campos.some(function(c){return c.indexOf(q)>=0;});
+  }).slice().sort(function(a,b){return String(a.codigoPT||'').localeCompare(String(b.codigoPT||''));});
+
+  tb.innerHTML=lista.length?lista.map(function(d){
+    return '<tr>'
+      +'<td><strong>'+(d.codigoPT||'')+'</strong></td>'
+      +'<td>'+(d.descripcion||'—')+'</td>'
+      +'<td>'+(d.codigoGranel||'—')+'</td>'
+      +'<td>'+(d.descripcionGranel||'—')+'</td>'
+      +'<td style="text-align:right;white-space:nowrap">'
+        +'<button class="btn gh sm" onclick="editHojaSeg('+d.id+')">✏️</button> '
+        +'<button class="btn gh sm" style="color:var(--R)" onclick="delHojaSeg('+d.id+')">🗑️</button>'
+      +'</td>'
+    +'</tr>';
+  }).join('') : '<tr><td colspan="5"><div class="emp">Sin hojas de seguridad registradas</div></td></tr>';
+
+  var kt=document.getElementById('hseg-k-total');
+  if(kt) kt.textContent=(hojasSeguridad||[]).length;
+}
+
+function descargarHojasSeg(){
+  var lista=(hojasSeguridad||[]).slice().sort(function(a,b){return String(a.codigoPT||'').localeCompare(String(b.codigoPT||''));});
+  var aoa=[['CODIGO PT','DESCRIPCION','CODIGO GRANEL','DESCRIPCION_GRANEL']];
+  lista.forEach(function(d){
+    aoa.push([d.codigoPT||'', d.descripcion||'', d.codigoGranel||'', d.descripcionGranel||'']);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:16},{wch:40},{wch:16},{wch:40}];
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:0,c:3}})};
+  XLSX.utils.book_append_sheet(wb,ws,'Hojas De Seguridad');
+  var fname='Hojas_De_Seguridad_'+new Date().toISOString().slice(0,10)+'.xlsx';
+  try{
+    XLSX.writeFile(wb,fname,{cellStyles:true});
+    toast('✅ Excel descargado: '+fname,'ok');
+    logA(window.currentUser?currentUser.nombre:'Sistema','Descarga','Hojas de Seguridad: '+lista.length+' registros',undefined,'hseg');
+  }catch(e){
+    toast('❌ Error al descargar: '+e.message,'er');
+  }
+}
+
+// Guarda hojasSeguridad en "HojasDeSeguridad.xlsx" dentro de la carpeta
+// compartida (o vía SharePoint). Crea el archivo si todavía no existe.
+var _hsegGuardando=false, _hsegGuardarPendiente=false;
+async function odGuardarHojasSeguridad(){
+  if(!(OD&&OD.carpetaHandle) && !(SP&&SP.activo)) return false;
+  if(!window.XLSX) return false;
+  if(_hsegGuardando){ _hsegGuardarPendiente=true; return false; }
+  _hsegGuardando=true;
+  try{
+    var aoa=[['CODIGO PT','DESCRIPCION','CODIGO GRANEL','DESCRIPCION_GRANEL']];
+    (hojasSeguridad||[]).slice().sort(function(a,b){return String(a.codigoPT||'').localeCompare(String(b.codigoPT||''));}).forEach(function(d){
+      aoa.push([d.codigoPT||'', d.descripcion||'', d.codigoGranel||'', d.descripcionGranel||'']);
+    });
+    var wb=XLSX.utils.book_new();
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:16},{wch:40},{wch:16},{wch:40}];
+    XLSX.utils.book_append_sheet(wb,ws,'Hojas De Seguridad');
+
+    var ok=false;
+    if(SP.activo){
+      ok=await spEscribirArchivo(OD_ARCHIVOS.hojasSeguridad, wb);
+    } else if(OD.carpetaHandle){
+      var fh=await OD.carpetaHandle.getFileHandle(OD_ARCHIVOS.hojasSeguridad,{create:true});
+      var perm;
+      if(window.location.protocol==='file:'){ perm='granted'; }
+      else {
+        perm=await fh.queryPermission({mode:'readwrite'});
+        if(perm!=='granted') perm=await fh.requestPermission({mode:'readwrite'});
+      }
+      if(perm!=='granted'){
+        console.warn('Sin permiso escritura en '+OD_ARCHIVOS.hojasSeguridad);
+        ok=false;
+      } else {
+        if(typeof _saneaCeldasLargasWB==='function') _saneaCeldasLargasWB(wb);
+        var bufW=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+        var wr=await fh.createWritable({keepExistingData:false});
+        await wr.write(new Uint8Array(bufW));
+        await wr.close();
+        console.log('[OD] Guardado OK: '+OD_ARCHIVOS.hojasSeguridad);
+        ok=true;
+      }
+    }
+    return ok;
+  }catch(e){
+    console.error('[OD] Error guardando Hojas de Seguridad:',e.message);
+    toast('⚠️ Error guardando Hojas de Seguridad: '+e.message,'er');
+    return false;
+  }finally{
+    _hsegGuardando=false;
+    if(_hsegGuardarPendiente){ _hsegGuardarPendiente=false; setTimeout(odGuardarHojasSeguridad,300); }
+  }
+}
+
+// Carga hojasSeguridad desde "HojasDeSeguridad.xlsx" (si ya existe) al
+// conectar la carpeta compartida.
+async function odCargarHojasSeguridad(){
+  try{
+    var data=await odLeerArchivo(OD_ARCHIVOS.hojasSeguridad);
+    if(!data){
+      console.log('[OD] '+OD_ARCHIVOS.hojasSeguridad+' aún no existe — se creará al guardar el primer registro');
+      return;
+    }
+    var wb=XLSX.read(data.buf,{type:'array',cellDates:false,raw:false});
+    console.log('[OD] '+OD_ARCHIVOS.hojasSeguridad+' — hojas encontradas:',wb.SheetNames);
+    var hoja=odBuscarHoja(wb,['Hojas De Seguridad','HojasDeSeguridad','Hojas_De_Seguridad']);
+    var ws=hoja?hoja.ws:wb.Sheets[wb.SheetNames[0]];
+    if(hoja) console.log('[OD] Hoja usada para Hojas de Seguridad: "'+hoja.nombre+'"');
+    else console.warn('[OD] No se encontró una hoja "Hojas De Seguridad" — usando la primera hoja del libro: "'+wb.SheetNames[0]+'"');
+    if(!ws) return;
+    var filas=XLSX.utils.sheet_to_json(ws,{defval:''});
+    function _normEnc(s){
+      return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s_\-]/g,'');
+    }
+    function _val(f,candidatos){
+      var keys=Object.keys(f);
+      for(var i=0;i<candidatos.length;i++){
+        var target=_normEnc(candidatos[i]);
+        for(var j=0;j<keys.length;j++){
+          if(_normEnc(keys[j])===target) return f[keys[j]];
+        }
+      }
+      return '';
+    }
+    var lista=[];
+    filas.forEach(function(f){
+      var codigoPT=String(_val(f,['CODIGO PT','Codigo PT','CODIGO_PT'])||'').trim();
+      if(!codigoPT) return;
+      lista.push({
+        id: Date.now()+lista.length,
+        codigoPT: codigoPT,
+        descripcion: String(_val(f,['DESCRIPCION','Descripción'])||'').trim(),
+        codigoGranel: String(_val(f,['CODIGO GRANEL','Codigo Granel','CODIGO_GRANEL'])||'').trim(),
+        descripcionGranel: String(_val(f,['DESCRIPCION_GRANEL','DESCRIPCION GRANEL','Descripción Granel'])||'').trim()
+      });
+    });
+    if(filas.length && !lista.length){
+      console.warn('[OD] La hoja tiene '+filas.length+' fila(s) pero ninguna con columna CODIGO PT reconocible. Encabezados detectados:',Object.keys(filas[0]||{}));
+    }
+    hojasSeguridad=lista;
+    try{lsSet('sg_hseg',JSON.stringify(hojasSeguridad));}catch(eLS){}
+    console.log('[OD] '+hojasSeguridad.length+' hojas de seguridad cargadas desde Excel');
+    if(typeof renderHojasSeg==='function') renderHojasSeg();
+  }catch(e){
+    console.warn('[OD] Error leyendo HojasDeSeguridad.xlsx:',e.message);
+  }
+}
+
+
 //  TABLA PROGRAMA — CLIC EN CELDA 
 function tablaProgramaClick(enc){
   var parts=enc.split('|');
@@ -18215,7 +19009,7 @@ var currentUser=null;
 function _odAutosaveHabilitado(){
   return !!(currentUser && String(currentUser.rol||'').trim()==='Administrador');
 }
-var MODULOS_TODOS=['dash','docs','venc','flujos','copias','entregacc','docsrel','insp','procs','usrs','notif','audit','rep','cfg','extvigor','marobs','fextvig','pdfbarcode','revdoc','validacion','rutabor','novedad','correos','solpend'];
+var MODULOS_TODOS=['dash','docs','venc','flujos','copias','entregacc','docsrel','insp','procs','usrs','notif','audit','rep','cfg','extvigor','marobs','fextvig','pdfbarcode','revdoc','validacion','rutabor','novedad','correos','solpend','docext','hseg'];
 
 
 function showLogin(){
@@ -18784,7 +19578,9 @@ var OD_ARCHIVOS = {
   colaboradores:'Colaboradores.xlsx',
   actividades:  'Actividadesdeldia.xlsx',
   bloqueos:     'BloqueosModulos.json',
-  solicitudesWeb:'SolicitudesWeb.xlsx'
+  solicitudesWeb:'SolicitudesWeb.xlsx',
+  documentosExternos: 'DocumentosExternos.xlsx',
+  hojasSeguridad: 'HojasDeSeguridad.xlsx'
 };
 
 // ── MODO SHAREPOINT ───────────────────────────────────────────────────────────
@@ -21290,6 +22086,16 @@ async function odCargarListado(){
     // reutilizarla también desde el botón manual de Configuración.
     await odRecargarColaboradores(wb);
 
+    // Leer DocumentosExternos.xlsx (archivo propio, opcional — se crea
+    // automáticamente al guardar el primer registro si aún no existe)
+    if(OD.carpetaHandle||SP.activo){
+      try{ await odCargarDocExternos(); }
+      catch(eDext){ console.warn('OD: error leyendo DocumentosExternos.xlsx:',eDext.message); }
+      try{ await odCargarHojasSeguridad(); }
+      catch(eHseg){ console.warn('OD: error leyendo HojasDeSeguridad.xlsx:',eHseg.message); }
+    }
+
+
 
     // Leer hoja Codigo_Doc_Nuevos (col A=tipo, B=prefijo/consecutivo, C=corporativo?)
     try{
@@ -22332,6 +23138,8 @@ function odIniciarSyncAuto(){
   if(window._colabRefreshTimer) clearInterval(window._colabRefreshTimer);
   window._colabRefreshTimer=setInterval(function(){
     if(typeof odRecargarColaboradores==='function') odRecargarColaboradores(null);
+    if(typeof odCargarDocExternos==='function' && !_dextGuardando) odCargarDocExternos();
+    if(typeof odCargarHojasSeguridad==='function' && !_hsegGuardando) odCargarHojasSeguridad();
   },1800000); // cada 30 minutos
   if(window._nfConsolidadoTimer) clearInterval(window._nfConsolidadoTimer);
   window._nfConsolidadoTimer=setInterval(function(){
@@ -27801,6 +28609,19 @@ document.addEventListener('DOMContentLoaded',function(){
     var el=document.getElementById(id);
     if(el) el.addEventListener('input',rlVerificarListo);
   });
+  // Enganche redundante del botón "+ Nuevo" de Documentos Externos, además
+  // del onclick inline — por si algún bloqueador/política del navegador
+  // interfiere con atributos onclick en línea, esto garantiza que el botón
+  // funcione de todas formas.
+  var _btnDext=document.getElementById('dext-btn-nuevo');
+  if(_btnDext){
+    _btnDext.addEventListener('click',function(ev){
+      console.log('[DocExt] listener redundante disparado');
+      if(typeof openNewDocExt==='function') openNewDocExt();
+    });
+  } else {
+    console.warn('[DocExt] No se encontró #dext-btn-nuevo en el DOM al cargar la página');
+  }
 });
 
 // ============================================================
